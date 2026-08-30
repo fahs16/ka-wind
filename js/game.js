@@ -7,7 +7,8 @@ const Game = {
   player: { x: T(28), y: T(38), dir: 'up', frame: 0, anim: 0 },
   cam: { x: 0, y: 0 },
   keys: {}, touch: { x: 0, y: 0, active: false },
-  t: 0, last: 0, running: false,
+  t: 0, last: 0, running: false, chatOpen: false,
+  myChat: '', myChatUntil: 0, myEmote: '', myEmoteUntil: 0,
   visited: [], near: null, cooldown: 0,
   confetti: [], ended: false,
 
@@ -20,6 +21,8 @@ const Game = {
     Modal.init();
     Toast.init();
     this.visited = Store.progress.get() || [];
+    Net.init();
+    if (Net.active()) document.body.classList.add('net-on');
     this.bindInput();
     this.bindPanels();
     this.resize();
@@ -46,7 +49,10 @@ const Game = {
   bindInput() {
     const move = ['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd'];
     window.addEventListener('keydown', e => {
+      if (this.chatOpen) return;              // biarkan kolom chat menerima ketikan
       const k = e.key.toLowerCase();
+      if (k === 't' && Net.active() && Net.ready) { e.preventDefault(); this.openChat(); return; }
+      if (k >= '1' && k <= '4') this.doEmote(Net.EMOTES[+k - 1]);
       if (move.indexOf(k) >= 0 || k === ' ') e.preventDefault();
       this.keys[k] = true;
       if (k === 'e' || k === ' ' || k === 'enter') this.pressAction();
@@ -81,6 +87,19 @@ const Game = {
     stick.addEventListener('pointerup', end);
     stick.addEventListener('pointercancel', end);
     document.getElementById('btn-a').addEventListener('pointerdown', e => { e.preventDefault(); this.pressAction(); });
+
+    document.querySelectorAll('#emotes .em').forEach(b => {
+      b.addEventListener('click', () => this.doEmote(b.getAttribute('data-emote')));
+    });
+    document.getElementById('btn-chat').addEventListener('click', () => this.openChat());
+    document.getElementById('chat-close').addEventListener('click', () => this.closeChat());
+    document.getElementById('chatbar').addEventListener('submit', e => {
+      e.preventDefault();
+      this.sendChat();
+    });
+    document.getElementById('chat-input').addEventListener('keydown', e => {
+      if (e.key === 'Escape') { e.preventDefault(); this.closeChat(); }
+    });
 
     document.getElementById('btn-music').onclick = () => this.toggleMusic();
     document.getElementById('btn-help').onclick = () => {
@@ -120,7 +139,7 @@ const Game = {
     setTimeout(() => Actions.gate(), 450);
   },
 
-  blocked() { return Dialogue.open || Modal.open; },
+  blocked() { return Dialogue.open || Modal.open || this.chatOpen; },
 
   syncControls() {
     document.body.classList.toggle('talking', Dialogue.open || Modal.open);
@@ -136,6 +155,41 @@ const Game = {
   run(id) {
     const fn = Actions[id];
     if (fn) { Chip.open(); fn(); }
+  },
+
+  /* ---------- Sosial ---------- */
+  openChat() {
+    if (!Net.active() || !Net.ready) { Toast.show('Mode online belum tersambung', 1600); return; }
+    this.chatOpen = true;
+    const bar = document.getElementById('chatbar');
+    bar.classList.remove('hidden');
+    document.getElementById('chat-input').focus();
+  },
+
+  closeChat() {
+    this.chatOpen = false;
+    document.getElementById('chatbar').classList.add('hidden');
+    document.getElementById('chat-input').blur();
+    this.keys = {};
+  },
+
+  sendChat() {
+    const input = document.getElementById('chat-input');
+    const res = Net.chat(input.value);
+    if (!res || !res.ok) { Toast.show((res && res.msg) || 'Pesan gagal dikirim', 2200); return; }
+    this.myChat = res.text;
+    this.myChatUntil = performance.now() + 6000;
+    input.value = '';
+    this.closeChat();
+    Chip.blip();
+  },
+
+  doEmote(key) {
+    if (!key || !Net.active() || !Net.ready) return;
+    if (!Net.emote(key)) return;
+    this.myEmote = key;
+    this.myEmoteUntil = performance.now() + 1400;
+    Chip.blip();
   },
 
   /* ---------- Misi ---------- */
@@ -182,40 +236,60 @@ const Game = {
 
   /* ---------- RSVP ---------- */
   submitRsvp(form) {
+    const info = Content.guestInfo();
     const data = {
-      nama: form.nama.value.trim(),
+      kode: info.code || '',
+      grup: info.group || '',
+      nama: form.nama.value.trim().slice(0, 60),
       hadir: form.hadir.value,
       jumlah: form.jumlah.value,
-      pesan: form.pesan.value.trim(),
+      pesan: form.pesan.value.trim().slice(0, 400),
       waktu: new Date().toISOString()
     };
     if (!data.nama) return;
     Store.set(data);
     this.markVisited('rsvp');
     Chip.confirm();
+    if (typeof Net !== 'undefined') Net.setName(data.nama);
 
     const c = CONFIG.couple;
     const text = 'Halo ' + c.groom.nick + ' & ' + c.bride.nick + '!%0A' +
       'Nama: ' + encodeURIComponent(data.nama) + '%0A' +
+      (data.kode ? 'Kode: ' + encodeURIComponent(data.kode) + '%0A' : '') +
       'Kehadiran: ' + encodeURIComponent(data.hadir) + '%0A' +
       'Jumlah: ' + encodeURIComponent(data.jumlah) + ' orang%0A' +
       (data.pesan ? 'Ucapan: ' + encodeURIComponent(data.pesan) : '');
     const wa = 'https://wa.me/' + CONFIG.rsvp.whatsapp + '?text=' + text;
 
+    const box = document.getElementById('rsvp-result');
+    const render = (statusHtml) => {
+      box.innerHTML =
+        '<div class="card ok"><div class="card-kicker">TERSIMPAN</div>' +
+        '<div>Makasih, ' + U.esc(data.nama) + '! Jawabanmu sudah kami catat.</div>' +
+        statusHtml +
+        '<div class="btn-row"><a class="btn btn-primary" href="' + wa + '" target="_blank" rel="noopener">Kirim juga via WhatsApp</a></div></div>';
+    };
+
     if (CONFIG.rsvp.endpoint) {
-      try {
-        fetch(CONFIG.rsvp.endpoint, {
-          method: 'POST', mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        }).catch(() => {});
-      } catch (e) {}
+      render('<div class="sync muted">Menyinkronkan ke buku tamu...</div>');
+      // text/plain = permintaan sederhana, jadi tidak kena preflight CORS-nya Apps Script
+      fetch(CONFIG.rsvp.endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(data)
+      })
+        .then(r => r.json())
+        .then(j => {
+          if (j && j.ok) render('<div class="sync ok-text">&#10003; Tersimpan di buku tamu ' + c.groom.nick + ' &amp; ' + c.bride.nick + '.</div>');
+          else throw new Error((j && j.error) || 'gagal');
+        })
+        .catch(() => {
+          render('<div class="sync warn-text">Koneksi ke buku tamu gagal. Jawabanmu tersimpan di HP ini &mdash; tolong kirim juga lewat tombol WhatsApp di bawah ya.</div>');
+        });
+    } else {
+      render('');
     }
 
-    document.getElementById('rsvp-result').innerHTML =
-      '<div class="card ok"><div class="card-kicker">TERSIMPAN</div>' +
-      '<div>Makasih, ' + U.esc(data.nama) + '! Jawabanmu sudah kami catat.</div>' +
-      '<div class="btn-row"><a class="btn btn-primary" href="' + wa + '" target="_blank" rel="noopener">Kirim juga via WhatsApp</a></div></div>';
     this.burst(24);
     const res = document.getElementById('rsvp-result');
     if (res && res.scrollIntoView) res.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
@@ -277,6 +351,15 @@ const Game = {
       }
     }
 
+    // realtime
+    if (Net.active()) {
+      Net.update(dt);
+      Net.tick(performance.now(), p);
+    }
+    const nowMs = performance.now();
+    if (this.myChat && nowMs > this.myChatUntil) this.myChat = '';
+    if (this.myEmote && nowMs > this.myEmoteUntil) this.myEmote = '';
+
     // confetti
     for (let i = this.confetti.length - 1; i >= 0; i--) {
       const c2 = this.confetti[i];
@@ -315,6 +398,7 @@ const Game = {
     for (const o of World.objects) list.push({ base: o.base, kind: 'obj', ref: o });
     for (const d of World.decos) list.push({ base: d.base, kind: 'deco', ref: d });
     for (const n of World.npcs) list.push({ base: n.y, kind: 'npc', ref: n });
+    if (Net.active()) for (const q of Net.list()) list.push({ base: q.y, kind: 'peer', ref: q });
     list.push({ base: this.player.y, kind: 'player', ref: this.player });
     list.sort((a, b) => a.base - b.base);
 
@@ -344,10 +428,19 @@ const Game = {
           U.px(g, r.x - 3, r.y - 9, 2, 2, C.rose); // bunga di saku jas
           U.px(g, r.x - 1, r.y - 5, 4, 1, C.gold);
         }
+      } else if (it.kind === 'peer') {
+        this.drawPeer(g, r);
       } else {
         Sprites.shadow(g, r.x, r.y, 12);
         Sprites.drawChar(g, 'tamu', r.dir, r.frame, r.x, r.y);
       }
+    }
+
+    // balon chat & emote milik sendiri
+    if (this.myChat) this.drawBubble(g, this.player.x, this.player.y - 20, this.myChat);
+    if (this.myEmote) {
+      this.drawEmote(g, this.player.x, this.player.y - 24, this.myEmote,
+        (this.myEmoteUntil - performance.now()) / 1400);
     }
 
     // penanda misi di atas tiap titik
@@ -403,6 +496,93 @@ const Game = {
     grd.addColorStop(1, 'rgba(20,12,24,0.35)');
     g.fillStyle = grd;
     g.fillRect(0, 0, this.w, this.h);
+  },
+
+  /* ---------- Tamu lain (realtime) ---------- */
+  drawPeer(g, p) {
+    Sprites.shadow(g, p.x, p.y, 12);
+    Sprites.drawChar(g, p.pal, p.dir, p.frame, p.x, p.y);
+    let top = p.y - 19;
+    if (p.name) { this.drawTag(g, p.x, top - 9, p.name); top -= 11; }
+    if (p.chat) top = this.drawBubble(g, p.x, top - 1, p.chat);
+    if (p.emote) this.drawEmote(g, p.x, top - 12, p.emote, (p.emoteUntil - performance.now()) / 1400);
+  },
+
+  drawTag(g, cx, y, text) {
+    const w = Font.width(text, 1, 1);
+    const x = Math.round(cx - (w + 8) / 2);
+    U.px(g, x - 1, y - 1, w + 10, 11, C.ink);
+    U.px(g, x, y, w + 8, 9, C.cream);
+    Font.draw(g, text, x + 4, y + 2, C.ink, 1, 1);
+  },
+
+  wrap(text, per) {
+    const words = String(text).split(' ');
+    const lines = [];
+    let cur = '';
+    for (let i = 0; i < words.length; i++) {
+      const w = words[i].slice(0, per);
+      const next = cur ? cur + ' ' + w : w;
+      if (next.length <= per) cur = next;
+      else {
+        lines.push(cur);
+        cur = w;
+        if (lines.length === 3) { cur = ''; break; }
+      }
+    }
+    if (cur && lines.length < 3) lines.push(cur);
+    return lines;
+  },
+
+  drawBubble(g, cx, bottomY, text) {
+    const lines = this.wrap(text, 22);
+    let wmax = 0;
+    lines.forEach(l => { wmax = Math.max(wmax, Font.width(l, 1, 1)); });
+    const bw = wmax + 10, bh = lines.length * 8 + 7;
+    const x = Math.round(cx - bw / 2), y = Math.round(bottomY - bh);
+    U.px(g, x - 1, y - 1, bw + 2, bh + 2, C.ink);
+    U.px(g, x, y, bw, bh, C.cream);
+    lines.forEach((l, i) => Font.draw(g, l, x + 5, y + 4 + i * 8, C.ink, 1, 1));
+    U.px(g, cx - 2, y + bh, 4, 2, C.ink);
+    U.px(g, cx - 1, y + bh + 2, 2, 2, C.ink);
+    return y;
+  },
+
+  drawEmote(g, cx, y, key, prog) {
+    const t = U.clamp(prog, 0, 1);
+    const rise = (1 - t) * 12;
+    const ey = Math.round(y - rise);
+    g.globalAlpha = U.clamp(t * 2.2, 0, 1);
+    if (key === 'love') {
+      U.px(g, cx - 5, ey, 4, 4, C.rose);
+      U.px(g, cx + 1, ey, 4, 4, C.rose);
+      U.px(g, cx - 5, ey + 3, 10, 3, C.rose);
+      U.px(g, cx - 3, ey + 6, 6, 2, C.rose2);
+      U.px(g, cx - 1, ey + 8, 2, 2, C.rose2);
+      U.px(g, cx - 4, ey + 1, 2, 2, '#f7a9bb');
+    } else if (key === 'wave') {
+      U.px(g, cx - 4, ey + 2, 8, 7, '#f2c49b');
+      U.px(g, cx - 4, ey, 2, 4, '#f2c49b');
+      U.px(g, cx - 1, ey - 1, 2, 5, '#f2c49b');
+      U.px(g, cx + 2, ey, 2, 4, '#f2c49b');
+      U.px(g, cx - 5, ey + 9, 10, 2, '#d9a97e');
+      U.px(g, cx + 5, ey + 1, 2, 2, C.gold);
+      U.px(g, cx + 6, ey + 4, 2, 2, C.gold);
+    } else if (key === 'party') {
+      U.px(g, cx - 4, ey + 4, 3, 6, C.gold2);
+      U.px(g, cx - 2, ey + 2, 3, 6, C.gold);
+      U.px(g, cx + 1, ey + 5, 3, 4, C.gold2);
+      [[2, -2, C.rose], [5, 0, C.sky], [3, 3, C.cream], [6, 4, C.leaf3], [0, -4, C.gold]]
+        .forEach(d => U.px(g, cx + d[0], ey + d[1], 2, 2, d[2]));
+    } else {
+      U.px(g, cx - 6, ey + 2, 5, 6, '#f2c49b');
+      U.px(g, cx + 1, ey + 1, 5, 6, '#fbd3ae');
+      U.px(g, cx - 6, ey + 8, 5, 2, '#d9a97e');
+      U.px(g, cx + 1, ey + 7, 5, 2, '#d9a97e');
+      U.px(g, cx - 8, ey, 2, 2, C.gold);
+      U.px(g, cx + 7, ey - 1, 2, 2, C.gold);
+    }
+    g.globalAlpha = 1;
   },
 
   // Penunjuk arah di tepi layar untuk 3 titik terdekat yang belum dikunjungi.

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rekap RSVP</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tools.css">
+</head>
+<body>
+<header class="top">
+  <h1>Rekap Kehadiran</h1>
+  <nav>
+    <a class="btn btn-small" href="index.html">Lihat Undangan</a>
+    <a class="btn btn-small" href="undangan.html">Generator Link</a>
+  </nav>
+</header>
+
+<div class="wrap">
+  <div class="panel">
+    <div class="field">
+      <label>URL Web App Apps Script</label>
+      <input id="ep" placeholder="https://script.google.com/macros/s/.../exec">
+    </div>
+    <div class="field">
+      <label>Token admin</label>
+      <input id="tok" type="password" placeholder="ADMIN_TOKEN dari apps-script.gs">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="load">Muat Data</button>
+      <button class="btn" id="csv">Unduh CSV</button>
+      <button class="btn" id="ringkas">Salin Ringkasan</button>
+      <button class="btn btn-small" id="lupa">Hapus Token dari Browser Ini</button>
+    </div>
+    <div class="note danger">Token disimpan hanya di browser ini (localStorage) dan tidak pernah ikut ter-<i>upload</i> ke repo.
+    Siapa pun yang punya token bisa membaca seluruh daftar tamu, jadi jangan dibagikan di grup.</div>
+  </div>
+
+  <div id="stats" class="stats"></div>
+  <div class="field" id="searchbox" style="display:none">
+    <label>Cari nama / ucapan / grup</label>
+    <input id="q" placeholder="ketik untuk menyaring...">
+  </div>
+  <div id="out"></div>
+  <div id="belum"></div>
+</div>
+
+<div id="toast"></div>
+
+<script src="js/config.js"></script>
+<script src="js/guests.js"></script>
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, m =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+  const K = 'undangan-admin';
+
+  let data = { rows: [], stats: null };
+
+  try {
+    const saved = JSON.parse(localStorage.getItem(K) || '{}');
+    $('ep').value = saved.ep || CONFIG.rsvp.endpoint || '';
+    $('tok').value = saved.tok || '';
+  } catch (e) { $('ep').value = CONFIG.rsvp.endpoint || ''; }
+
+  function toast(msg, ms) {
+    const t = $('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(t._t);
+    t._t = setTimeout(() => t.classList.remove('show'), ms || 2000);
+  }
+
+  function badge(h) {
+    const s = String(h || '').toLowerCase();
+    if (s.indexOf('tidak') === 0) return '<span class="pill no">TIDAK</span>';
+    if (s.indexOf('ragu') >= 0) return '<span class="pill mb">RAGU</span>';
+    return '<span class="pill ya">HADIR</span>';
+  }
+
+  function waktu(iso) {
+    const d = new Date(iso);
+    return isNaN(d) ? '-' : d.toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  }
+
+  function renderStats(s) {
+    $('stats').innerHTML =
+      '<div class="stat hadir"><b>' + s.hadir + '</b><span>undangan menyatakan hadir</span></div>' +
+      '<div class="stat hadir"><b>' + s.orang + '</b><span>perkiraan jumlah orang</span></div>' +
+      '<div class="stat ragu"><b>' + s.ragu + '</b><span>masih ragu</span></div>' +
+      '<div class="stat tidak"><b>' + s.tidak + '</b><span>berhalangan</span></div>' +
+      '<div class="stat"><b>' + s.total + '</b><span>total sudah mengisi</span></div>';
+  }
+
+  function renderRows() {
+    const q = ($('q').value || '').toLowerCase();
+    const rows = data.rows.filter(r =>
+      !q || (r.nama + ' ' + r.pesan + ' ' + r.grup + ' ' + r.kode).toLowerCase().indexOf(q) >= 0);
+
+    if (!rows.length) {
+      $('out').innerHTML = '<div class="panel empty">Belum ada jawaban yang cocok.</div>';
+      return;
+    }
+    const body = rows.map(r =>
+      '<tr>' +
+        '<td class="nowrap">' + waktu(r.waktu) + '</td>' +
+        '<td>' + esc(r.nama) + (r.kode ? '<div class="muted" style="font-size:18px">' + esc(r.kode) + '</div>' : '') + '</td>' +
+        '<td class="nowrap">' + esc(r.grup || '-') + '</td>' +
+        '<td class="nowrap">' + badge(r.hadir) + '</td>' +
+        '<td class="nowrap">' + r.jumlah + '</td>' +
+        '<td>' + (esc(r.pesan) || '<span class="muted">-</span>') + '</td>' +
+      '</tr>').join('');
+
+    $('out').innerHTML =
+      '<div class="table-wrap"><table><thead><tr>' +
+      '<th>Waktu</th><th>Nama</th><th>Grup</th><th>Hadir</th><th>Org</th><th>Ucapan &amp; Doa</th>' +
+      '</tr></thead><tbody>' + body + '</tbody></table></div>';
+  }
+
+  function renderBelum() {
+    if (typeof GUESTS === 'undefined' || !GUESTS.length) { $('belum').innerHTML = ''; return; }
+    const isi = data.rows.map(r => (r.kode || '').toLowerCase()).filter(Boolean);
+    const nama = data.rows.map(r => r.nama.toLowerCase());
+    const belum = GUESTS.filter(g =>
+      isi.indexOf(String(g.code).toLowerCase()) < 0 && nama.indexOf(String(g.name).toLowerCase()) < 0);
+
+    if (!belum.length) {
+      $('belum').innerHTML = '<h2>Semua tamu sudah menjawab</h2>';
+      return;
+    }
+    const base = location.href.replace(/admin\.html.*$/, '');
+    const items = belum.map(g => {
+      const link = base + '?u=' + encodeURIComponent(g.code);
+      const teks = encodeURIComponent('Halo ' + g.name + ', maaf mengingatkan ya. Mohon konfirmasi kehadirannya di undangan kami: ' + link);
+      return '<tr><td>' + esc(g.name) + '</td><td class="nowrap">' + esc(g.group || '-') + '</td>' +
+        '<td class="nowrap">' + (g.wa
+          ? '<a class="btn btn-small btn-primary" target="_blank" rel="noopener" href="https://wa.me/' + esc(g.wa) + '?text=' + teks + '">Ingatkan via WA</a>'
+          : '<span class="muted">nomor WA kosong</span>') + '</td></tr>';
+    }).join('');
+
+    $('belum').innerHTML =
+      '<h2>Belum menjawab (' + belum.length + ' dari ' + GUESTS.length + ')</h2>' +
+      '<div class="table-wrap"><table><thead><tr><th>Nama</th><th>Grup</th><th>Aksi</th></tr></thead>' +
+      '<tbody>' + items + '</tbody></table></div>';
+  }
+
+  function load() {
+    const ep = $('ep').value.trim(), tok = $('tok').value.trim();
+    if (!ep) { toast('URL Apps Script belum diisi'); return; }
+    localStorage.setItem(K, JSON.stringify({ ep: ep, tok: tok }));
+    $('out').innerHTML = '<div class="panel empty">Mengambil data...</div>';
+
+    fetch(ep + (ep.indexOf('?') >= 0 ? '&' : '?') + 'action=list&token=' + encodeURIComponent(tok))
+      .then(r => r.json())
+      .then(j => {
+        if (!j.ok) throw new Error(j.error || 'gagal');
+        data = j;
+        renderStats(j.stats);
+        $('searchbox').style.display = '';
+        renderRows();
+        renderBelum();
+        toast('Data termuat: ' + j.rows.length + " baris");
+      })
+      .catch(err => {
+        $('out').innerHTML = '<div class="panel empty">Gagal memuat data.<br><span class="muted">' +
+          esc(String(err.message || err)) + '</span><br><br>Cek lagi: URL sudah yang berakhiran <code>/exec</code>? ' +
+          'Token sudah sama persis dengan ADMIN_TOKEN? Deployment sudah disetel "Anyone"?</div>';
+      });
+  }
+
+  $('load').onclick = load;
+  $('q').oninput = renderRows;
+  $('lupa').onclick = () => { localStorage.removeItem(K); $('tok').value = ''; toast('Token dihapus dari browser ini'); };
+
+  $('csv').onclick = () => {
+    if (!data.rows.length) { toast('Belum ada data'); return; }
+    const q = v => '"' + String(v).replace(/"/g, '""') + '"';
+    const csv = ['waktu,kode,nama,grup,kehadiran,jumlah,ucapan'].concat(
+      data.rows.map(r => [r.waktu, r.kode, r.nama, r.grup, r.hadir, r.jumlah, r.pesan].map(q).join(','))
+    ).join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'rekap-rsvp.csv';
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 400);
+  };
+
+  $('ringkas').onclick = () => {
+    if (!data.stats) { toast('Belum ada data'); return; }
+    const s = data.stats;
+    const teks = 'Rekap RSVP ' + CONFIG.couple.groom.nick + ' & ' + CONFIG.couple.bride.nick + '\n' +
+      'Sudah mengisi: ' + s.total + ' undangan\n' +
+      'Hadir: ' + s.hadir + ' undangan (~' + s.orang + ' orang)\n' +
+      'Masih ragu: ' + s.ragu + '\nBerhalangan: ' + s.tidak;
+    if (navigator.clipboard) navigator.clipboard.writeText(teks).then(() => toast('Ringkasan tersalin'));
+    else toast(teks);
+  };
+
+  if ($('ep').value && $('tok').value) load();
+})();
+</script>
+</body>
+</html>

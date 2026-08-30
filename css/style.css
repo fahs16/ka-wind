@@ -72,6 +72,42 @@ body{
 @media (pointer:coarse){#controls{display:flex}}
 body.talking #controls{display:none}
 
+/* ============ Emote & chat ============ */
+#social{
+  position:absolute;right:14px;bottom:14px;z-index:22;
+  display:none;flex-direction:column;align-items:flex-end;gap:8px;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+body.net-on #social{display:flex}
+body.talking #social{display:none}
+#emotes{display:flex;gap:6px}
+.em,#btn-chat{
+  background:var(--cream);border:3px solid var(--ink);
+  box-shadow:0 3px 0 var(--shadow);cursor:pointer;line-height:1;
+  padding:0;width:38px;height:38px;font-size:17px;
+}
+#btn-chat{width:46px;height:46px;font-size:20px;background:var(--gold)}
+.em:active,#btn-chat:active{transform:translateY(2px);box-shadow:0 1px 0 var(--shadow)}
+@media (pointer:coarse){
+  #social{bottom:calc(112px + env(safe-area-inset-bottom))}
+}
+
+#chatbar{
+  position:absolute;left:50%;transform:translateX(-50%);
+  bottom:calc(14px + env(safe-area-inset-bottom));
+  width:min(520px,calc(100% - 24px));z-index:26;
+  display:flex;gap:8px;align-items:stretch;
+  background:var(--cream);border:4px solid var(--ink);
+  box-shadow:0 6px 0 var(--shadow);padding:10px;
+}
+#chat-input{
+  flex:1 1 auto;min-width:0;font-family:var(--body);font-size:21px;
+  padding:8px 10px;background:#fff;color:var(--ink);
+  border:3px solid var(--ink);border-radius:0;
+}
+#chat-input:focus{outline:3px solid var(--rose)}
+#chatbar .btn{flex:0 0 auto}
+
 /* ============ Tombol umum ============ */
 .btn{
   font-family:var(--pix);font-size:10px;line-height:1.5;
@@ -185,6 +221,10 @@ body.talking #controls{display:none}
 .acct-bank{font-family:var(--pix);font-size:10px;margin-bottom:8px}
 .acct-no{font-size:24px;letter-spacing:1px}
 .acct-name{font-size:18px;color:var(--ink-soft);margin-bottom:10px}
+
+.sync{font-size:19px;margin-top:10px}
+.ok-text{color:#3f7a3f}
+.warn-text{color:#a8552b}
 
 /* form */
 .form{display:flex;flex-direction:column;gap:12px}

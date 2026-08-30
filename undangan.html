@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Generator Link Undangan</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tools.css">
+</head>
+<body>
+<header class="top">
+  <h1>Generator Link Undangan</h1>
+  <nav>
+    <a class="btn btn-small" href="index.html">Lihat Undangan</a>
+    <a class="btn btn-small" href="admin.html">Rekap RSVP</a>
+  </nav>
+</header>
+
+<div class="wrap">
+  <p class="muted">Halaman ini cuma buat kamu, bukan buat tamu. Ketik daftar tamunya, nanti keluar
+  link personal per orang + teks siap kirim WhatsApp. Semua diproses di browser ini, tidak ada data yang dikirim ke mana pun.</p>
+
+  <div class="panel">
+    <div class="field">
+      <label>Alamat website undangan</label>
+      <input id="base" placeholder="https://undangan-kami.netlify.app/">
+    </div>
+
+    <div class="field">
+      <label>Daftar tamu — satu baris satu tamu</label>
+      <textarea id="src" spellcheck="false">Bapak Andi &amp; Keluarga | 4 | Keluarga | 6281200000001
+Rina Kartika | 2 | Kantor | 6281200000002
+Dewi &amp; Partner | 2 | Teman
+Keluarga Besar Wijaya | 6 | Keluarga</textarea>
+      <p class="muted" style="font-size:19px">Format: <code>Nama | jumlah kursi | grup | nomor WA</code>.
+      Kolom setelah nama boleh dikosongkan, contoh: <code>Pak Budi</code> atau <code>Pak Budi | 2</code>.
+      Nomor WA pakai format <code>628xxx</code>.</p>
+    </div>
+
+    <div class="field">
+      <label>Template pesan WhatsApp</label>
+      <textarea id="tpl" style="min-height:150px" spellcheck="false"></textarea>
+      <p class="muted" style="font-size:19px">Kode yang bisa dipakai: <code>{nama}</code>, <code>{link}</code>,
+      <code>{kursi}</code>, <code>{mempelai}</code>, <code>{tanggal}</code>.</p>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="go">Buat Link</button>
+      <button class="btn" id="csv">Unduh CSV</button>
+      <button class="btn btn-gold" id="dl">Unduh js/guests.js</button>
+      <button class="btn" id="copyall">Salin Semua Link</button>
+    </div>
+  </div>
+
+  <div id="out"></div>
+
+  <h2>Isi file js/guests.js</h2>
+  <p class="muted">Salin blok di bawah ini, timpa isi file <code>js/guests.js</code>, lalu unggah ulang situsnya.
+  Tanpa langkah ini, link <code>?u=kode</code> belum mengenali nama tamu.</p>
+  <div class="panel"><textarea id="gen" style="min-height:210px" spellcheck="false" readonly></textarea>
+    <div class="btn-row"><button class="btn btn-small" id="copygen">Salin Blok Ini</button></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="js/config.js"></script>
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, m =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+
+  const couple = CONFIG.couple.groom.nick + ' & ' + CONFIG.couple.bride.nick;
+  const tanggal = (function () {
+    const d = new Date(CONFIG.bigDay);
+    return isNaN(d) ? '-' : d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  })();
+
+  const DEFAULT_TPL =
+'Assalamualaikum Wr. Wb.\n\n' +
+'Yth. {nama}\n\n' +
+'Tanpa mengurangi rasa hormat, kami mengundang Bapak/Ibu/Saudara/i untuk hadir di acara pernikahan kami:\n\n' +
+'{mempelai}\n' +
+'{tanggal}\n\n' +
+'Undangan lengkapnya (berbentuk game kecil, tinggal dibuka di HP) ada di sini:\n{link}\n\n' +
+'Mohon konfirmasi kehadirannya lewat tombol RSVP di dalam undangan ya. Terima kasih banyak.\n\n' +
+'Wassalamualaikum Wr. Wb.';
+
+  $('tpl').value = DEFAULT_TPL;
+  $('base').value = location.href.replace(/undangan\.html.*$/, '');
+
+  let rows = [];
+
+  function slug(name) {
+    const s = name.toLowerCase().replace(/[^a-z0-9]+/g, '');
+    return (s.slice(0, 3) || 'tmu');
+  }
+
+  function parse() {
+    const used = Object.create(null);
+    return $('src').value.split('\n').map(line => line.trim()).filter(Boolean).map((line, i) => {
+      const part = line.split('|').map(x => x.trim());
+      const name = part[0].replace(/\s+/g, ' ').slice(0, 60);
+      let code = slug(name);
+      let n = 1;
+      while (used[code]) { n++; code = slug(name) + n; }
+      used[code] = 1;
+      return {
+        code: code + (n === 1 ? String((i % 9) + 1) : ''),
+        name: name,
+        seats: Math.max(1, Math.min(10, parseInt(part[1], 10) || 2)),
+        group: part[2] || '',
+        wa: (part[3] || '').replace(/[^0-9]/g, '')
+      };
+    });
+  }
+
+  function baseUrl() {
+    let b = $('base').value.trim() || location.href.replace(/undangan\.html.*$/, '');
+    if (!/[?/]$/.test(b)) b += '/';
+    return b;
+  }
+
+  function linkOf(g) { return baseUrl() + '?u=' + encodeURIComponent(g.code); }
+
+  function messageOf(g) {
+    return $('tpl').value
+      .replace(/\{nama\}/g, g.name)
+      .replace(/\{link\}/g, linkOf(g))
+      .replace(/\{kursi\}/g, g.seats)
+      .replace(/\{mempelai\}/g, couple)
+      .replace(/\{tanggal\}/g, tanggal);
+  }
+
+  function render() {
+    rows = parse();
+    if (!rows.length) { $('out').innerHTML = '<div class="panel empty">Daftar tamunya masih kosong.</div>'; $('gen').value = ''; return; }
+
+    const body = rows.map((g, i) => {
+      const link = linkOf(g);
+      const wa = g.wa ? 'https://wa.me/' + g.wa + '?text=' + encodeURIComponent(messageOf(g)) : '';
+      return '<tr>' +
+        '<td class="nowrap">' + (i + 1) + '</td>' +
+        '<td>' + esc(g.name) + '<div class="muted" style="font-size:18px">' + esc(g.group || '-') + ' &middot; ' + g.seats + ' kursi</div></td>' +
+        '<td class="nowrap"><code>' + esc(g.code) + '</code></td>' +
+        '<td class="linkcell">' + esc(link) + '</td>' +
+        '<td class="nowrap">' +
+          '<button class="btn btn-small" data-copy="' + esc(link) + '">Salin Link</button> ' +
+          '<button class="btn btn-small" data-copy="' + esc(messageOf(g)) + '">Salin Pesan</button>' +
+          (wa ? ' <a class="btn btn-small btn-primary" href="' + esc(wa) + '" target="_blank" rel="noopener">Kirim WA</a>' : '') +
+        '</td></tr>';
+    }).join('');
+
+    $('out').innerHTML =
+      '<h2>' + rows.length + ' tamu siap dikirimi undangan</h2>' +
+      '<div class="table-wrap"><table><thead><tr>' +
+      '<th>#</th><th>Nama</th><th>Kode</th><th>Link</th><th>Aksi</th>' +
+      '</tr></thead><tbody>' + body + '</tbody></table></div>';
+
+    $('gen').value =
+      '/* Dibuat lewat undangan.html pada ' + new Date().toLocaleString('id-ID') + ' */\n\n' +
+      'const GUESTS = [\n' +
+      rows.map(g => "  { code: '" + g.code + "', name: '" + g.name.replace(/'/g, "\\'") +
+        "', seats: " + g.seats + ", group: '" + g.group.replace(/'/g, "\\'") + "', wa: '" + g.wa + "' }").join(',\n') +
+      '\n];\n';
+  }
+
+  function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._t);
+    t._t = setTimeout(() => t.classList.remove('show'), 1900);
+  }
+
+  function copy(text, label) {
+    const done = () => toast(label || 'Tersalin');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else fallback();
+    function fallback() {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); done(); } catch (e) { toast('Gagal menyalin'); }
+      ta.remove();
+    }
+  }
+
+  function download(name, text, type) {
+    const blob = new Blob([text], { type: type || 'text/plain;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 400);
+  }
+
+  document.addEventListener('click', e => {
+    const c = e.target.closest('[data-copy]');
+    if (c) copy(c.getAttribute('data-copy'), 'Tersalin ke clipboard');
+  });
+
+  $('go').onclick = render;
+  $('copygen').onclick = () => copy($('gen').value, 'Blok guests.js tersalin');
+  $('copyall').onclick = () => copy(rows.map(g => g.name + ' -> ' + linkOf(g)).join('\n'), 'Semua link tersalin');
+  $('dl').onclick = () => { render(); download('guests.js', $('gen').value, 'application/javascript'); };
+  $('csv').onclick = () => {
+    render();
+    const q = v => '"' + String(v).replace(/"/g, '""') + '"';
+    const csv = ['kode,nama,grup,kursi,wa,link'].concat(
+      rows.map(g => [g.code, g.name, g.group, g.seats, g.wa, linkOf(g)].map(q).join(','))
+    ).join('\n');
+    download('daftar-undangan.csv', '﻿' + csv, 'text/csv;charset=utf-8');
+  };
+
+  render();
+})();
+</script>
+</body>
+</html>

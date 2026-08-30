@@ -87,9 +87,29 @@ const CONFIG = {
   rsvp: {
     // Nomor WhatsApp penerima konfirmasi. Format internasional tanpa "+" dan tanpa "0" di depan.
     whatsapp: '6281234567890',
-    // (Opsional) URL Google Apps Script / API buat nyimpen RSVP otomatis. Kosongin kalau nggak pakai.
+    // URL Web App Google Apps Script buat nyimpen RSVP ke Google Sheet.
+    // Cara bikinnya ada di server/apps-script.gs + README. Kosongin kalau belum siap.
     endpoint: '',
     deadline: '1 Desember 2026'
+  },
+
+  // ---------- REALTIME / MULTIPLAYER (opsional) ----------
+  // provider: 'off'      -> mati, undangan jalan sendiri seperti biasa
+  //           'local'    -> mode uji coba antar-tab di satu perangkat (tanpa akun apa pun)
+  //           'supabase' -> beneran online, isi url + key dari dashboard Supabase
+  net: {
+    provider: 'off',
+    url: '',                 // contoh: 'https://xxxxxxxx.supabase.co'
+    key: '',                 // anon public key (aman ditaruh di sini, bukan service_role)
+    room: 'taman-utama',     // ganti kalau mau ruangan terpisah
+    maxPeers: 40,            // batas karakter tamu lain yang digambar sekaligus
+    sendMs: 140,             // jeda minimal kirim posisi (naikkan kalau mau lebih hemat kuota)
+    chat: {
+      enabled: true,
+      maxLen: 60,
+      cooldownMs: 2500,      // jeda minimal antar pesan
+      blocklist: []          // tambahan kata yang mau disensor, huruf kecil semua
+    }
   },
 
   // ---------- QUOTE PEMBUKA ----------

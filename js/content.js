@@ -1,10 +1,25 @@
 /* Isi panel-panel besar: acara, galeri, kado, RSVP, hitung mundur. */
 
 const Content = {
-  guest() {
-    const q = U.query('to') || U.query('kepada') || U.query('nama');
-    return q ? q.trim() : '';
+  // Cari tamu dari link: ?u=KODE (dari daftar undangan) atau ?to=Nama Bebas
+  guestInfo() {
+    if (this._guest) return this._guest;
+    const code = (U.query('u') || U.query('kode')).trim().toLowerCase();
+    let info = { code: '', name: '', seats: 0, group: '' };
+    if (code && typeof GUESTS !== 'undefined' && Array.isArray(GUESTS)) {
+      const g = GUESTS.find(x => String(x.code).toLowerCase() === code);
+      if (g) info = { code: g.code, name: g.name, seats: +g.seats || 0, group: g.group || '', wa: g.wa || '' };
+    }
+    if (!info.name) {
+      const free = (U.query('to') || U.query('kepada') || U.query('nama')).trim();
+      if (free) info.name = free.slice(0, 60);
+      if (code && !info.code) info.code = code.slice(0, 24); // kode tak dikenal, tetap dicatat
+    }
+    this._guest = info;
+    return info;
   },
+
+  guest() { return this.guestInfo().name; },
 
   /* ---------- Detail acara ---------- */
   eventHtml(ev) {
@@ -54,7 +69,9 @@ const Content = {
   /* ---------- RSVP ---------- */
   rsvpHtml() {
     const saved = Store.get();
-    const g = this.guest();
+    const info = this.guestInfo();
+    const g = info.name;
+    const maxSeat = U.clamp(info.seats || 5, 1, 10);
     const opts = n => Array.from({ length: n }, (_, i) =>
       '<option value="' + (i + 1) + '"' + (saved && +saved.jumlah === i + 1 ? ' selected' : '') + '>' + (i + 1) + ' orang</option>').join('');
     const sel = v => saved && saved.hadir === v ? ' selected' : '';
@@ -67,7 +84,8 @@ const Content = {
           '<option' + sel('Masih ragu') + '>Masih ragu</option>' +
           '<option' + sel('Tidak bisa hadir') + '>Tidak bisa hadir</option>' +
         '</select></label>' +
-        '<label>Bawa berapa orang?<select name="jumlah">' + opts(5) + '</select></label>' +
+        '<label>Bawa berapa orang?' + (info.seats ? ' <span class="muted">(jatah kamu ' + info.seats + ' kursi)</span>' : '') +
+          '<select name="jumlah">' + opts(maxSeat) + '</select></label>' +
         '<label>Ucapan & doa<textarea name="pesan" rows="3" maxlength="400" placeholder="Tulis doa terbaikmu...">' + U.esc(saved ? saved.pesan : '') + '</textarea></label>' +
         '<button class="btn btn-primary" type="submit">Kirim RSVP</button>' +
       '</form>' +

@@ -38,7 +38,11 @@ const Palettes = {
   tamu:  { h: '#3a2b23', s: '#f2c49b', e: '#2b1d2e', o: '#2b1d2e', c: '#4a7ec9', d: '#38609c', p: '#3b3a4d', a: '#f0c674' },
   groom: { h: '#241a16', s: '#f2c49b', e: '#2b1d2e', o: '#2b1d2e', c: '#333a57', d: '#252b42', p: '#333a57', a: '#e2758f' },
   bride: { h: '#3a2b23', s: '#fbd3ae', e: '#2b1d2e', o: '#2b1d2e', c: '#fdf6e9', d: '#e6d9c0', p: '#fdf6e9', a: '#e2758f' },
-  anak:  { h: '#5a3b26', s: '#f2c49b', e: '#2b1d2e', o: '#2b1d2e', c: '#7fb069', d: '#639153', p: '#8c6b4f', a: '#fdf6e9' }
+  anak:  { h: '#5a3b26', s: '#f2c49b', e: '#2b1d2e', o: '#2b1d2e', c: '#7fb069', d: '#639153', p: '#8c6b4f', a: '#fdf6e9' },
+  // variasi warna buat tamu lain yang sedang online
+  tamu2: { h: '#1f1a17', s: '#c98d5e', e: '#2b1d2e', o: '#2b1d2e', c: '#d98452', d: '#b96a3e', p: '#4a4458', a: '#fdf6e9' },
+  tamu3: { h: '#4a2f2a', s: '#8d5a3c', e: '#2b1d2e', o: '#2b1d2e', c: '#8f7bc4', d: '#7364a8', p: '#33304a', a: '#f0c674' },
+  tamu4: { h: '#6b4a2f', s: '#f7d9b8', e: '#2b1d2e', o: '#2b1d2e', c: '#4f9d8a', d: '#3d7d6e', p: '#5c4a3a', a: '#e2758f' }
 };
 
 const Sprites = {
