@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Undangan Pernikahan</title>
+<meta name="description" content="Undangan pernikahan berbentuk game petualangan pixel-art. Jalan-jalan di taman kami dan temukan semua informasi acara.">
+<meta name="theme-color" content="#2b1d2e">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Undangan Pernikahan — Pixel Adventure">
+<meta property="og:description" content="Bukan undangan biasa. Masuk, jalan-jalan, dan temukan sendiri detail acaranya.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Crect width='8' height='8' fill='%232b1d2e'/%3E%3Cpath d='M2 2h1v1H2zM5 2h1v1H5zM1 3h2v1H1zM5 3h2v1H5zM2 4h4v1H2zM3 5h2v1H3zM4 6h1v1H4z' fill='%23e2758f'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ====== DUNIA GAME ====== -->
+  <div id="stage">
+    <canvas id="game"></canvas>
+  </div>
+
+  <!-- ====== HUD ====== -->
+  <header id="hud">
+    <div class="hud-left">
+      <span class="hud-chip"><span class="heart">&#10084;</span> <span id="hud-progress">0/8</span></span>
+    </div>
+    <div class="hud-right">
+      <button id="btn-music" class="hud-btn" title="Musik (M)">&#9834; OFF</button>
+      <button id="btn-help" class="hud-btn" title="Petunjuk">?</button>
+    </div>
+  </header>
+
+  <!-- ====== KONTROL SENTUH ====== -->
+  <div id="controls">
+    <div id="stick"><div id="knob"></div></div>
+    <button id="btn-a">A</button>
+  </div>
+
+  <!-- ====== DIALOG ====== -->
+  <div id="dialog" class="hidden">
+    <div class="dlg-face"></div>
+    <div class="dlg-main">
+      <div class="dlg-name"></div>
+      <div class="dlg-text"></div>
+      <div class="dlg-actions hidden"></div>
+      <div class="dlg-hint"></div>
+    </div>
+  </div>
+
+  <!-- ====== PANEL BESAR ====== -->
+  <div id="modal" class="hidden">
+    <div class="modal-panel">
+      <div class="modal-head">
+        <h2 class="modal-title"></h2>
+        <button class="modal-close" aria-label="Tutup">&times;</button>
+      </div>
+      <div class="modal-body"></div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <!-- ====== LAYAR PEMBUKA ====== -->
+  <div id="intro">
+    <div class="intro-inner">
+      <div class="envelope">
+        <div class="env-flap"></div>
+        <div class="env-body">
+          <div class="env-seal">&#10084;</div>
+        </div>
+      </div>
+      <p class="intro-kicker">THE WEDDING OF</p>
+      <h1 id="intro-names">&nbsp;</h1>
+      <p id="intro-date" class="intro-date">&nbsp;</p>
+      <p id="intro-guest" class="intro-guest">Kepada Yth.<br><b>Bapak / Ibu / Saudara/i</b></p>
+      <button id="btn-open" class="btn btn-primary btn-big">Buka Undangan</button>
+      <p id="intro-count" class="intro-count"></p>
+      <p class="intro-note">Undangan ini berbentuk game kecil. Nyalakan suara untuk pengalaman terbaik.</p>
+    </div>
+  </div>
+
+  <noscript>
+    <div class="noscript">Undangan ini butuh JavaScript aktif untuk bisa dijalankan.</div>
+  </noscript>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/font.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/world.js"></script>
+<script src="js/paint.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/dialogue.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/content.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
