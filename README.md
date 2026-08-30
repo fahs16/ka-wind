@@ -201,8 +201,15 @@ risiko, pakai emote saja.
 
 ## Cara publikasi (gratis)
 
-**GitHub Pages** — Settings › Pages › Source: branch `main`, folder `/ (root)`.
-**Netlify / Vercel / Cloudflare Pages** — drag & drop foldernya, tanpa konfigurasi apa pun.
+Panduan lengkapnya ada di **[DEPLOY.md](DEPLOY.md)** — dari mengisi data, memilih hosting,
+memasang Google Sheet & Supabase, sampai daftar uji sebelum undangannya disebar.
+
+Versi singkatnya:
+
+**GitHub Pages** — merge ke `main`, lalu Settings › Pages › Source: *Deploy from a branch*,
+branch `main`, folder `/ (root)`. Hasilnya `https://<user>.github.io/ka-wind/`.
+**Netlify / Cloudflare Pages** — seret foldernya ke [app.netlify.com/drop](https://app.netlify.com/drop),
+atau connect repo dengan build command kosong dan output directory `.`
 
 ---
 

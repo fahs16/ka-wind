@@ -46,6 +46,16 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
       <code>{kursi}</code>, <code>{mempelai}</code>, <code>{tanggal}</code>.</p>
     </div>
 
+    <div class="note danger">
+      <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer">
+        <input type="checkbox" id="wapub" style="width:22px;height:22px;flex:0 0 auto;margin-top:4px">
+        <span>Sertakan nomor WA di file <code>js/guests.js</code>.
+        <b>Biarkan mati kalau ragu.</b> File itu ikut ter-<i>upload</i> dan bisa dibuka siapa saja lewat
+        <code>situskamu.com/js/guests.js</code> &mdash; kalau dicentang, nomor WA seluruh tamu jadi publik.
+        Nomor WA tetap tersimpan di CSV dan tombol "Kirim WA" di halaman ini, yang keduanya tidak ikut ter-upload.</span>
+      </label>
+    </div>
+
     <div class="btn-row">
       <button class="btn btn-primary" id="go">Buat Link</button>
       <button class="btn" id="csv">Unduh CSV</button>
@@ -160,11 +170,16 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
       '<th>#</th><th>Nama</th><th>Kode</th><th>Link</th><th>Aksi</th>' +
       '</tr></thead><tbody>' + body + '</tbody></table></div>';
 
+    const bawaWa = $('wapub').checked;
     $('gen').value =
-      '/* Dibuat lewat undangan.html pada ' + new Date().toLocaleString('id-ID') + ' */\n\n' +
+      '/* Dibuat lewat undangan.html pada ' + new Date().toLocaleString('id-ID') + ' */\n' +
+      (bawaWa
+        ? '/* PERHATIAN: file ini bisa dibuka publik dan berisi nomor WA tamu. */\n\n'
+        : '/* Nomor WA sengaja tidak disertakan supaya tidak jadi konsumsi publik. */\n\n') +
       'const GUESTS = [\n' +
       rows.map(g => "  { code: '" + g.code + "', name: '" + g.name.replace(/'/g, "\\'") +
-        "', seats: " + g.seats + ", group: '" + g.group.replace(/'/g, "\\'") + "', wa: '" + g.wa + "' }").join(',\n') +
+        "', seats: " + g.seats + ", group: '" + g.group.replace(/'/g, "\\'") + "'" +
+        (bawaWa && g.wa ? ", wa: '" + g.wa + "'" : '') + " }").join(',\n') +
       '\n];\n';
   }
 
@@ -205,6 +220,7 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
   });
 
   $('go').onclick = render;
+  $('wapub').onchange = render;
   $('copygen').onclick = () => copy($('gen').value, 'Blok guests.js tersalin');
   $('copyall').onclick = () => copy(rows.map(g => g.name + ' -> ' + linkOf(g)).join('\n'), 'Semua link tersalin');
   $('dl').onclick = () => { render(); download('guests.js', $('gen').value, 'application/javascript'); };
