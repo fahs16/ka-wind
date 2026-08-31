@@ -20,6 +20,24 @@ const U = {
     return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
   },
 
+  // Jarak terdekat dari sebuah titik ke sisi kotak. 0 kalau titiknya di dalam.
+  rectDist(px, py, r) {
+    const dx = Math.max(r.x - px, 0, px - (r.x + r.w));
+    const dy = Math.max(r.y - py, 0, py - (r.y + r.h));
+    return Math.hypot(dx, dy);
+  },
+
+  // Gabungan beberapa kotak jadi satu kotak pembungkus.
+  unionRect(list) {
+    if (!list || !list.length) return null;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    list.forEach(r => {
+      x0 = Math.min(x0, r.x); y0 = Math.min(y0, r.y);
+      x1 = Math.max(x1, r.x + r.w); y1 = Math.max(y1, r.y + r.h);
+    });
+    return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+  },
+
   pointInRect(px, py, r, pad) {
     pad = pad || 0;
     return px >= r.x - pad && px <= r.x + r.w + pad && py >= r.y - pad && py <= r.y + r.h + pad;

@@ -331,6 +331,162 @@ const Paint = {
     void cy;
   },
 
+
+  // Ukuran huruf terbesar yang masih muat di papan.
+  signFit(text, maxW) {
+    for (let sc = 3; sc >= 1; sc--) if (Font.width(text, sc, 1) <= maxW) return sc;
+    return 1;
+  },
+
+  /* ---------------- Warung / kedai ---------------- */
+  kiosk(g, o, t, kind) {
+    const x = o.x, y = o.y, w = o.w;
+    const th = {
+      kopi:  { main: '#8b5e3c', dark: '#68432a', awn: '#f6ead4', awn2: '#c19a68', pop: C.gold },
+      refo:  { main: '#3f7d6a', dark: '#2d5c4e', awn: '#69b795', awn2: '#f6ead4', pop: C.leaf3 },
+      bebek: { main: '#a8492f', dark: '#7d3320', awn: '#f0c674', awn2: '#c9603a', pop: C.cream }
+    }[kind] || {};
+
+    // tiang
+    U.px(g, x + 6, y + 34, 6, 74, C.wood2);
+    U.px(g, x + w - 12, y + 34, 6, 74, C.wood2);
+
+    // papan nama
+    const label = (CONFIG.spots && CONFIG.spots[kind] && CONFIG.spots[kind].sign) || kind.toUpperCase();
+    U.px(g, x + 2, y + 4, w - 4, 22, C.wood2);
+    U.px(g, x + 5, y + 7, w - 10, 16, C.cream);
+    Font.drawCentered(g, label, x + w / 2, y + 11, C.ink, this.signFit(label, w - 16), 1);
+
+    // tenda bergaris
+    for (let i = 0; i < (w - 8) / 8; i++) {
+      U.px(g, x + 4 + i * 8, y + 28, 8, 14, i % 2 ? th.awn2 : th.awn);
+      U.px(g, x + 4 + i * 8 + 2, y + 42, 4, 3, i % 2 ? th.awn2 : th.awn);
+    }
+    U.px(g, x + 2, y + 26, w - 4, 3, C.wood2);
+
+    // dinding belakang
+    U.px(g, x + 10, y + 45, w - 20, 26, th.dark);
+    U.px(g, x + 12, y + 45, w - 24, 23, th.main);
+
+    // meja depan
+    U.px(g, x + 2, y + 64, w - 4, 8, C.wood);
+    U.px(g, x + 2, y + 70, w - 4, 3, C.wood2);
+    U.px(g, x + 5, y + 72, w - 10, 34, th.main);
+    U.px(g, x + 5, y + 72, w - 10, 3, th.dark);
+    for (let i = 1; i < 4; i++) U.px(g, x + 5 + i * ((w - 10) / 4), y + 76, 2, 26, th.dark);
+    U.px(g, x + 3, y + 104, w - 6, 4, C.wood2);
+
+    // isi meja, beda-beda tiap warung
+    const mx = x + w / 2;
+    if (kind === 'kopi') {
+      U.px(g, mx - 18, y + 54, 12, 10, C.cream);          // toples
+      U.px(g, mx - 18, y + 52, 12, 3, th.pop);
+      U.px(g, mx + 2, y + 56, 9, 8, C.cream);             // cangkir
+      U.px(g, mx + 11, y + 58, 3, 3, C.cream);
+      U.px(g, mx + 3, y + 58, 7, 4, '#6b432a');
+      for (let i = 0; i < 3; i++) {                        // uap
+        const p = (t * 0.7 + i * 0.33) % 1;
+        U.px(g, mx + 5 + Math.sin(p * 7 + i) * 2, y + 54 - p * 12, 2, 3, 'rgba(253,246,233,' + (0.75 - p * 0.7).toFixed(2) + ')');
+      }
+      U.px(g, mx - 4, y + 48, 8, 8, '#d9c9a3');           // corong V60
+      U.px(g, mx - 2, y + 56, 4, 4, '#d9c9a3');
+    } else if (kind === 'refo') {
+      U.px(g, mx - 16, y + 52, 20, 12, '#5a5f6b');        // laptop
+      U.px(g, mx - 14, y + 54, 16, 8, '#9fd8e8');
+      U.px(g, mx - 18, y + 62, 24, 3, '#7c828f');
+      U.px(g, mx + 8, y + 54, 8, 10, C.cream);            // gelas
+      U.px(g, mx + 9, y + 56, 6, 5, '#c98a52');
+      const on = Math.floor(t * 1.4) % 3;                  // sinyal wifi
+      [[2, 2], [4, 4], [6, 6]].forEach((d, i) => {
+        if (i <= on) {
+          U.px(g, mx - 8 + i, y + 40 - d[1], d[0] * 2, 2, th.pop);
+        }
+      });
+      U.px(g, mx - 7, y + 42, 3, 3, th.pop);
+      U.px(g, x + 14, y + 52, 10, 12, '#7a563a');         // tanaman
+      U.px(g, x + 13, y + 44, 12, 9, C.leaf);
+      U.px(g, x + 16, y + 40, 6, 6, C.leaf3);
+    } else {
+      U.px(g, mx - 20, y + 48, 26, 16, C.cream);          // etalase kaca
+      U.px(g, mx - 18, y + 50, 22, 12, '#cfe6ef');
+      U.px(g, mx - 15, y + 54, 7, 5, '#a8672f');
+      U.px(g, mx - 6, y + 55, 7, 4, '#8c4f24');
+      U.px(g, mx + 8, y + 52, 14, 12, '#4a4a52');         // wajan
+      U.px(g, mx + 10, y + 54, 10, 7, '#2f2f36');
+      U.px(g, mx + 20, y + 55, 5, 3, '#4a4a52');
+      for (let i = 0; i < 3; i++) {                        // uap
+        const p = (t * 0.8 + i * 0.33) % 1;
+        U.px(g, mx + 13 + Math.sin(p * 8 + i) * 3, y + 50 - p * 14, 2, 3, 'rgba(253,246,233,' + (0.8 - p * 0.75).toFixed(2) + ')');
+      }
+      U.px(g, x + 12, y + 46, 10, 8, th.pop);             // papan kecil bergambar bebek
+      U.px(g, x + 20, y + 48, 4, 3, th.pop);
+      U.px(g, x + 14, y + 48, 2, 2, C.ink);
+    }
+
+    // bangku kecil di depan
+    U.px(g, x + w - 22, y + 96, 14, 4, C.wood);
+    U.px(g, x + w - 20, y + 100, 3, 8, C.wood2);
+    U.px(g, x + w - 13, y + 100, 3, 8, C.wood2);
+  },
+
+  /* ---------------- Pohon harapan (pojokan rahasia) ---------------- */
+  wishTree(g, o, t) {
+    const x = o.x, y = o.y, w = o.w, cx = x + w / 2;
+
+    // cahaya hangat di sekeliling pohon
+    const glow = g.createRadialGradient(cx, y + 44, 4, cx, y + 44, 46);
+    glow.addColorStop(0, 'rgba(240,198,116,0.30)');
+    glow.addColorStop(1, 'rgba(240,198,116,0)');
+    g.fillStyle = glow;
+    g.fillRect(x - 24, y - 10, w + 48, 110);
+
+    // batang
+    U.px(g, cx - 5, y + 44, 10, 34, C.trunk);
+    U.px(g, cx - 8, y + 74, 16, 5, '#63472f');
+    U.px(g, cx - 3, y + 48, 3, 26, '#8d6644');
+
+    // tajuk: disusun berlapis + gumpalan di tepi supaya siluetnya tidak kotak
+    const sway = Math.sin(t * 0.7) * 1;
+    const sw = x0 => x0 + sway;
+    U.px(g, sw(cx - 22), y + 32, 44, 12, '#b85f81');
+    U.px(g, sw(cx - 26), y + 28, 10, 9, '#b85f81');
+    U.px(g, sw(cx + 16), y + 29, 10, 9, '#b85f81');
+    U.px(g, sw(cx - 24), y + 24, 48, 12, '#c96f92');
+    U.px(g, sw(cx - 20), y + 16, 40, 12, '#d97fa0');
+    U.px(g, sw(cx - 24), y + 18, 8, 8, '#d97fa0');
+    U.px(g, sw(cx + 16), y + 17, 9, 9, '#d97fa0');
+    U.px(g, sw(cx - 14), y + 9, 28, 12, '#e089a8');
+    U.px(g, sw(cx - 7), y + 4, 15, 9, '#f2a8c0');
+    U.px(g, sw(cx - 5), y + 7, 8, 5, '#ffd0e0');
+    U.px(g, sw(cx + 9), y + 14, 6, 4, '#ffd0e0');
+    U.px(g, sw(cx - 19), y + 26, 6, 4, '#ffd0e0');
+
+    // lampion menggantung
+    [[-16, 44], [0, 50], [15, 42]].forEach((d, i) => {
+      const bob = Math.sin(t * 1.3 + i) * 1;
+      U.px(g, cx + d[0], y + d[1] - 6 + bob, 1, 6, C.wood2);
+      U.px(g, cx + d[0] - 3, y + d[1] + bob, 7, 8, C.gold2);
+      U.px(g, cx + d[0] - 2, y + d[1] + 1 + bob, 5, 6, C.gold);
+      U.px(g, cx + d[0] - 1, y + d[1] + 2 + bob, 2, 3, C.cream);
+    });
+
+    // pesan-pesan kecil yang diikat di ranting
+    [[-22, 34], [20, 24], [-6, 22]].forEach((d, i) => {
+      const bob = Math.sin(t * 1.6 + i * 2) * 1;
+      U.px(g, cx + d[0], y + d[1] + bob, 5, 6, C.cream);
+      U.px(g, cx + d[0] + 1, y + d[1] + 2 + bob, 3, 1, C.ink);
+    });
+
+    // kunang-kunang
+    for (let i = 0; i < 6; i++) {
+      const a = t * 0.6 + i * 1.05;
+      const fx = cx + Math.cos(a) * (20 + (i % 3) * 7);
+      const fy = y + 46 + Math.sin(a * 1.3) * (12 + (i % 2) * 6);
+      const on = (Math.sin(t * 3 + i * 2) + 1) / 2;
+      if (on > 0.35) U.px(g, fx, fy, 2, 2, on > 0.75 ? '#fff3c4' : C.gold);
+    }
+  },
+
   /* ---------------- Dekorasi ---------------- */
   deco(g, d, t) {
     switch (d.type) {

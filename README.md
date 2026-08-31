@@ -47,6 +47,8 @@ Cuma **satu file**. Semua teks, tanggal, lokasi, foto, dan rekening ada di sana:
 | `gifts` | Rekening bank / e-wallet + alamat kirim kado |
 | `rsvp` | Nomor WhatsApp penerima konfirmasi + deadline |
 | `quote` | Ayat/kutipan pembuka |
+| `spots` | Tiga warung favorit (Kopi Ukut, Refo Coffee, Nasi Bebek) + obrolannya |
+| `secret` | Isi pojokan rahasia & kode hadiah yang ditunjukkan tamu di hari H |
 
 ### Menambahkan foto
 
@@ -219,6 +221,7 @@ atau connect repo dengan build command kosong dan output directory `.`
 |---|---|---|
 | Jalan | Panah / WASD | Stik di kiri bawah |
 | Interaksi | `E`, `Spasi`, `Enter` | Tombol `A` |
+| Tutup percakapan | `Esc` atau tombol `×` di kotak dialog | Tombol `×` |
 | Tutup panel | `Esc` | Tombol `×` |
 | Musik on/off | `M` | Tombol ♪ di pojok kanan atas |
 | Kirim emote | `1` `2` `3` `4` | Tombol ❤ 👋 🎉 👏 |
@@ -229,6 +232,18 @@ atau connect repo dengan build command kosong dan output directory `.`
 Tamu harus menemukan **8 titik** (bertanda `!`). Titik yang sudah dikunjungi berubah jadi
 hati, progresnya disimpan di browser, dan setelah lengkap muncul pesan penutup + kembang api.
 Penunjuk arah kecil di tepi layar mengarah ke 3 titik terdekat yang belum dikunjungi.
+
+Objek bisa didekati **dari sisi mana pun** — kanan, kiri, depan, atau belakang — selama masih
+dalam radius sekitar satu setengah petak. Tidak ada titik berdiri khusus yang harus dicari.
+
+### Bonus yang tidak ditandai di peta
+
+- **Tiga warung favorit**: Kopi Ukut, Refo Coffee, dan Nasi Bebek. Muncul sebagai kedai biasa
+  tanpa tanda `!`. Begitu satu ditemukan, penghitung ☕ muncul di HUD. Isinya diatur di
+  `config.spots` — ganti jadi tempat nongkrong kalian sendiri.
+- **Pojokan rahasia** di sudut kiri-bawah peta, tertutup barisan pohon dengan satu celah sempit
+  dan jejak batu samar sebagai petunjuk. Tamu yang menemukannya dapat **kode hadiah** untuk
+  ditunjukkan ke mempelai di hari H. Atur teks dan kodenya di `config.secret`.
 
 ---
 

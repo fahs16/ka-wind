@@ -1,6 +1,8 @@
 /* Mesin game: kamera, gerak, tabrakan, interaksi, misi, dan layar penutup. */
 
 const QUEST_IDS = ['gate', 'akad', 'resepsi', 'galeri', 'cerita', 'couple', 'kado', 'rsvp'];
+// Bonus: tiga warung kesukaan mempelai. Tidak wajib, tidak ditandai di peta.
+const FAVORITE_IDS = ['kopi', 'refo', 'bebek'];
 
 const Game = {
   canvas: null, ctx: null, w: 0, h: 0, scale: 3,
@@ -8,8 +10,10 @@ const Game = {
   cam: { x: 0, y: 0 },
   keys: {}, touch: { x: 0, y: 0, active: false },
   t: 0, last: 0, running: false, chatOpen: false,
+  touchDevice: (typeof matchMedia === 'function' && matchMedia('(pointer:coarse)').matches),
   myChat: '', myChatUntil: 0, myEmote: '', myEmoteUntil: 0,
   visited: [], near: null, cooldown: 0,
+  favorites: [], secretFound: false,
   confetti: [], ended: false,
 
   init() {
@@ -21,6 +25,9 @@ const Game = {
     Modal.init();
     Toast.init();
     this.visited = Store.progress.get() || [];
+    const extra = Store.extra.get();
+    this.favorites = (extra && extra.fav) || [];
+    this.secretFound = !!(extra && extra.secret);
     Net.init();
     if (Net.active()) document.body.classList.add('net-on');
     this.bindInput();
@@ -207,6 +214,22 @@ const Game = {
 
   updateHud() {
     document.getElementById('hud-progress').textContent = this.visited.length + '/' + QUEST_IDS.length;
+
+    const fav = document.getElementById('hud-fav');
+    if (fav) {
+      fav.classList.toggle('hidden', this.favorites.length === 0);
+      fav.querySelector('b').textContent = this.favorites.length + '/' + FAVORITE_IDS.length;
+    }
+    const sec = document.getElementById('hud-secret');
+    if (sec) sec.classList.toggle('hidden', !this.secretFound);
+  },
+
+  markFavorite(id) {
+    if (FAVORITE_IDS.indexOf(id) < 0 || this.favorites.indexOf(id) >= 0) return;
+    this.favorites.push(id);
+    Store.extra.set({ fav: this.favorites, secret: this.secretFound });
+    this.updateHud();
+    Toast.show('Tempat favorit kami! (' + this.favorites.length + '/' + FAVORITE_IDS.length + ')', 1800);
   },
 
   finale() {
@@ -218,7 +241,9 @@ const Game = {
       { name: c.groom.nick + ' & ' + c.bride.nick, face: 'bride',
         text: 'Doa dan restu kalian adalah hadiah paling berharga buat kami. Sampai jumpa di hari bahagia itu, ya!' },
       { name: 'Sampai jumpa', text: c.hashtag + ' — jangan lupa pakai tagar ini kalau upload foto nanti :)' }
-    ], {
+    ].concat(this.secretFound
+      ? [{ name: 'Ngomong-ngomong', text: 'Kamu juga nemu pojokan rahasia kami. Jangan lupa bawa kodenya ya, kami serius soal kejutannya.' }]
+      : []), {
       actions: [{ label: 'Isi RSVP', primary: true, fn: () => { Dialogue.close(); Actions.rsvp(); } }]
     });
   },
@@ -339,16 +364,14 @@ const Game = {
     this.cam.x = worldW <= this.w ? (worldW - this.w) / 2 : U.clamp(p.x - this.w / 2, 0, worldW - this.w);
     this.cam.y = worldH <= this.h ? (worldH - this.h) / 2 : U.clamp(p.y - this.h / 2, 0, worldH - this.h);
 
-    // objek terdekat
+    // Objek terdekat: dihitung dari jarak ke badan objek, jadi bisa didekati
+    // dari kanan, kiri, depan, atau belakang selama masih dalam radius.
     this.near = null;
     let best = 1e9;
     for (const o of World.objects) {
-      if (!o.hot) continue;
-      if (U.pointInRect(p.x, p.y, o.hot, 8)) {
-        const cx = o.hot.x + o.hot.w / 2, cy = o.hot.y + o.hot.h / 2;
-        const d = Math.hypot(p.x - cx, p.y - cy);
-        if (d < best) { best = d; this.near = o; }
-      }
+      if (!o.zone) continue;
+      const d = U.rectDist(p.x, p.y, o.zone);
+      if (d <= o.reach && d < best) { best = d; this.near = o; }
     }
 
     // realtime
@@ -472,12 +495,13 @@ const Game = {
       const o = this.near;
       const label = o.label.toUpperCase();
       const tw = Font.width(label, 1, 1);
-      const bx = Math.round(o.hot.x + o.hot.w / 2 - (tw + 12) / 2);
-      const by = Math.round(Math.min(o.hot.y, o.base) - 24 + Math.sin(this.t * 4) * 1);
+      const anchor = o.hot || o.zone;
+      const bx = Math.round(anchor.x + anchor.w / 2 - (tw + 12) / 2);
+      const by = Math.round(Math.min(anchor.y, o.base) - 24 + Math.sin(this.t * 4) * 1);
       U.px(g, bx - 1, by - 1, tw + 14, 13, C.ink);
       U.px(g, bx, by, tw + 12, 11, C.cream);
       Font.draw(g, label, bx + 6, by + 3, C.ink, 1, 1);
-      const kb = 'TEKAN E';
+      const kb = this.touchDevice ? 'TOMBOL A' : 'TEKAN E';
       const kw = Font.width(kb, 1, 1);
       U.px(g, bx + (tw + 12 - kw - 8) / 2, by + 13, kw + 8, 10, C.rose2);
       Font.draw(g, kb, bx + (tw + 12 - kw - 8) / 2 + 4, by + 16, C.cream, 1, 1);
@@ -685,6 +709,65 @@ const Actions = {
   rsvp() {
     Game.markVisited('rsvp');
     Modal.show('Konfirmasi Kehadiran', Content.rsvpHtml());
+  },
+
+
+  /* ---------- Tempat favorit (bonus) ---------- */
+  warung(id) {
+    const cfg = (CONFIG.spots && CONFIG.spots[id]) || {};
+    Game.markFavorite(id);
+    const pages = (cfg.lines || ['...']).map(teks => ({ name: cfg.name || id, text: teks }));
+    Dialogue.show(pages, {
+      actions: cfg.action ? [{
+        label: cfg.action, primary: true, fn: () => {
+          Dialogue.close();
+          Chip.confirm();
+          Dialogue.show([{ name: cfg.name || id, text: cfg.reply || 'Siap!' }]);
+        }
+      }] : null
+    });
+  },
+
+  kopi() { Actions.warung('kopi'); },
+  refo() { Actions.warung('refo'); },
+  bebek() { Actions.warung('bebek'); },
+
+  /* ---------- Pojokan rahasia ---------- */
+  rahasia() {
+    const sc = CONFIG.secret || {};
+    const baru = !Game.secretFound;
+    Game.secretFound = true;
+    Store.extra.set({ fav: Game.favorites, secret: true });
+    Game.updateHud();
+    if (baru) { Chip.fanfare(); Game.burst(50); }
+
+    const pages = (sc.lines || []).map(teks => ({ name: sc.name || 'Pojokan Rahasia', text: teks }));
+    Dialogue.show(pages, {
+      actions: [{
+        label: 'Lihat hadiahnya', primary: true, fn: () => {
+          Dialogue.close();
+          Game.burst(30);
+          const c = CONFIG.couple;
+          const fav = Game.favorites.length, total = FAVORITE_IDS.length;
+          Modal.show('Kode Rahasia',
+            '<div class="card secret center">' +
+              '<div class="card-kicker">HANYA UNTUK YANG SAMPAI SINI</div>' +
+              '<div class="code-big">' + U.esc(sc.code || 'RAHASIA') + '</div>' +
+              '<div class="btn-row" style="justify-content:center">' +
+                '<button class="btn btn-small" data-copy="' + U.esc(sc.code || '') + '">Salin Kode</button>' +
+              '</div>' +
+            '</div>' +
+            '<p class="lead">' + U.esc(sc.reward || '') + '</p>' +
+            '<div class="card"><div class="card-kicker">TEMPAT FAVORIT KAMI</div>' +
+              '<div>' + (fav >= total
+                ? 'Lengkap, ' + fav + '/' + total + '. Kamu sudah mampir ke semua tempat nongkrong kami. Hormat kami.'
+                : 'Baru ' + fav + ' dari ' + total + ' yang kamu temukan. Masih ada warung kesukaan kami yang kelewat di peta.') +
+              '</div></div>' +
+            '<p class="hint-text">Kode ini tersimpan di HP kamu, jadi tinggal buka lagi halaman ini kalau lupa. ' +
+            U.esc(c.groom.nick + ' & ' + c.bride.nick) + '.</p>');
+        }
+      }]
+    });
   },
 
   jukebox() {
