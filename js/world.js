@@ -66,6 +66,12 @@ const World = {
     this.fill(42, 13, 2, 6, 2);   // ke gedung resepsi
     // plaza air mancur
     this.fill(22, 16, 13, 8, 4);
+    // alas warung
+    this.fill(17, 20, 5, 5, 4);   // Kopi Ukut
+    this.fill(35, 21, 5, 5, 4);   // Refo Coffee
+    this.fill(16, 33, 5, 4, 4);   // Nasi Bebek
+    // jejak batu samar menuju pojokan rahasia (bagian dari teka-tekinya)
+    this.fill(9, 36, 3, 1, 2);
     // karpet menuju pelaminan
     this.fill(26, 10, 4, 6, 5);
   },
@@ -139,6 +145,10 @@ const World = {
   add(o) {
     o.base = o.base || (o.y + o.h);
     if (o.solid) o.solid.forEach(s => this.markSolid(s.x, s.y, s.w, s.h));
+    // Zona interaksi = badan objek. Tamu bisa mendekat dari sisi mana pun,
+    // bukan cuma dari titik berdiri di depannya.
+    o.zone = o.zone || U.unionRect([].concat(o.solid || [], o.hot ? [o.hot] : []));
+    o.reach = o.reach || 24;
     this.objects.push(o);
     return o;
   },
@@ -212,9 +222,9 @@ const World = {
     // 8. Kotak surat RSVP
     this.add({
       id: 'rsvp', label: 'Kotak Surat RSVP', quest: true,
-      x: T(33), y: T(31), w: T(2), h: T(3), base: T(34),
-      solid: [{ x: T(33), y: T(33), w: T(2), h: T(1) }],
-      hot: { x: T(33), y: T(34), w: T(2), h: T(2) },
+      x: T(35), y: T(31), w: T(2), h: T(3), base: T(34),
+      solid: [{ x: T(35), y: T(33), w: T(2), h: T(1) }],
+      hot: { x: T(35), y: T(34), w: T(2), h: T(2) },
       draw: (g, o, t) => Paint.mailbox(g, o, t)
     });
 
@@ -243,6 +253,40 @@ const World = {
       draw: (g, o, t) => Paint.signpost(g, o, t)
     });
 
+    // --- tempat favorit: bonus, tidak ditandai seru (!) ---
+    this.add({
+      id: 'kopi', label: 'Kopi Ukut', favorite: true,
+      x: T(17), y: T(17), w: T(5), h: T(7), base: T(24),
+      solid: [{ x: T(18), y: T(21), w: T(3), h: T(3) }],
+      hot: { x: T(18), y: T(24), w: T(3), h: T(2) },
+      draw: (g, o, t) => Paint.kiosk(g, o, t, 'kopi')
+    });
+
+    this.add({
+      id: 'refo', label: 'Refo Coffee', favorite: true,
+      x: T(35), y: T(18), w: T(5), h: T(7), base: T(25),
+      solid: [{ x: T(36), y: T(22), w: T(3), h: T(3) }],
+      hot: { x: T(36), y: T(25), w: T(3), h: T(2) },
+      draw: (g, o, t) => Paint.kiosk(g, o, t, 'refo')
+    });
+
+    this.add({
+      id: 'bebek', label: 'Nasi Bebek', favorite: true,
+      x: T(16), y: T(30), w: T(5), h: T(7), base: T(37),
+      solid: [{ x: T(17), y: T(34), w: T(3), h: T(3) }],
+      hot: { x: T(17), y: T(37), w: T(3), h: T(2) },
+      draw: (g, o, t) => Paint.kiosk(g, o, t, 'bebek')
+    });
+
+    // --- pojokan rahasia: tanpa penanda apa pun ---
+    this.add({
+      id: 'rahasia', label: 'Pohon Harapan', hidden: true, reach: 30,
+      x: T(2), y: T(33), w: T(4), h: T(5), base: T(38),
+      solid: [{ x: T(3), y: T(37), w: T(2), h: T(1) }],
+      hot: { x: T(2), y: T(38), w: T(4), h: T(1) },
+      draw: (g, o, t) => Paint.wishTree(g, o, t)
+    });
+
     // Air mancur (dekor besar, tetap padat)
     this.add({
       id: 'fountain', label: 'Air Mancur',
@@ -256,6 +300,34 @@ const World = {
     this.npcs.push({ key: 'groom', x: T(26) + 14, y: T(11) + 8, dir: 'down' });
     this.npcs.push({ key: 'bride', x: T(29) + 6, y: T(11) + 8, dir: 'down' });
     void self;
+  },
+
+  // Sudut kiri-bawah dibiarkan kosong dari dekorasi acak, lalu ditutup pohon
+  // secara manual supaya jalan masuknya cuma satu celah sempit.
+  inSecret(tx, ty) { return tx <= 9 && ty >= 31; },
+
+  buildSecretGrove() {
+    // dinding pohon sisi timur, sisakan celah di y = 36
+    for (let ty = 31; ty <= 38; ty++) {
+      if (ty === 36) continue;
+      this.addTree(8, ty);
+      if (ty % 2 === 0) this.addTree(9, ty);
+    }
+    // dinding pohon sisi utara
+    for (let tx = 1; tx <= 8; tx++) {
+      this.addTree(tx, 31);
+      if (tx % 3 === 0) this.addTree(tx, 30);
+    }
+    // isi pojokan: rumput, semak, lampion, bangku
+    this.decos.push({ type: 'bench', x: T(2) + 10, y: T(34) + 12, base: T(34) + 12 });
+    this.markSolid(T(2) - 2, T(34) + 4, 24, 8);
+    [[T(2) + 8, T(35)], [T(6) + 8, T(33)], [T(3) + 8, T(38)]].forEach(p => {
+      this.decos.push({ type: 'bush', x: p[0], y: p[1], base: p[1] });
+    });
+    for (let i = 0; i < 7; i++) {
+      const fx = T(1) + 8 + (i * 23) % 88, fy = T(33) + 6 + (i * 17) % 70;
+      this.decos.push({ type: 'flower', x: fx, y: fy, base: fy, v: 0.86 + (i % 3) * 0.02 });
+    }
   },
 
   scatterDecos() {
@@ -275,6 +347,7 @@ const World = {
       for (let tx = 1; tx < MAP_W - 1; tx++) {
         const r = U.hash(tx * 3 + 7, ty * 5 + 11);
         const border = tx < 3 || ty < 3 || tx > MAP_W - 4 || ty > MAP_H - 4;
+        if (this.inSecret(tx, ty)) continue;      // pojokan rahasia diatur manual
         if (blocked(tx, ty)) continue;
         if (border && this.get(tx, ty) !== 3 && r > 0.35) {
           this.addTree(tx, ty); continue;
@@ -293,6 +366,8 @@ const World = {
       this.markSolid(T(25) + 2, T(ty) + 8, 8, 6);
       this.markSolid(T(30) + 6, T(ty) + 8, 8, 6);
     });
+
+    this.buildSecretGrove();
 
     // Bangku taman menghadap air mancur
     [[T(23) + 4, T(21) + 8], [T(31) + 4, T(21) + 8]].forEach(p => {

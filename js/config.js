@@ -118,6 +118,59 @@ const CONFIG = {
     source: 'QS. Ar-Rum: 21'
   },
 
+  // ---------- TEMPAT FAVORIT (bonus, bukan bagian dari 8 titik misi) ----------
+  // Tiga warung kesukaan kalian. Ganti nama & obrolannya sesuka hati.
+  spots: {
+    kopi: {
+      name: 'Kopi Ukut',
+      sign: 'KOPI UKUT',
+      lines: [
+        'Selamat datang di Kopi Ukut. Menu andalan: Kopi Susu Tetangga Sebelah.',
+        'Konon hubungan ini berawal dari dua gelas kopi dingin yang kelamaan didiemin karena keasyikan ngobrol.',
+        'Jadi ya... kopi punya andil besar di undangan yang lagi kamu buka ini.'
+      ],
+      action: 'Pesan kopi susu',
+      reply: 'Satu kopi susu, gula normal, es jangan banyak-banyak. Gratis, ini kan undangan.'
+    },
+    refo: {
+      name: 'Refo Coffee',
+      sign: 'REFO',
+      lines: [
+        'Refo Coffee: markas WFC kami. Wifi kencang, colokan banyak, deadline tetap mepet.',
+        'Meja pojok dekat jendela itu tempat favorit. Dia serius ngerjain revisi, aku pura-pura sibuk padahal cuma ngelihatin dia.',
+        'Setengah dari rencana pernikahan ini disusun di meja itu, di antara dua laptop dan satu stopkontak rebutan.'
+      ],
+      action: 'Numpang wifi',
+      reply: 'Password wifinya: kitanikahdulu. Huruf kecil semua, jangan disebar ke sebelah.'
+    },
+    bebek: {
+      name: 'Nasi Bebek Cak Bagas',
+      sign: 'NASI BEBEK',
+      lines: [
+        'Nasi Bebek Cak Bagas. Sambal koreknya level jujur, bukan level sok kuat.',
+        'Di sinilah hampir semua perdebatan kami selesai. Susah lanjut berantem kalau dua-duanya lagi kepedesan.',
+        'Kalau nanti di resepsi kamu lihat kami senyum-senyum sendiri pas lihat menu, ya karena ini.'
+      ],
+      action: 'Makan dulu',
+      reply: 'Nasi bebek satu, sambal dipisah biar aman. Nambah nasi? Hari ini gratis.'
+    }
+  },
+
+  // ---------- POJOKAN RAHASIA ----------
+  // Tersembunyi di sudut peta, tidak ditandai. Hadiah buat tamu yang benar-benar keliling.
+  secret: {
+    name: 'Pohon Harapan',
+    // Kode yang ditunjukkan tamu ke kalian di hari H. Ganti sesuka hati.
+    code: 'KOPI-BEBEK-2026',
+    lines: [
+      'Eh... kamu nemu tempat ini? Serius? Nggak banyak yang jalan sampai pojokan sini.',
+      'Ini tempat duduk-duduk kami waktu semuanya lagi berat: tabungan mepet, gedung penuh, keluarga banyak maunya.',
+      'Setiap kali bingung, kami ke sini, diem-dieman sebentar, terus pulang dengan keputusan yang sama: lanjut.',
+      'Karena kamu mau repot-repot keliling sampai ketemu, ini ada sesuatu buat kamu.'
+    ],
+    reward: 'Tunjukkan kode ini ke kami waktu salaman di hari H. Ada kejutan kecil, dan kami bakal tahu kamu benar-benar main sampai habis.'
+  },
+
   // ---------- LAIN-LAIN ----------
   music: true,        // musik chiptune otomatis nyala setelah undangan dibuka
   liveStream: ''      // (opsional) link streaming, mis. 'https://youtube.com/live/xxxx'

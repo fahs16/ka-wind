@@ -1,7 +1,7 @@
 /* Kotak dialog ala RPG: efek ketik, lanjut per halaman, tombol aksi di akhir. */
 
 const Dialogue = {
-  el: null, nameEl: null, textEl: null, faceEl: null, actEl: null, hintEl: null,
+  el: null, nameEl: null, textEl: null, faceEl: null, actEl: null, hintEl: null, closeEl: null,
   pages: [], idx: 0, typing: false, full: '', shown: 0, timer: null,
   opts: {}, open: false,
 
@@ -12,8 +12,14 @@ const Dialogue = {
     this.faceEl = this.el.querySelector('.dlg-face');
     this.actEl = this.el.querySelector('.dlg-actions');
     this.hintEl = this.el.querySelector('.dlg-hint');
+    this.closeEl = this.el.querySelector('.dlg-close');
+    this.closeEl.addEventListener('click', e => {
+      e.stopPropagation();
+      Chip.blip();
+      this.close();
+    });
     this.el.addEventListener('click', e => {
-      if (e.target.closest('.dlg-actions')) return;
+      if (e.target.closest('.dlg-actions') || e.target.closest('.dlg-close')) return;
       this.advance();
     });
   },
@@ -85,7 +91,7 @@ const Dialogue = {
       this.actEl.classList.remove('hidden');
       this.hintEl.textContent = '';
     } else {
-      this.hintEl.textContent = last ? '▼ tutup' : '▼ lanjut';
+      this.hintEl.textContent = last ? '▼ tutup' : '▼ lanjut  ·  ✕ keluar';
     }
   },
 

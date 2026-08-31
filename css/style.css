@@ -33,7 +33,7 @@ body{
 /* ============ HUD ============ */
 #hud{
   position:absolute;top:0;left:0;right:0;
-  display:flex;justify-content:space-between;align-items:flex-start;
+  display:flex;justify-content:space-between;align-items:flex-start;gap:8px;
   padding:10px 10px;pointer-events:none;
   padding-top:calc(10px + env(safe-area-inset-top));
 }
@@ -43,7 +43,8 @@ body{
   border:3px solid var(--ink);border-radius:0;
   padding:8px 10px;box-shadow:0 3px 0 var(--shadow);
 }
-.hud-right{display:flex;gap:8px;pointer-events:auto}
+.hud-left{display:flex;gap:6px;flex-wrap:wrap;max-width:70%}
+.hud-right{display:flex;gap:8px;pointer-events:auto;flex:0 0 auto}
 .hud-btn{cursor:pointer}
 .hud-btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--shadow)}
 .heart{color:var(--rose)}
@@ -136,6 +137,16 @@ body.talking #social{display:none}
   box-shadow:0 6px 0 var(--shadow), 0 0 0 4px rgba(253,246,233,.15);
   padding:14px 16px;cursor:pointer;z-index:20;
 }
+.dlg-close{
+  position:absolute;top:-14px;right:-12px;z-index:2;
+  width:34px;height:34px;line-height:1;cursor:pointer;
+  font-family:var(--pix);font-size:13px;
+  background:var(--rose);color:var(--cream);
+  border:4px solid var(--ink);box-shadow:0 3px 0 var(--shadow);
+}
+.dlg-close:hover{background:var(--rose-dark)}
+.dlg-close:active{transform:translateY(2px);box-shadow:0 1px 0 var(--shadow)}
+.dlg-close:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .dlg-face{
   flex:0 0 auto;width:52px;height:68px;background:var(--cream2);
   border:3px solid var(--ink);display:flex;align-items:center;justify-content:center;
@@ -182,6 +193,13 @@ body.talking #social{display:none}
   padding:14px;margin-bottom:14px;box-shadow:0 4px 0 var(--shadow);
 }
 .card.ok{background:#e6f0d8}
+.card.secret{background:#2b1d2e;color:var(--cream);border-color:var(--gold)}
+.card.secret .card-kicker{color:var(--gold)}
+.code-big{
+  font-family:var(--pix);font-size:15px;line-height:1.7;letter-spacing:1px;
+  color:var(--gold);margin:6px 0 12px;word-break:break-word;
+}
+#hud-secret{color:var(--gold)}
 .card.center{text-align:center}
 .card-kicker{font-family:var(--pix);font-size:9px;color:var(--rose-dark);margin-bottom:10px}
 .big{font-family:var(--pix);font-size:12px;line-height:1.7;margin-bottom:10px}
@@ -294,7 +312,17 @@ body.talking #social{display:none}
   .modal-title{font-size:10px}
   .dlg-text{font-size:20px}
   #dialog{padding:12px}
-  .dlg-face{width:44px;height:58px}
+  .dlg-close{
+  position:absolute;top:-14px;right:-12px;z-index:2;
+  width:34px;height:34px;line-height:1;cursor:pointer;
+  font-family:var(--pix);font-size:13px;
+  background:var(--rose);color:var(--cream);
+  border:4px solid var(--ink);box-shadow:0 3px 0 var(--shadow);
+}
+.dlg-close:hover{background:var(--rose-dark)}
+.dlg-close:active{transform:translateY(2px);box-shadow:0 1px 0 var(--shadow)}
+.dlg-close:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.dlg-face{width:44px;height:58px}
   .dlg-face canvas{width:36px;height:50px}
 }
 @media (max-height:520px){

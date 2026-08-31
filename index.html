@@ -35,6 +35,8 @@
     <div class="hud-left">
       <span class="hud-chip"><span class="heart">&#10084;</span> <span id="hud-progress">0/8</span></span>
       <span class="hud-chip hidden" id="hud-online" title="Tamu yang sedang membuka undangan">&#128101; <b>1</b></span>
+      <span class="hud-chip hidden" id="hud-fav" title="Tempat favorit mempelai yang sudah kamu temukan">&#9749; <b>0/3</b></span>
+      <span class="hud-chip hidden" id="hud-secret" title="Kamu menemukan pojokan rahasia">&#9733;</span>
     </div>
     <div class="hud-right">
       <button id="btn-music" class="hud-btn" title="Musik (M)">&#9834; OFF</button>
@@ -67,6 +69,7 @@
 
   <!-- ====== DIALOG ====== -->
   <div id="dialog" class="hidden">
+    <button class="dlg-close" type="button" aria-label="Tutup percakapan">&times;</button>
     <div class="dlg-face"></div>
     <div class="dlg-main">
       <div class="dlg-name"></div>

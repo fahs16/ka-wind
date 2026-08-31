@@ -167,5 +167,14 @@ const Store = {
     KEY: 'undangan-progress',
     get() { try { return JSON.parse(localStorage.getItem(this.KEY) || '[]'); } catch (e) { return []; } },
     set(v) { try { localStorage.setItem(this.KEY, JSON.stringify(v)); } catch (e) {} }
+  },
+  // Tempat favorit yang sudah dikunjungi + status pojokan rahasia.
+  extra: {
+    KEY: 'undangan-extra',
+    get() {
+      try { return JSON.parse(localStorage.getItem(this.KEY) || '{"fav":[],"secret":false}'); }
+      catch (e) { return { fav: [], secret: false }; }
+    },
+    set(v) { try { localStorage.setItem(this.KEY, JSON.stringify(v)); } catch (e) {} }
   }
 };
