@@ -225,8 +225,8 @@ Jangan lewati bagian ini. Urutannya:
 Kartu preview-nya sudah ada di `img/preview.png` (1200×630) dan meta tag-nya sudah terpasang
 di `index.html`. Dua hal yang perlu kamu lakukan:
 
-1. **Ganti domainnya.** Di `<head>` pada `index.html`, dua baris ini masih mengarah ke alamat
-   GitHub Pages bawaan — ganti kalau situsmu di alamat lain:
+1. **Ganti domainnya kalau pindah.** Saat ini sudah diarahkan ke `https://ka-wind.netlify.app/`.
+   Kalau nanti pindah ke hosting sendiri, sesuaikan dua baris ini di `<head>` pada `index.html`:
 
 ```html
 <meta property="og:image" content="https://situskamu.com/img/preview.png">
