@@ -238,6 +238,8 @@ Penunjuk arah kecil di tepi layar mengarah ke 3 titik terdekat yang belum dikunj
 index.html            undangan yang dibuka tamu
 undangan.html         alat panitia: bikin link personal per tamu
 admin.html            alat panitia: rekap RSVP dari Google Sheet
+preview.html          alat panitia: bikin kartu preview WhatsApp
+img/preview.png       gambar yang muncul saat link dibagikan
 server/apps-script.gs  kode yang ditempel ke Google Apps Script
 css/style.css         tampilan undangan
 css/tools.css         tampilan dua halaman alat panitia

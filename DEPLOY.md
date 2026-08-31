@@ -217,22 +217,29 @@ Jangan lewati bagian ini. Urutannya:
 - [ ] Buka satu **link personal** (`?u=kode`) — nama tamu muncul di layar pembuka.
 - [ ] Kirim **RSVP percobaan**, cek masuk ke Sheet, lalu **hapus baris percobaannya**.
 - [ ] Buka `admin.html`, pastikan data muncul dan token berfungsi.
-- [ ] Kirim link ke diri sendiri via WhatsApp, lihat preview-nya (lihat catatan di bawah).
+- [ ] Kirim link ke diri sendiri via WhatsApp, cek gambar preview-nya muncul (lihat catatan di bawah).
 - [ ] Minta 2–3 orang mencoba dari HP mereka sebelum disebar luas.
 
 ### Preview di WhatsApp
 
-Saat ini link yang dibagikan hanya menampilkan judul dan keterangan, tanpa gambar.
-Kalau mau ada gambarnya, siapkan file `img/preview.jpg` ukuran **1200×630**, lalu tambahkan
-dua baris ini di dalam `<head>` pada `index.html`:
+Kartu preview-nya sudah ada di `img/preview.png` (1200×630) dan meta tag-nya sudah terpasang
+di `index.html`. Dua hal yang perlu kamu lakukan:
+
+1. **Ganti domainnya.** Di `<head>` pada `index.html`, dua baris ini masih mengarah ke alamat
+   GitHub Pages bawaan — ganti kalau situsmu di alamat lain:
 
 ```html
-<meta property="og:image" content="https://situskamu.com/img/preview.jpg">
+<meta property="og:image" content="https://situskamu.com/img/preview.png">
 <meta property="og:url" content="https://situskamu.com/">
 ```
 
-Alamatnya harus lengkap (`https://...`), bukan `img/preview.jpg` saja. WhatsApp menyimpan
-preview lama cukup lama — kalau tidak berubah, tambahkan `?v=2` di belakang link saat menguji.
+   Alamatnya harus lengkap (`https://...`), bukan `img/preview.png` saja.
+
+2. **Buat ulang gambarnya setelah nama/tanggal diganti.** Buka `preview.html`, nama dan tanggal
+   diambil otomatis dari `config.js`, lalu klik **Unduh img/preview.png** dan timpa file lamanya.
+
+WhatsApp menyimpan preview lama cukup lama — saat menguji, tambahkan `?v=2` di belakang link
+supaya dianggap link baru.
 
 ---
 
@@ -277,5 +284,6 @@ ditempel manual.
 | Undangan | tamu | `situskamu.com/` |
 | Undangan personal | tamu | `situskamu.com/?u=and1` |
 | Generator link | kamu | `situskamu.com/undangan.html` |
+| Kartu preview WA | kamu | `situskamu.com/preview.html` |
 | Rekap RSVP | kamu | `situskamu.com/admin.html` |
 | Mode uji multiplayer | kamu | `situskamu.com/?net=local` |

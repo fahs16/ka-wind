@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kartu Preview WhatsApp</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tools.css">
+<style>
+  .card-wrap{background:var(--cream);border:4px solid var(--ink);box-shadow:0 6px 0 var(--shadow);padding:14px;margin-bottom:20px}
+  #card{width:100%;height:auto;display:block;image-rendering:pixelated}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Kartu Preview WhatsApp</h1>
+  <nav>
+    <a class="btn btn-small" href="index.html">Lihat Undangan</a>
+    <a class="btn btn-small" href="undangan.html">Generator Link</a>
+    <a class="btn btn-small" href="admin.html">Rekap RSVP</a>
+  </nav>
+</header>
+
+<div class="wrap">
+  <p class="muted">Gambar yang muncul waktu link undangan dibagikan di WhatsApp, Telegram, atau Facebook.
+  Nama dan tanggalnya diambil otomatis dari <code>js/config.js</code>, jadi tiap kali datanya berubah,
+  buka halaman ini lagi dan unduh ulang.</p>
+
+  <div class="card-wrap"><canvas id="card" width="1200" height="630"></canvas></div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" id="dl">Unduh img/preview.png</button>
+    <button class="btn" id="redraw">Gambar Ulang</button>
+  </div>
+
+  <div class="note">
+    <b>Setelah diunduh:</b> taruh filenya di folder <code>img/</code> dengan nama <code>preview.png</code>,
+    lalu pastikan alamat di <code>og:image</code> pada <code>index.html</code> sudah sesuai domainmu.
+    Kalau situsnya dibuka di alamat selain GitHub Pages, ganti dua baris <code>og:image</code> dan
+    <code>og:url</code> di bagian <code>&lt;head&gt;</code>.
+  </div>
+  <div class="note danger">
+    WhatsApp menyimpan preview lama cukup lama. Waktu menguji hasilnya, tambahkan <code>?v=2</code>
+    di belakang alamat supaya dianggap link baru.
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/font.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/world.js"></script>
+<script src="js/paint.js"></script>
+<script>
+(function () {
+  const SCALE = 3, W = 400, H = 210;      // 400x210 logis -> 1200x630
+  const cv = document.getElementById('card');
+  const g = cv.getContext('2d');
+
+  function grass(x, y) {
+    const r = U.hash(x, y), r2 = U.hash(x + 91, y + 17);
+    U.px(g, x * 16, y * 16, 16, 16, r > 0.86 ? C.grass2 : C.grass);
+    if (r > 0.55) {
+      const dx = Math.floor(r * 10), dy = Math.floor(r2 * 11);
+      U.px(g, x * 16 + dx, y * 16 + dy, 3, 1, C.tuft);
+      U.px(g, x * 16 + dx + 1, y * 16 + dy - 1, 1, 1, C.tuft);
+    }
+    if (r2 > 0.93) {
+      U.px(g, x * 16 + 6, y * 16 + 7, 2, 2, r > 0.5 ? C.gold : C.cream);
+      U.px(g, x * 16 + 7, y * 16 + 9, 1, 2, C.leaf2);
+    }
+  }
+
+  function draw() {
+    const c = CONFIG.couple;
+    const nama = (c.groom.nick + ' & ' + c.bride.nick).toUpperCase();
+    const d = new Date(CONFIG.bigDay);
+    const tanggal = isNaN(d) ? '' :
+      d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase();
+
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.imageSmoothingEnabled = false;
+    g.clearRect(0, 0, cv.width, cv.height);
+    g.scale(SCALE, SCALE);
+
+    // rumput + plaza
+    for (let y = 0; y <= H / 16; y++) for (let x = 0; x <= W / 16; x++) grass(x, y);
+    U.px(g, 0, 168, W, H - 168, C.plaza);
+    U.px(g, 0, 168, W, 2, C.plaza2);
+    for (let x = 0; x < W; x += 16) U.px(g, x, 168, 1, H - 168, C.plaza2);
+
+    // pepohonan di tepi
+    [[16, 150], [40, 128], [-4, 120], [364, 148], [386, 126], [346, 118]].forEach((p, i) => {
+      Paint.deco(g, { type: 'tree', x: p[0], y: p[1], v: 0.5 + i * 0.09 }, 0);
+    });
+    [[62, 160], [338, 158], [30, 166], [372, 164]].forEach(p => {
+      Paint.deco(g, { type: 'bush', x: p[0], y: p[1] }, 0);
+    });
+
+    // tiang papan
+    U.px(g, 118, 96, 8, 66, C.wood2);
+    U.px(g, 274, 96, 8, 66, C.wood2);
+
+    // papan utama
+    const bx = 62, by = 22, bw = 276, bh = 110;
+    U.px(g, bx - 4, by - 4, bw + 8, bh + 8, C.wood2);
+    U.px(g, bx, by, bw, bh, C.cream);
+    U.px(g, bx + 4, by + 4, bw - 8, bh - 8, C.cream);
+    U.px(g, bx + 4, by + 4, bw - 8, 2, C.gold);
+    U.px(g, bx + 4, by + bh - 6, bw - 8, 2, C.gold);
+    U.px(g, bx + 4, by + 4, 2, bh - 8, C.gold);
+    U.px(g, bx + bw - 6, by + 4, 2, bh - 8, C.gold);
+
+    // bunga di sudut papan
+    [[bx + 2, by + 2], [bx + bw - 2, by + 2], [bx + 2, by + bh - 2], [bx + bw - 2, by + bh - 2]]
+      .forEach((p, i) => {
+        const col = i % 2 ? C.rose : C.gold;
+        U.px(g, p[0] - 4, p[1] - 4, 9, 9, C.leaf);
+        U.px(g, p[0] - 3, p[1] - 3, 7, 7, col);
+        U.px(g, p[0] - 1, p[1] - 1, 3, 3, C.cream);
+      });
+
+    // teks
+    Font.drawCentered(g, 'THE WEDDING OF', W / 2, by + 16, C.rose2, 2, 1);
+    const skala = Font.width(nama, 4, 1) <= bw - 40 ? 4 : (Font.width(nama, 3, 1) <= bw - 30 ? 3 : 2);
+    Font.drawCentered(g, nama, W / 2, by + 36, C.ink, skala, 1);
+    U.px(g, W / 2 - 40, by + 36 + skala * 5 + 8, 80, 2, C.gold2);
+    Font.drawCentered(g, tanggal, W / 2, by + 36 + skala * 5 + 16, C.ink, 2, 1);
+
+    // hati kecil di bawah papan
+    const hx = W / 2, hy = by + bh - 20;
+    U.px(g, hx - 5, hy, 4, 4, C.rose);
+    U.px(g, hx + 1, hy, 4, 4, C.rose);
+    U.px(g, hx - 5, hy + 3, 10, 3, C.rose);
+    U.px(g, hx - 3, hy + 6, 6, 2, C.rose2);
+    U.px(g, hx - 1, hy + 8, 2, 2, C.rose2);
+
+    // kedua mempelai, digambar 2x supaya tetap terbaca di thumbnail kecil
+    const S = 2, kaki = 180, cx = W / 2;
+    Sprites.shadow(g, cx - 15 * S, kaki, 13 * S);
+    Sprites.shadow(g, cx + 15 * S, kaki, 13 * S);
+
+    g.save();
+    g.translate(cx - 15 * S, kaki); g.scale(S, S);
+    Sprites.drawChar(g, 'groom', 'down', 0, 0, 0);
+    U.px(g, -3, -9, 2, 2, C.rose);               // bunga di jas
+    U.px(g, -1, -5, 4, 1, C.gold);
+    g.restore();
+
+    g.save();
+    g.translate(cx + 15 * S, kaki); g.scale(S, S);
+    U.px(g, -6, -20, 12, 4, C.cream);            // kerudung, melebar ke bawah
+    U.px(g, -8, -16, 16, 5, C.cream);
+    U.px(g, -10, -11, 20, 8, C.cream);
+    U.px(g, -10, -11, 2, 8, C.shade);
+    U.px(g, 8, -11, 2, 8, C.shade);
+    U.px(g, -8, -16, 2, 5, C.shade);
+    U.px(g, 6, -16, 2, 5, C.shade);
+    Sprites.drawChar(g, 'bride', 'down', 0, 0, 0);
+    U.px(g, 3, -8, 6, 5, C.leaf);                // buket
+    U.px(g, 3, -11, 4, 4, C.rose);
+    U.px(g, 6, -10, 3, 3, C.cream);
+    g.restore();
+
+    // pita bawah
+    const pita = 'UNDANGAN INI BERBENTUK GAME';
+    const pw = Font.width(pita, 2, 1) + 20;
+    U.px(g, W / 2 - pw / 2 - 2, 190, pw + 4, 18, C.ink);
+    U.px(g, W / 2 - pw / 2, 192, pw, 14, C.gold);
+    Font.drawCentered(g, pita, W / 2, 194, C.ink, 2, 1);
+  }
+
+  function toast(m) {
+    const t = document.getElementById('toast');
+    t.textContent = m; t.classList.add('show');
+    clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2000);
+  }
+
+  Sprites.init();
+  draw();
+
+  document.getElementById('redraw').onclick = () => { draw(); toast('Digambar ulang'); };
+  document.getElementById('dl').onclick = () => {
+    cv.toBlob(b => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(b);
+      a.download = 'preview.png';
+      document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 400);
+      toast('preview.png diunduh - taruh di folder img/');
+    }, 'image/png');
+  };
+})();
+</script>
+</body>
+</html>
