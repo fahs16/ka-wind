@@ -10,7 +10,9 @@ const Content = {
       const g = GUESTS.find(x => String(x.code).toLowerCase() === code);
       if (g) info = { code: g.code, name: g.name, seats: +g.seats || 0, group: g.group || '', wa: g.wa || '' };
     }
-    if (!info.name) {
+    const privat = !!(CONFIG.access && CONFIG.access.private);
+    if (!info.name && !privat) {
+      // Nama bebas lewat ?to= hanya berlaku kalau undangan tidak dikunci.
       const free = (U.query('to') || U.query('kepada') || U.query('nama')).trim();
       if (free) info.name = free.slice(0, 60);
       if (code && !info.code) info.code = code.slice(0, 24); // kode tak dikenal, tetap dicatat

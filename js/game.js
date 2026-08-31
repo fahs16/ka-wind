@@ -804,6 +804,10 @@ const Actions = {
 
 /* ---------------- Booting ---------------- */
 window.addEventListener('DOMContentLoaded', () => {
+  // Tamu tanpa undangan berhenti di sini: tidak ada nama, tanggal, atau lokasi
+  // yang pernah dimasukkan ke halaman.
+  if (!Access.check()) { Access.tutup(); return; }
+
   const c = CONFIG.couple;
   const cd = U.countdown(CONFIG.bigDay);
   const guest = Content.guest();
