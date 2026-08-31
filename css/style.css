@@ -1,3 +1,13 @@
+/* ============ Halaman untuk yang tidak diundang ============ */
+body.gate-closed{
+  margin:0;min-height:100vh;background:#1d1420;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+}
+body.gate-closed img{
+  max-width:min(78vw,420px);max-height:78vh;width:auto;height:auto;
+  image-rendering:pixelated;user-select:none;-webkit-user-drag:none;
+}
+
 /* ============ Dasar ============ */
 :root{
   --ink:#2b1d2e;

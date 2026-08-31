@@ -88,8 +88,8 @@ const CONFIG = {
     // Nomor WhatsApp penerima konfirmasi. Format internasional tanpa "+" dan tanpa "0" di depan.
     whatsapp: '6281234567890',
     // URL Web App Google Apps Script buat nyimpen RSVP ke Google Sheet.
-    // Cara bikinnya ada di server/apps-script.gs + README. Kosongin kalau belum siap.
-    endpoint: '',
+    // Cara bikinnya ada di server/apps-script.gs + README.
+    endpoint: 'https://script.google.com/macros/s/AKfycbxxnXUIT5gtBCc8_hV3ETudINzl7Az5ha9Vbf2VHDYnQOh33GZOeNgJ9PFdebzaKtm23w/exec',
     deadline: '1 Desember 2026'
   },
 
@@ -98,9 +98,11 @@ const CONFIG = {
   //           'local'    -> mode uji coba antar-tab di satu perangkat (tanpa akun apa pun)
   //           'supabase' -> beneran online, isi url + key dari dashboard Supabase
   net: {
-    provider: 'off',
-    url: '',                 // contoh: 'https://xxxxxxxx.supabase.co'
-    key: '',                 // anon public key (aman ditaruh di sini, bukan service_role)
+    provider: 'supabase',
+    url: 'https://ksojnpunqeozuapnsrgc.supabase.co',
+    // Publishable key: memang dirancang untuk dipasang di kode yang dilihat publik.
+    // JANGAN pernah menaruh secret key atau password database di file ini.
+    key: 'sb_publishable_sv7HJNZPwgeGB49dLTvOpQ_jbPlE8l7',
     room: 'taman-utama',     // ganti kalau mau ruangan terpisah
     maxPeers: 40,            // batas karakter tamu lain yang digambar sekaligus
     sendMs: 140,             // jeda minimal kirim posisi (naikkan kalau mau lebih hemat kuota)
@@ -116,6 +118,20 @@ const CONFIG = {
   quote: {
     text: 'Dan di antara tanda-tanda kekuasaan-Nya ialah Dia menciptakan untukmu pasangan hidup dari jenismu sendiri, supaya kamu cenderung dan merasa tenteram kepadanya.',
     source: 'QS. Ar-Rum: 21'
+  },
+
+  // ---------- AKSES: HANYA TAMU YANG DIUNDANG ----------
+  // private: true  -> undangan cuma terbuka lewat link personal ?u=KODE yang
+  //                   kodenya terdaftar di js/guests.js. Selain itu yang muncul
+  //                   cuma gambar polos tanpa nama, tanggal, atau tulisan apa pun.
+  // private: false -> siapa pun yang punya link bisa membuka (perilaku lama).
+  access: {
+    private: true,
+    // Kode cadangan buat kalian & panitia, tidak perlu terdaftar di guests.js.
+    // Ganti jadi tebakan yang susah, ini sama saja seperti kata sandi.
+    bypass: ['fitrahnadia-panitia'],
+    // Gambar yang ditampilkan ke pengunjung tanpa undangan. Tidak memuat teks apa pun.
+    image: 'img/closed.png'
   },
 
   // ---------- TEMPAT FAVORIT (bonus, bukan bagian dari 8 titik misi) ----------

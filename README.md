@@ -49,6 +49,7 @@ Cuma **satu file**. Semua teks, tanggal, lokasi, foto, dan rekening ada di sana:
 | `quote` | Ayat/kutipan pembuka |
 | `spots` | Tiga warung favorit (Kopi Ukut, Refo Coffee, Nasi Bebek) + obrolannya |
 | `secret` | Isi pojokan rahasia & kode hadiah yang ditunjukkan tamu di hari H |
+| `access` | Kunci undangan: hanya link personal `?u=KODE` yang bisa membuka |
 
 ### Menambahkan foto
 
@@ -95,6 +96,43 @@ form RSVP terisi otomatis, dan pilihan jumlah tamu dibatasi sesuai jatah kursiny
 Kode tamu juga ikut tercatat di database, jadi rekapnya rapi walau ada dua orang bernama sama.
 
 Kalau ada tamu di luar daftar, link bebas `?to=Nama%20Tamu` tetap jalan seperti biasa.
+
+---
+
+## Mengunci undangan: hanya tamu yang diundang
+
+Di `js/config.js`:
+
+```js
+access: {
+  private: true,                        // false = siapa pun yang punya link bisa buka
+  bypass: ['fitrahnadia-panitia'],      // kode cadangan buat kalian & panitia
+  image: 'img/closed.png'               // yang dilihat pengunjung tanpa undangan
+}
+```
+
+Saat `private: true`, undangan hanya terbuka lewat `?u=KODE` yang kodenya terdaftar di
+`js/guests.js` (atau ada di daftar `bypass`). Selain itu yang muncul cuma satu gambar gerbang
+terkunci &mdash; tanpa nama, tanggal, lokasi, tombol, atau musik. Link bebas `?to=NamaTamu`
+otomatis tidak berlaku selama mode ini aktif.
+
+> **Wajib:** buat daftar tamu asli lewat `undangan.html` dan unggah `js/guests.js`-nya
+> **sebelum** menyalakan mode ini. Kalau tidak, yang bisa masuk cuma kode contoh bawaan.
+
+### Batas dari penyaringan ini
+
+Pemeriksaan berjalan di browser tamu, jadi ini **menyaring, bukan mengunci**. Yang perlu kamu tahu:
+
+- `js/config.js` dan `js/guests.js` tetap bisa diunduh langsung oleh siapa pun yang mengetik
+  alamatnya, jadi nama tamu dan detail acara masih terbaca oleh orang yang sengaja mencari.
+- Gambar preview WhatsApp (`img/preview.png`) memuat nama & tanggal. Kalau mau benar-benar
+  tertutup, arahkan `og:image` di `index.html` ke `img/closed.png`.
+- Untuk kunci sungguhan, gerbangnya harus di sisi server: Netlify Edge Function sekarang, atau
+  PHP/nginx di hosting sendiri nanti &mdash; server menolak mengirim berkasnya sama sekali
+  tanpa kode yang sah.
+
+Untuk undangan pernikahan yang disebar lewat WhatsApp, tingkat ini biasanya sudah cukup:
+orang yang tidak diundang dan tidak sengaja membuka alamatnya tidak melihat apa-apa.
 
 ---
 
