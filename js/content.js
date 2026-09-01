@@ -6,7 +6,12 @@ const Content = {
     if (this._guest) return this._guest;
     const code = (U.query('u') || U.query('kode')).trim().toLowerCase();
     let info = { code: '', name: '', seats: 0, group: '' };
-    if (code && typeof GUESTS !== 'undefined' && Array.isArray(GUESTS)) {
+
+    // Identitas sudah dicari lebih dulu oleh Access (dari js/guests.js atau Google Sheet).
+    if (typeof Access !== 'undefined' && Access.tamu) {
+      const t = Access.tamu;
+      info = { code: t.code || code, name: t.name || '', seats: +t.seats || 0, group: t.group || '' };
+    } else if (code && typeof GUESTS !== 'undefined' && Array.isArray(GUESTS)) {
       const g = GUESTS.find(x => String(x.code).toLowerCase() === code);
       if (g) info = { code: g.code, name: g.name, seats: +g.seats || 0, group: g.group || '', wa: g.wa || '' };
     }

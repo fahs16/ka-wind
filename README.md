@@ -79,6 +79,44 @@ Nama itu muncul di layar pembuka, di sapaan gerbang, dan otomatis mengisi form R
 
 ---
 
+## Di mana daftar tamu disimpan
+
+Ada dua pilihan, diatur di `js/config.js`:
+
+```js
+guests: {
+  source: 'sheet',   // 'sheet' (bawaan) atau 'lokal'
+  endpoint: ''       // kosong = ikut rsvp.endpoint
+}
+```
+
+**`'sheet'` — nama tamu tidak ikut ter-publish (disarankan).** Daftar tinggal di tab
+`TAMU` pada Google Sheet kamu. Saat tamu membuka `?u=and1`, browsernya cuma bertanya
+*"siapa pemilik kode and1?"* dan server cuma menjawab satu tamu itu — nama, jatah kursi,
+dan grupnya. Daftar lengkapnya tidak pernah keluar dari Sheet, dan nomor WA tidak pernah
+dikirim ke browser sama sekali.
+
+`js/guests.js` tetap ada tapi **hanya berisi kode**, tanpa nama. Gunanya sebagai cadangan:
+kalau Sheet sedang tidak bisa dihubungi, tamu tetap bisa masuk — hanya sapaannya jadi umum.
+Jadi Sheet yang ngadat tidak pernah mengunci tamu di luar pintu.
+
+**`'lokal'` — cara lama.** Semua nama ada di `js/guests.js`. Praktis dan tanpa
+ketergantungan jaringan, tapi siapa pun bisa membuka `situskamu.com/js/guests.js` dan
+membaca seluruh daftar tamu.
+
+### Mengisi tab TAMU
+
+1. Jalankan `initSheet()` sekali di Apps Script — tab `TAMU` otomatis dibuat dengan
+   kolom `Kode | Nama | Kursi | Grup | WA`.
+2. Buka `undangan.html`, susun daftarnya, klik **Salin untuk Google Sheet**.
+3. Tempel di tab `TAMU` mulai baris ke-2. Kolomnya langsung pas.
+4. Klik **Unduh js/guests.js** (isinya kode saja) dan unggah ulang situsnya.
+
+Halaman rekap `admin.html` otomatis menarik daftar tamu dari Sheet untuk tabel
+"belum menjawab", jadi tidak perlu daftar terpisah lagi.
+
+---
+
 ## Daftar undangan & link personal
 
 Buka **`undangan.html`** di browser (halaman ini buat kamu, bukan buat tamu).

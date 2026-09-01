@@ -6,6 +6,8 @@
  *  2. Menu Extensions (Ekstensi) > Apps Script. Hapus isi Code.gs, tempel file ini.
  *  3. Ganti ADMIN_TOKEN di bawah dengan kata sandi panjang buatanmu sendiri.
  *  4. Jalankan fungsi initSheet() sekali (pilih di dropdown lalu Run) dan izinkan aksesnya.
+ *     Ini membuat dua tab: RSVP (jawaban tamu) dan TAMU (daftar undangan).
+ *     Isi tab TAMU lewat tombol "Salin untuk Google Sheet" di undangan.html.
  *  5. Deploy > New deployment > pilih tipe "Web app".
  *       - Execute as        : Me
  *       - Who has access    : Anyone
@@ -19,9 +21,11 @@
  */
 
 var SHEET_NAME  = 'RSVP';
+var SHEET_TAMU  = 'TAMU';
 var ADMIN_TOKEN = 'ganti-dengan-kata-sandi-panjang-punyamu';
 
 var HEADERS = ['Waktu', 'Kode', 'Nama', 'Grup', 'Kehadiran', 'Jumlah', 'Ucapan', 'Revisi'];
+var HEADERS_TAMU = ['Kode', 'Nama', 'Kursi', 'Grup', 'WA'];
 
 /* ------------------------------------------------------------------ utils */
 function json_(obj) {
@@ -40,13 +44,51 @@ function sheet_() {
   return sh;
 }
 
+function sheetTamu_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(SHEET_TAMU);
+  if (!sh) {
+    sh = ss.insertSheet(SHEET_TAMU);
+    sh.appendRow(HEADERS_TAMU);
+  }
+  return sh;
+}
+
+/** Membaca seluruh daftar tamu. Hanya dipakai di dalam skrip ini. */
+function bacaTamu_() {
+  var sh = sheetTamu_();
+  var last = sh.getLastRow();
+  if (last < 2) return [];
+  var data = sh.getRange(2, 1, last - 1, HEADERS_TAMU.length).getValues();
+  var out = [];
+  for (var i = 0; i < data.length; i++) {
+    var kode = str_(data[i][0]);
+    if (!kode) continue;
+    out.push({
+      kode: kode,
+      nama: str_(data[i][1]),
+      kursi: Number(data[i][2]) || 0,
+      grup: str_(data[i][3]),
+      wa: str_(data[i][4])
+    });
+  }
+  return out;
+}
+
 function initSheet() {
   var sh = sheet_();
   if (sh.getLastRow() === 0) sh.appendRow(HEADERS);
   sh.getRange(1, 1, 1, HEADERS.length).setFontWeight('bold').setBackground('#f0e5d2');
   sh.setFrozenRows(1);
   sh.autoResizeColumns(1, HEADERS.length);
-  return 'Sheet siap dipakai.';
+
+  var st = sheetTamu_();
+  if (st.getLastRow() === 0) st.appendRow(HEADERS_TAMU);
+  st.getRange(1, 1, 1, HEADERS_TAMU.length).setFontWeight('bold').setBackground('#e6dcc6');
+  st.setFrozenRows(1);
+  st.autoResizeColumns(1, HEADERS_TAMU.length);
+
+  return 'Sheet RSVP dan TAMU siap dipakai.';
 }
 
 function str_(v) { return v === null || v === undefined ? '' : String(v).trim(); }
@@ -109,6 +151,35 @@ function doGet(e) {
 
   if (action === 'ping') {
     return json_({ ok: true, service: 'buku-tamu', waktu: new Date().toISOString() });
+  }
+
+  // Mencari SATU tamu berdasarkan kode undangannya.
+  // Sengaja tidak pernah mengembalikan seluruh daftar, dan nomor WA tidak ikut
+  // dikirim, supaya data tamu lain tidak bisa dipanen dari sisi browser.
+  if (action === 'tamu') {
+    var kode = str_(p.u || p.kode).toLowerCase();
+    if (!kode) return json_({ ok: false, error: 'kode kosong' });
+    var semua = bacaTamu_();
+    for (var i = 0; i < semua.length; i++) {
+      if (semua[i].kode.toLowerCase() === kode) {
+        return json_({
+          ok: true,
+          tamu: {
+            kode: semua[i].kode,
+            nama: semua[i].nama,
+            kursi: semua[i].kursi,
+            grup: semua[i].grup
+          }
+        });
+      }
+    }
+    return json_({ ok: false, error: 'tidak terdaftar' });
+  }
+
+  // Daftar lengkap, khusus halaman rekap panitia.
+  if (action === 'tamu-all') {
+    if (p.token !== ADMIN_TOKEN) return json_({ ok: false, error: 'token salah' });
+    return json_({ ok: true, tamu: bacaTamu_() });
   }
 
   if (action === 'stats' || action === 'list') {

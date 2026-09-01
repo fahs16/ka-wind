@@ -1,3 +1,9 @@
+/* ============ Saat identitas tamu sedang diperiksa ============ */
+/* Layar sengaja kosong sampai keputusan akses selesai, supaya isi undangan
+   tidak sempat terlihat oleh pengunjung yang ternyata tidak diundang. */
+body.memeriksa{background:#1d1420}
+body.memeriksa #app{visibility:hidden}
+
 /* ============ Halaman untuk yang tidak diundang ============ */
 body.gate-closed{
   margin:0;min-height:100vh;background:#1d1420;

@@ -830,9 +830,16 @@ const Actions = {
 
 /* ---------------- Booting ---------------- */
 window.addEventListener('DOMContentLoaded', () => {
-  // Tamu tanpa undangan berhenti di sini: tidak ada nama, tanggal, atau lokasi
-  // yang pernah dimasukkan ke halaman.
-  if (!Access.check()) { Access.tutup(); return; }
+  // Identitas tamu dicari dulu (bisa dari Google Sheet, jadi perlu menunggu).
+  // Selama diperiksa, halaman sengaja kosong: tidak ada nama, tanggal, atau
+  // lokasi yang sempat dirender untuk pengunjung tanpa undangan.
+  Access.mulai()
+    .then(boleh => { boleh ? mulaiUndangan() : Access.tutup(); })
+    .catch(() => Access.tutup());
+});
+
+function mulaiUndangan() {
+  document.body.classList.remove('memeriksa');
 
   const c = CONFIG.couple;
   const cd = U.countdown(CONFIG.bigDay);
@@ -851,4 +858,4 @@ window.addEventListener('DOMContentLoaded', () => {
 
   Game.init();
   document.getElementById('btn-open').addEventListener('click', () => Game.start());
-});
+}

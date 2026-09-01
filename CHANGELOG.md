@@ -15,6 +15,24 @@ git push origin main
 
 ---
 
+## v1.3.0
+
+Daftar tamu pindah ke Google Sheet, supaya namanya tidak ikut ter-publish.
+
+- Tab `TAMU` baru di Sheet berisi kode, nama, jatah kursi, grup, dan nomor WA.
+- Browser tamu hanya menanyakan satu kode dan server hanya menjawab satu tamu
+  itu; daftar lengkap tidak pernah keluar dari Sheet, dan nomor WA tidak pernah
+  dikirim ke browser.
+- `js/guests.js` kini cukup berisi kode saja, sebagai cadangan kalau Sheet
+  sedang tidak bisa dihubungi. Kode yang dikenal daftar cadangan langsung
+  diloloskan tanpa menunggu jaringan (terukur 27 ms), namanya menyusul begitu
+  jawaban Sheet tiba.
+- Halaman rekap panitia menarik daftar tamu langsung dari Sheet lewat token.
+- Generator menambah tombol "Salin untuk Google Sheet" yang menghasilkan baris
+  siap tempel ke tab `TAMU`.
+- Layar sengaja kosong selama identitas diperiksa, jadi tidak ada nama atau
+  detail acara yang sempat terlihat pengunjung tanpa undangan.
+
 ## v1.2.0 — commit `f0d6aba`
 
 Undangan dikunci untuk tamu terundang.

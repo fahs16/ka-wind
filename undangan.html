@@ -19,12 +19,7 @@
 </header>
 
 <div class="wrap">
-  <div class="note danger">
-    <b>Undangan sedang dikunci</b> (<code>access.private: true</code> di <code>js/config.js</code>).
-    Artinya <b>hanya kode yang ada di <code>js/guests.js</code></b> yang bisa membuka undangan &mdash;
-    pengunjung lain cuma melihat gambar gerbang terkunci. Jadi setelah membuat daftar di bawah,
-    <b>wajib</b> unduh <code>js/guests.js</code> dan unggah ulang situsnya. Kalau tidak, tamu kamu ikut terkunci.
-  </div>
+  <div class="note danger" id="mode-note"></div>
 
   <p class="muted">Halaman ini cuma buat kamu, bukan buat tamu. Ketik daftar tamunya, nanti keluar
   link personal per orang + teks siap kirim WhatsApp. Semua diproses di browser ini, tidak ada data yang dikirim ke mana pun.</p>
@@ -66,7 +61,8 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
     <div class="btn-row">
       <button class="btn btn-primary" id="go">Buat Link</button>
       <button class="btn" id="csv">Unduh CSV</button>
-      <button class="btn btn-gold" id="dl">Unduh js/guests.js</button>
+      <button class="btn btn-gold" id="sheet">Salin untuk Google Sheet</button>
+      <button class="btn" id="dl">Unduh js/guests.js</button>
       <button class="btn" id="copyall">Salin Semua Link</button>
     </div>
   </div>
@@ -105,6 +101,18 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
 'Undangan lengkapnya (berbentuk game kecil, tinggal dibuka di HP) ada di sini:\n{link}\n\n' +
 'Mohon konfirmasi kehadirannya lewat tombol RSVP di dalam undangan ya. Terima kasih banyak.\n\n' +
 'Wassalamualaikum Wr. Wb.';
+
+  const modeSheet = ((CONFIG.guests && CONFIG.guests.source) || 'lokal').toLowerCase() === 'sheet';
+  $('mode-note').innerHTML = modeSheet
+    ? '<b>Daftar tamu diambil dari Google Sheet</b> (<code>guests.source: \'sheet\'</code>). ' +
+      'Setelah membuat daftar di bawah, klik <b>Salin untuk Google Sheet</b>, lalu tempel ke tab ' +
+      '<code>TAMU</code> di Sheet kamu mulai baris ke-2. Nama tamu tidak ikut ter-upload ke situs, ' +
+      'jadi tidak bisa dibaca publik. Berkas <code>js/guests.js</code> cukup berisi kodenya saja ' +
+      'sebagai cadangan kalau Sheet sedang tidak bisa dihubungi.'
+    : '<b>Undangan dikunci lewat <code>js/guests.js</code></b>. Setelah membuat daftar, unduh berkasnya ' +
+      'dan unggah ulang situsnya &mdash; kalau tidak, tamu kamu ikut terkunci. Perlu diketahui: berkas itu ' +
+      'bisa dibaca siapa pun lewat <code>situskamu.com/js/guests.js</code>. Kalau tidak mau nama tamu ' +
+      'terbaca publik, ganti <code>guests.source</code> jadi <code>\'sheet\'</code> di <code>js/config.js</code>.';
 
   $('tpl').value = DEFAULT_TPL;
   $('base').value = location.href.replace(/undangan\.html.*$/, '');
@@ -177,7 +185,17 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
       '<th>#</th><th>Nama</th><th>Kode</th><th>Link</th><th>Aksi</th>' +
       '</tr></thead><tbody>' + body + '</tbody></table></div>';
 
-    const bawaWa = $('wapub').checked;
+    const bawaWa = $('wapub').checked && !modeSheet;
+    if (modeSheet) {
+      $('gen').value =
+        '/* Dibuat lewat undangan.html pada ' + new Date().toLocaleString('id-ID') + ' */\n' +
+        '/* Mode Sheet: nama tamu ada di Google Sheet, di sini cukup kodenya saja\n' +
+        '   sebagai cadangan kalau Sheet sedang tidak bisa dihubungi. */\n\n' +
+        'const GUESTS = [\n' +
+        rows.map(g => "  { code: '" + g.code + "' }").join(',\n') +
+        '\n];\n';
+      return;
+    }
     $('gen').value =
       '/* Dibuat lewat undangan.html pada ' + new Date().toLocaleString('id-ID') + ' */\n' +
       (bawaWa
@@ -228,7 +246,13 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
 
   $('go').onclick = render;
   $('wapub').onchange = render;
-  $('copygen').onclick = () => copy($('gen').value, 'Blok guests.js tersalin');
+  $('copygen').onclick = () => copy($('gen').value, modeSheet ? 'Blok kode tersalin' : 'Blok guests.js tersalin');
+  $('sheet').onclick = () => {
+    render();
+    // TSV: tinggal tempel ke tab TAMU, kolomnya langsung pas.
+    const tsv = rows.map(g => [g.code, g.name, g.seats, g.group, g.wa].join('\t')).join('\n');
+    copy(tsv, rows.length + ' baris tersalin - tempel ke tab TAMU baris ke-2');
+  };
   $('copyall').onclick = () => copy(rows.map(g => g.name + ' -> ' + linkOf(g)).join('\n'), 'Semua link tersalin');
   $('dl').onclick = () => { render(); download('guests.js', $('gen').value, 'application/javascript'); };
   $('csv').onclick = () => {

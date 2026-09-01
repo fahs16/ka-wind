@@ -120,6 +120,17 @@ const CONFIG = {
     source: 'QS. Ar-Rum: 21'
   },
 
+  // ---------- SUMBER DAFTAR TAMU ----------
+  // 'sheet' : nama tamu diambil dari tab TAMU di Google Sheet. Browser hanya
+  //           menanyakan satu kode dan server hanya menjawab satu tamu itu,
+  //           jadi daftar lengkapnya tidak ikut ter-publish.
+  // 'lokal' : dari js/guests.js seperti sebelumnya. Praktis, tapi seluruh nama
+  //           tamu bisa dibaca siapa pun yang membuka situskamu.com/js/guests.js
+  guests: {
+    source: 'sheet',
+    endpoint: ''        // kosong = ikut rsvp.endpoint di atas
+  },
+
   // ---------- AKSES: HANYA TAMU YANG DIUNDANG ----------
   // private: true  -> undangan cuma terbuka lewat link personal ?u=KODE yang
   //                   kodenya terdaftar di js/guests.js. Selain itu yang muncul
