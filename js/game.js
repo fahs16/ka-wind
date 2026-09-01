@@ -58,16 +58,21 @@ const Game = {
     // Kolom isian (nama, ucapan, jumlah tamu, chat) harus menerima ketikan apa
     // adanya. Tanpa penjaga ini, W/A/S/D dan spasi ditelan game sebelum sampai
     // ke input, dan huruf lain memicu emote atau mematikan musik.
-    const sedangMengetik = el => !!el && (
+    const kolomIsian = el => !!el && (
       el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' ||
       el.tagName === 'SELECT' || el.isContentEditable
     );
+    // Diperiksa dari dua sisi: sasaran peristiwa DAN elemen yang sedang fokus.
+    // Sebagian papan ketik di ponsel mengirim peristiwa dengan sasaran <body>
+    // walaupun kursor ada di dalam kolom isian.
+    const sedangMengetik = el => kolomIsian(el) || kolomIsian(document.activeElement);
 
     window.addEventListener('keydown', e => {
       if (sedangMengetik(e.target)) {
         // Esc tetap menutup panel, sisanya diserahkan sepenuhnya ke kolom isian.
         if (e.key === 'Escape') {
-          e.target.blur();
+          const fokus = kolomIsian(e.target) ? e.target : document.activeElement;
+          if (fokus && fokus.blur) fokus.blur();
           if (Modal.open) Modal.close();
           else if (Dialogue.open) Dialogue.close();
         }

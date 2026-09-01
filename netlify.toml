@@ -10,3 +10,20 @@
 [[edge_functions]]
   function = "gate"
   path = "/*"
+
+# Berkas JS/CSS harus selalu diperiksa ulang ke server, supaya perbaikan
+# langsung terlihat tamu tanpa perlu menunggu cache browser kedaluwarsa.
+[[headers]]
+  for = "/js/*"
+  [headers.values]
+    cache-control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/css/*"
+  [headers.values]
+    cache-control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    cache-control = "public, max-age=0, must-revalidate"
