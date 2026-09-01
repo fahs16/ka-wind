@@ -276,6 +276,16 @@ risiko, pakai emote saja.
 
 ---
 
+## Versi & cara kembali ke versi lama
+
+Setiap perubahan yang masuk `main` dicatat di [CHANGELOG.md](CHANGELOG.md) beserta
+nomor versi dan commit-nya. Berkas `VERSION` berisi versi yang sedang aktif.
+
+Kalau ada yang rusak setelah pembaruan, jalan tercepat adalah **Netlify → Deploys →
+pilih deploy sebelumnya → Publish deploy**. Situs langsung kembali dalam hitungan detik.
+
+---
+
 ## Cara publikasi (gratis)
 
 Panduan lengkapnya ada di **[DEPLOY.md](DEPLOY.md)** — dari mengisi data, memilih hosting,
