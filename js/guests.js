@@ -1,26 +1,24 @@
 /* =========================================================================
-   DAFTAR UNDANGAN
-   Tiap tamu punya kode unik. Link undangannya:  https://situskamu.com/?u=KODE
+   DAFTAR KODE UNDANGAN (cadangan)
 
-   Jangan tulis manual satu-satu — buka "undangan.html" di browser, paste
-   daftar namanya, lalu salin hasilnya ke sini.
+   Undangan ini disetel mengambil nama tamu dari Google Sheet
+   (js/config.js -> guests.source: 'sheet'), jadi berkas ini SENGAJA hanya
+   berisi kode. Nama, jatah kursi, grup, dan nomor WA tinggal di tab TAMU pada
+   Sheet kamu, tidak ikut ter-upload, sehingga tidak bisa dibaca publik.
 
-   Kolom:
-     code  : kode unik di URL (huruf kecil & angka, tanpa spasi)
-     name  : nama yang muncul di undangan ("Bapak Andi & Keluarga")
-     seats : jatah kursi, otomatis mengisi pilihan jumlah tamu di form RSVP
-     group : pengelompokan buat rekap panitia (Keluarga / Kantor / Teman / dll)
-     wa    : (opsional) nomor WhatsApp buat tombol pengingat di admin.html
+   Gunanya berkas ini: kalau Google Sheet sedang tidak bisa dihubungi (sinyal
+   tamu jelek, kuota harian habis, skrip sedang diperbarui), tamu dengan kode
+   yang terdaftar di sini tetap bisa masuk — hanya saja sapaannya jadi umum,
+   tanpa nama.
 
-   PERHATIAN PRIVASI: file ini ikut ter-upload dan bisa dibuka siapa pun lewat
-   alamat situskamu.com/js/guests.js. Jangan taruh nomor WA tamu di sini kecuali
-   kamu memang tidak keberatan nomornya jadi publik. Generator di undangan.html
-   sudah membuang kolom "wa" secara bawaan.
+   Isinya dibuat lewat undangan.html: tombol "Unduh js/guests.js".
+   Kalau ingin kembali ke cara lama (nama disimpan di berkas ini dan ikut
+   terbaca publik), ganti guests.source jadi 'lokal' di js/config.js.
    ========================================================================= */
 
 const GUESTS = [
-  { code: 'and1', name: 'Bapak Andi & Keluarga',  seats: 4, group: 'Keluarga' },
-  { code: 'rin2', name: 'Rina Kartika',           seats: 2, group: 'Kantor'   },
-  { code: 'dew3', name: 'Dewi & Partner',         seats: 2, group: 'Teman'    },
-  { code: 'kel4', name: 'Keluarga Besar Wijaya',  seats: 6, group: 'Keluarga' }
+  { code: 'and1' },
+  { code: 'rin2' },
+  { code: 'dew3' },
+  { code: 'kel4' }
 ];

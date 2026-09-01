@@ -119,11 +119,13 @@
       '</tr></thead><tbody>' + body + '</tbody></table></div>';
   }
 
-  function renderBelum() {
-    if (typeof GUESTS === 'undefined' || !GUESTS.length) { $('belum').innerHTML = ''; return; }
+  function renderBelum(daftar) {
+    const semua = (daftar && daftar.length) ? daftar
+      : (typeof GUESTS !== 'undefined' ? GUESTS : []);
+    if (!semua.length) { $('belum').innerHTML = ''; return; }
     const isi = data.rows.map(r => (r.kode || '').toLowerCase()).filter(Boolean);
     const nama = data.rows.map(r => r.nama.toLowerCase());
-    const belum = GUESTS.filter(g =>
+    const belum = semua.filter(g =>
       isi.indexOf(String(g.code).toLowerCase()) < 0 && nama.indexOf(String(g.name).toLowerCase()) < 0);
 
     if (!belum.length) {
@@ -141,7 +143,7 @@
     }).join('');
 
     $('belum').innerHTML =
-      '<h2>Belum menjawab (' + belum.length + ' dari ' + GUESTS.length + ')</h2>' +
+      '<h2>Belum menjawab (' + belum.length + ' dari ' + semua.length + ')</h2>' +
       '<div class="table-wrap"><table><thead><tr><th>Nama</th><th>Grup</th><th>Aksi</th></tr></thead>' +
       '<tbody>' + items + '</tbody></table></div>';
   }
@@ -160,8 +162,18 @@
         renderStats(j.stats);
         $('searchbox').style.display = '';
         renderRows();
-        renderBelum();
-        toast('Data termuat: ' + j.rows.length + " baris");
+        toast('Data termuat: ' + j.rows.length + ' baris');
+
+        // Daftar tamu: dari Google Sheet kalau tersedia, kalau tidak dari js/guests.js
+        fetch(ep + (ep.indexOf('?') >= 0 ? '&' : '?') + 'action=tamu-all&token=' + encodeURIComponent(tok))
+          .then(r => r.json())
+          .then(t => {
+            const daftar = (t && t.ok && Array.isArray(t.tamu))
+              ? t.tamu.map(x => ({ code: x.kode, name: x.nama, group: x.grup, seats: x.kursi, wa: x.wa }))
+              : null;
+            renderBelum(daftar);
+          })
+          .catch(() => renderBelum());
       })
       .catch(err => {
         $('out').innerHTML = '<div class="panel empty">Gagal memuat data.<br><span class="muted">' +
