@@ -251,9 +251,11 @@ Cek keamanan sebentar:
       Cek cepat: `grep -rn "ADMIN_TOKEN" server/` — nilainya harus masih teks contoh.
 - [ ] Yang ada di `config.js` adalah **anon public key** Supabase, bukan `service_role`.
 - [ ] `js/guests.js` yang ter-upload tidak berisi nomor WA tamu (kecuali kamu memang mau).
-- [ ] Kalau tidak nyaman `admin.html` & `undangan.html` bisa diakses publik, hapus dua file itu
-      dari hosting dan jalankan dari laptop saja (`python3 -m http.server 8000`).
-      Tanpa token, `admin.html` tidak menampilkan data apa pun — tapi menghapusnya lebih tenang.
+- [ ] Halaman panitia (`undangan.html`, `admin.html`, `preview.html`) sudah dikunci. Pilih salah satu:
+      isi `GUEST_CODES` + `ADMIN_CODE` di Environment variables Netlify (gerbang sisi server,
+      lihat README), **atau** jangan unggah ketiga berkas itu dan jalankan dari laptop saja.
+- [ ] Cek gerbang benar-benar aktif:
+      `curl -I https://situskamu.netlify.app/ | grep x-undangan-gate` → harus `on`, bukan `disabled`.
 
 Lalu sebar: buka `undangan.html`, klik **Kirim WA** per tamu, atau **Salin Pesan** kalau mau
 ditempel manual.

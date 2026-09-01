@@ -1,0 +1,12 @@
+# Konfigurasi Netlify untuk undangan ini.
+# Situsnya statis, jadi tidak ada proses build sama sekali.
+
+[build]
+  publish = "."
+  command = ""
+
+# Gerbang sisi server: memeriksa kode undangan sebelum berkas apa pun dikirim.
+# Baru aktif setelah variabel GUEST_CODES diisi di Site configuration.
+[[edge_functions]]
+  function = "gate"
+  path = "/*"
