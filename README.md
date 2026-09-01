@@ -119,20 +119,57 @@ otomatis tidak berlaku selama mode ini aktif.
 > **Wajib:** buat daftar tamu asli lewat `undangan.html` dan unggah `js/guests.js`-nya
 > **sebelum** menyalakan mode ini. Kalau tidak, yang bisa masuk cuma kode contoh bawaan.
 
-### Batas dari penyaringan ini
+### Kenapa berkas js/ bisa dibuka publik?
 
-Pemeriksaan berjalan di browser tamu, jadi ini **menyaring, bukan mengunci**. Yang perlu kamu tahu:
+Karena ini situs statis: **semua yang dibutuhkan browser harus bisa diunduh browser**, dan
+browser itu ada di perangkat tamu. `js/config.js` dan `js/guests.js` dibaca oleh halaman, jadi
+siapa pun bisa mengetik `situskamu.com/js/guests.js` dan membacanya langsung. Ini berlaku untuk
+semua situs statis, bukan cuma yang ini.
 
-- `js/config.js` dan `js/guests.js` tetap bisa diunduh langsung oleh siapa pun yang mengetik
-  alamatnya, jadi nama tamu dan detail acara masih terbaca oleh orang yang sengaja mencari.
-- Gambar preview WhatsApp (`img/preview.png`) memuat nama & tanggal. Kalau mau benar-benar
-  tertutup, arahkan `og:image` di `index.html` ke `img/closed.png`.
-- Untuk kunci sungguhan, gerbangnya harus di sisi server: Netlify Edge Function sekarang, atau
-  PHP/nginx di hosting sendiri nanti &mdash; server menolak mengirim berkasnya sama sekali
-  tanpa kode yang sah.
+Artinya `js/access.js` yang berjalan di browser hanya **menyaring tampilan**, bukan mengunci
+berkas. Untuk mengunci sungguhan, penjaganya harus berada di server, sebelum berkas dikirim.
 
-Untuk undangan pernikahan yang disebar lewat WhatsApp, tingkat ini biasanya sudah cukup:
-orang yang tidak diundang dan tidak sengaja membuka alamatnya tidak melihat apa-apa.
+### Kunci sungguhan di Netlify (disarankan)
+
+`netlify/edge-functions/gate.js` melakukan itu: berjalan di server Netlify pada setiap
+permintaan, sebelum berkas apa pun keluar. Tanpa kode yang sah, `js/`, `css/`, `img/preview.png`,
+dan ketiga halaman panitia dijawab 404 — bukan sekadar disembunyikan.
+
+Cara menyalakan, di **Netlify → Site configuration → Environment variables**:
+
+| Variabel | Isi | Untuk |
+|---|---|---|
+| `GUEST_CODES` | `and1,rin2,dew3,...` | daftar kode tamu, dipisah koma |
+| `ADMIN_CODE` | kata sandi panjang buatanmu | membuka `undangan.html`, `admin.html`, `preview.html` |
+
+Lalu **Deploys → Trigger deploy**. Setelah aktif:
+
+- Tamu membuka `situskamu.com/?u=and1` → kode disimpan sebagai cookie, seluruh isi undangan
+  terbuka normal untuk dia.
+- Kalian membuka `situskamu.com/admin.html?admin=KODE_ADMIN` sekali, lalu cookie-nya
+  menempel sampai enam bulan.
+- Pengunjung lain: halaman apa pun dibalas gambar gerbang terkunci, berkas apa pun dibalas 404.
+
+**Selama `GUEST_CODES` masih kosong, gerbang ini sengaja dibiarkan terbuka** supaya salah
+konfigurasi tidak mengunci kalian sendiri di hari H. Cek statusnya:
+
+```bash
+curl -I https://situskamu.netlify.app/ | grep x-undangan-gate
+# on       -> gerbang aktif
+# disabled -> GUEST_CODES belum diisi, situs masih terbuka
+```
+
+Daftar kode tinggal di variabel Netlify, **bukan** di dalam repo, jadi tidak ikut ter-publish.
+
+### Kalau pindah ke hosting sendiri
+
+Edge Function ini khusus Netlify. Di hosting biasa (Apache/nginx + PHP), logikanya sama:
+periksa kode di query atau cookie, kalau tidak cocok kirim gambar gerbang dan 404 untuk berkas
+lain. Yang penting pemeriksaannya di server, bukan di browser.
+
+Kalau tidak mau repot, cara paling sederhana tetap ampuh: **jangan unggah** `undangan.html`,
+`admin.html`, dan `preview.html` ke hosting — jalankan bertiga dari laptop saja
+(`python3 -m http.server 8000`).
 
 ---
 

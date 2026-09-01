@@ -55,7 +55,30 @@ const Game = {
   /* ---------- Input ---------- */
   bindInput() {
     const move = ['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd'];
+    // Kolom isian (nama, ucapan, jumlah tamu, chat) harus menerima ketikan apa
+    // adanya. Tanpa penjaga ini, W/A/S/D dan spasi ditelan game sebelum sampai
+    // ke input, dan huruf lain memicu emote atau mematikan musik.
+    const kolomIsian = el => !!el && (
+      el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' ||
+      el.tagName === 'SELECT' || el.isContentEditable
+    );
+    // Diperiksa dari dua sisi: sasaran peristiwa DAN elemen yang sedang fokus.
+    // Sebagian papan ketik di ponsel mengirim peristiwa dengan sasaran <body>
+    // walaupun kursor ada di dalam kolom isian.
+    const sedangMengetik = el => kolomIsian(el) || kolomIsian(document.activeElement);
+
     window.addEventListener('keydown', e => {
+      if (sedangMengetik(e.target)) {
+        // Esc tetap menutup panel, sisanya diserahkan sepenuhnya ke kolom isian.
+        if (e.key === 'Escape') {
+          const fokus = kolomIsian(e.target) ? e.target : document.activeElement;
+          if (fokus && fokus.blur) fokus.blur();
+          if (Modal.open) Modal.close();
+          else if (Dialogue.open) Dialogue.close();
+        }
+        this.keys = {};
+        return;
+      }
       if (this.chatOpen) return;              // biarkan kolom chat menerima ketikan
       const k = e.key.toLowerCase();
       if (k === 't' && Net.active() && Net.ready) { e.preventDefault(); this.openChat(); return; }
@@ -66,7 +89,10 @@ const Game = {
       if (k === 'escape') { if (Modal.open) Modal.close(); else if (Dialogue.open) Dialogue.close(); }
       if (k === 'm') this.toggleMusic();
     });
-    window.addEventListener('keyup', e => { this.keys[e.key.toLowerCase()] = false; });
+    window.addEventListener('keyup', e => {
+      if (sedangMengetik(e.target)) return;
+      this.keys[e.key.toLowerCase()] = false;
+    });
     window.addEventListener('blur', () => { this.keys = {}; this.touch.active = false; this.touch.x = this.touch.y = 0; });
 
     // stik analog di layar sentuh

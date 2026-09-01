@@ -1,0 +1,29 @@
+# Konfigurasi Netlify untuk undangan ini.
+# Situsnya statis, jadi tidak ada proses build sama sekali.
+
+[build]
+  publish = "."
+  command = ""
+
+# Gerbang sisi server: memeriksa kode undangan sebelum berkas apa pun dikirim.
+# Baru aktif setelah variabel GUEST_CODES diisi di Site configuration.
+[[edge_functions]]
+  function = "gate"
+  path = "/*"
+
+# Berkas JS/CSS harus selalu diperiksa ulang ke server, supaya perbaikan
+# langsung terlihat tamu tanpa perlu menunggu cache browser kedaluwarsa.
+[[headers]]
+  for = "/js/*"
+  [headers.values]
+    cache-control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/css/*"
+  [headers.values]
+    cache-control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    cache-control = "public, max-age=0, must-revalidate"
