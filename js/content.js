@@ -165,6 +165,51 @@ const Content = {
   }
 };
 
+/* Kiriman RSVP dipakai dua tampilan: versi game dan versi sederhana
+   (mudah.html). Bentuk datanya, link WhatsApp cadangan, dan cara kirimnya
+   ditaruh di sini supaya keduanya tidak pernah beda isi. */
+const Rsvp = {
+  dari(form) {
+    const info = Content.guestInfo();
+    return {
+      kode: info.code || '',
+      grup: info.group || '',
+      nama: form.nama.value.trim().slice(0, 60),
+      hadir: form.hadir.value,
+      jumlah: form.jumlah.value,
+      pesan: form.pesan.value.trim().slice(0, 400),
+      waktu: new Date().toISOString()
+    };
+  },
+
+  waLink(data) {
+    const c = CONFIG.couple;
+    const text = 'Halo ' + c.groom.nick + ' & ' + c.bride.nick + '!%0A' +
+      'Nama: ' + encodeURIComponent(data.nama) + '%0A' +
+      (data.kode ? 'Kode: ' + encodeURIComponent(data.kode) + '%0A' : '') +
+      'Kehadiran: ' + encodeURIComponent(data.hadir) + '%0A' +
+      'Jumlah: ' + encodeURIComponent(data.jumlah) + ' orang%0A' +
+      (data.pesan ? 'Ucapan: ' + encodeURIComponent(data.pesan) : '');
+    return 'https://wa.me/' + CONFIG.rsvp.whatsapp + '?text=' + text;
+  },
+
+  // Selalu berhasil sebagai Promise. { ok: true } = tercatat di buku tamu,
+  // { ok: false } = hanya tersimpan di perangkat tamu, tombol WhatsApp jadi
+  // jalan cadangannya.
+  kirim(data) {
+    if (!CONFIG.rsvp.endpoint) return Promise.resolve({ ok: false, tanpaBukuTamu: true });
+    // text/plain = permintaan sederhana, jadi tidak kena preflight CORS-nya Apps Script
+    return fetch(CONFIG.rsvp.endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(data)
+    })
+      .then(r => r.json())
+      .then(j => (j && j.ok) ? { ok: true } : { ok: false })
+      .catch(() => ({ ok: false }));
+  }
+};
+
 /* Penyimpanan RSVP di perangkat tamu. */
 const Store = {
   KEY: 'undangan-rsvp',
