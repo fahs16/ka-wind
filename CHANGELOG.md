@@ -15,7 +15,7 @@ git push origin main
 
 ---
 
-## v1.5.0
+## v1.5.0 — commit `9a0e25d`
 
 Versi sederhana untuk tamu yang tidak main game, plus dua perbaikan rasa pakai.
 
