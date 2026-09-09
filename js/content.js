@@ -166,7 +166,7 @@ const Content = {
 };
 
 /* Kiriman RSVP dipakai dua tampilan: versi game dan versi sederhana
-   (mudah.html). Bentuk datanya, link WhatsApp cadangan, dan cara kirimnya
+   (simple.html). Bentuk datanya, link WhatsApp cadangan, dan cara kirimnya
    ditaruh di sini supaya keduanya tidak pernah beda isi. */
 const Rsvp = {
   dari(form) {
