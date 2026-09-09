@@ -50,6 +50,7 @@ Cuma **satu file**. Semua teks, tanggal, lokasi, foto, dan rekening ada di sana:
 | `spots` | Tiga warung favorit (Kopi Ukut, Refo Coffee, Nasi Bebek) + obrolannya |
 | `secret` | Isi pojokan rahasia & kode hadiah yang ditunjukkan tamu di hari H |
 | `access` | Kunci undangan: hanya link personal `?u=KODE` yang bisa membuka |
+| `view` | Jarak kamera (`zoom`) + ajakan memutar HP ke posisi mendatar |
 
 ### Menambahkan foto
 

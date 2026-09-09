@@ -198,6 +198,15 @@ const CONFIG = {
     reward: 'Tunjukkan kode ini ke kami waktu salaman di hari H. Ada kejutan kecil, dan kami bakal tahu kamu benar-benar main sampai habis.'
   },
 
+  // ---------- TAMPILAN ----------
+  view: {
+    // Seberapa dekat kamera ke pemain. 1 = normal (banyak peta kelihatan),
+    // 1.25 = agak nge-zoom, 0.85 = lebih jauh lagi. Rentang aman 0.7 - 1.5.
+    zoom: 1,
+    // Munculkan ajakan "putar HP ke landscape" di layar sempit yang pakai sentuh.
+    sarankanLandscape: true
+  },
+
   // ---------- LAIN-LAIN ----------
   music: true,        // musik chiptune otomatis nyala setelah undangan dibuka
   liveStream: ''      // (opsional) link streaming, mis. 'https://youtube.com/live/xxxx'
