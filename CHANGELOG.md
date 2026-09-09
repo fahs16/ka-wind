@@ -15,6 +15,24 @@ git push origin main
 
 ---
 
+## v1.4.0
+
+Nyaman dibuka dari HP: kamera dimundurkan dan mode mendatar dirapikan.
+
+- Kamera tidak lagi menempel ke pemain. Di HP tegak yang terlihat naik dari
+  sekitar 8x17 petak jadi 12x26 petak, jadi jalan dan bangunan berikutnya
+  kelihatan tanpa harus jalan dulu. Layar desktop tidak berubah.
+- `CONFIG.view.zoom` untuk menggeser selera jarak kamera (1 = bawaan,
+  di atas 1 lebih dekat, di bawah 1 lebih jauh).
+- Ajakan "USE LANDSCAPE MODE FOR BEST EXPERIENCE" muncul sekali di HP yang
+  masih tegak, lengkap dengan tombol untuk memutar layar otomatis (Android)
+  dan tombol untuk melewatinya. Bisa dimatikan lewat
+  `CONFIG.view.sarankanLandscape`.
+- Mode mendatar dirapikan: stik, tombol A, HUD, kotak dialog, dan panel besar
+  diperkecil supaya tidak menutupi peta, dan semuanya ikut menghindari poni
+  atau kamera layar.
+- Notifikasi kecil tidak lagi menimpa teks panel yang sedang terbuka.
+
 ## v1.3.0
 
 Daftar tamu pindah ke Google Sheet, supaya namanya tidak ikut ter-publish.

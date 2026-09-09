@@ -50,8 +50,9 @@ body{
 #hud{
   position:absolute;top:0;left:0;right:0;
   display:flex;justify-content:space-between;align-items:flex-start;gap:8px;
-  padding:10px 10px;pointer-events:none;
-  padding-top:calc(10px + env(safe-area-inset-top));
+  pointer-events:none;
+  padding:calc(10px + env(safe-area-inset-top)) calc(10px + env(safe-area-inset-right))
+          10px calc(10px + env(safe-area-inset-left));
 }
 .hud-chip,.hud-btn{
   font-family:var(--pix);font-size:10px;line-height:1;
@@ -67,7 +68,8 @@ body{
 
 /* ============ Kontrol sentuh ============ */
 #controls{position:absolute;inset:auto 0 0 0;display:none;
-  padding:0 18px calc(18px + env(safe-area-inset-bottom));
+  padding:0 calc(18px + env(safe-area-inset-right))
+          calc(18px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
   justify-content:space-between;align-items:flex-end;pointer-events:none}
 #stick{
   width:112px;height:112px;border-radius:50%;
@@ -179,10 +181,12 @@ body.talking #social{display:none}
 #modal{
   position:absolute;inset:0;z-index:30;
   background:rgba(29,20,32,.72);
-  display:flex;align-items:center;justify-content:center;padding:16px;
+  display:flex;align-items:center;justify-content:center;
+  /* Ruang di atas disisakan buat notifikasi kecil, yang tampil di atas panel. */
+  padding:calc(58px + env(safe-area-inset-top)) 16px 16px;
 }
 .modal-panel{
-  width:min(680px,100%);max-height:86vh;display:flex;flex-direction:column;
+  width:min(680px,100%);max-height:100%;display:flex;flex-direction:column;
   background:var(--cream);border:4px solid var(--ink);
   box-shadow:0 8px 0 var(--shadow);
 }
@@ -288,6 +292,8 @@ body.talking #social{display:none}
   max-width:calc(100% - 32px);text-align:center;
 }
 #toast.show{opacity:1;transform:translate(-50%,0)}
+/* Panel terbuka menutupi hampir seluruh layar, jadi notifikasi naik ke pucuk. */
+#modal:not(.hidden) ~ #toast{top:calc(10px + env(safe-area-inset-top))}
 
 /* ============ Layar pembuka ============ */
 #intro{
@@ -344,4 +350,77 @@ body.talking #social{display:none}
 @media (max-height:520px){
   .envelope{display:none}
   .intro-kicker{margin-top:0}
+}
+
+/* ============ Ajakan putar layar ============ */
+#putar{
+  position:absolute;inset:0;z-index:60;
+  background:radial-gradient(circle at 50% 35%,#4a3350 0%,#241a2a 65%,#1d1420 100%);
+  display:flex;align-items:center;justify-content:center;padding:24px 18px;
+  color:var(--cream);text-align:center;overflow:auto;
+}
+.putar-inner{max-width:340px}
+.putar-hp{
+  width:56px;height:92px;margin:0 auto 26px;
+  border:4px solid var(--cream);background:rgba(253,246,233,.10);
+  position:relative;animation:miring 2.4s ease-in-out infinite;
+}
+.putar-hp i{
+  position:absolute;left:50%;bottom:-9px;transform:translateX(-50%);
+  width:18px;height:4px;background:var(--cream);
+}
+@keyframes miring{
+  0%,28%{transform:rotate(0deg)}
+  58%,88%{transform:rotate(-90deg)}
+  100%{transform:rotate(0deg)}
+}
+.putar-judul{
+  font-family:var(--pix);font-size:11px;line-height:1.9;
+  color:var(--gold);margin:0 0 14px;letter-spacing:1px;
+}
+.putar-sub{font-size:20px;line-height:1.25;opacity:.88;margin:0 0 22px}
+.putar-aksi{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+
+/* ============ Mode mendatar di layar pendek ============ */
+/* Tinggi layar jadi barang mahal: semua panel dan tombol dirampingkan supaya
+   stik dan tombol A tetap kepegang jempol tanpa menutupi peta. */
+@media (orientation:landscape) and (max-height:520px){
+  .hud-chip,.hud-btn{font-size:8px;padding:6px 8px;border-width:2px}
+  #hud{padding-top:calc(6px + env(safe-area-inset-top))}
+
+  #stick{width:92px;height:92px}
+  #knob{width:40px;height:40px;margin:-20px 0 0 -20px}
+  #btn-a{width:68px;height:68px;font-size:15px}
+  #controls{padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+  @media (pointer:coarse){
+    #social{bottom:calc(96px + env(safe-area-inset-bottom))}
+  }
+  #social{right:10px}
+  .em,#btn-chat{width:34px;height:34px;font-size:15px}
+  #btn-chat{width:40px;height:40px;font-size:17px}
+
+  #dialog{
+    bottom:calc(8px + env(safe-area-inset-bottom));
+    width:min(680px,calc(100% - 20px));padding:10px 12px;gap:10px;
+  }
+  .dlg-face{width:38px;height:50px}
+  .dlg-face canvas{width:32px;height:44px}
+  .dlg-name{font-size:8px;margin-bottom:5px}
+  .dlg-text{font-size:19px;min-height:2.6em}
+  .dlg-hint{margin-top:3px}
+  .dlg-actions{margin-top:7px;gap:6px}
+
+  #modal{padding:calc(50px + env(safe-area-inset-top)) 10px 10px}
+  .modal-head{padding:9px 12px}
+  .modal-title{font-size:9px}
+  .modal-close{width:28px;height:28px;font-size:12px}
+  .modal-body{padding:12px;font-size:19px}
+
+  #intro{padding:14px}
+  .intro-kicker{margin:0 0 8px}
+  #intro-names{font-size:14px;margin-bottom:8px}
+  .intro-date{margin-bottom:10px}
+  .intro-guest{font-size:19px;margin-bottom:12px}
+  .intro-note{display:none}
+
 }

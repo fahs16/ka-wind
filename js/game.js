@@ -41,8 +41,13 @@ const Game = {
   resize() {
     const box = document.getElementById('stage');
     const cw = box.clientWidth, ch = box.clientHeight;
-    // makin besar layar, makin besar pixel-nya (2x - 5x)
-    this.scale = U.clamp(Math.floor(Math.min(cw / 130, ch / 200)), 2, 5);
+    // Satu "pixel" game digambar 2x - 5x besar layar. Pembaginya 200 di kedua
+    // sisi supaya di HP tegak kamera tidak terlalu nempel ke pemain: yang
+    // kelihatan jadi kira-kira 195x420 pixel game, cukup untuk melihat jalan
+    // dan bangunan berikutnya sekaligus. CONFIG.view.zoom untuk menggeser
+    // selera: >1 lebih dekat, <1 lebih jauh.
+    const zoom = ((CONFIG.view && CONFIG.view.zoom) || 1);
+    this.scale = U.clamp(Math.floor(Math.min(cw / 200, ch / 200) * zoom), 2, 5);
     this.w = Math.ceil(cw / this.scale);
     this.h = Math.ceil(ch / this.scale);
     this.canvas.width = this.w;
@@ -828,6 +833,63 @@ const Actions = {
   }
 };
 
+/* ---------------- Ajakan putar layar ----------------
+   Peta lebih luas dan stik jalannya lebih enak dipegang kalau HP dimiringkan,
+   jadi tamu yang membuka sambil berdiri tegak dikasih tahu sekali. Bisa
+   ditolak, dan pilihannya diingat selama tab ini terbuka. */
+const Layar = {
+  el: null, mq: null, ditutup: false,
+
+  init() {
+    this.el = document.getElementById('putar');
+    const v = CONFIG.view || {};
+    if (!this.el || v.sarankanLandscape === false || !Game.touchDevice) return;
+    try { this.ditutup = sessionStorage.getItem('undangan_putar') === '1'; } catch (e) {}
+
+    document.getElementById('putar-skip').addEventListener('click', () => this.tutup());
+    document.getElementById('putar-ok').addEventListener('click', () => this.paksa());
+
+    this.mq = matchMedia('(orientation: portrait)');
+    const ubah = () => this.perbarui();
+    if (this.mq.addEventListener) this.mq.addEventListener('change', ubah);
+    else if (this.mq.addListener) this.mq.addListener(ubah);
+    window.addEventListener('resize', ubah);
+    window.addEventListener('orientationchange', ubah);
+    this.perbarui();
+  },
+
+  tegak() { return this.mq ? this.mq.matches : window.innerHeight > window.innerWidth; },
+
+  perbarui() {
+    if (!this.el) return;
+    this.el.classList.toggle('hidden', this.ditutup || !this.tegak());
+  },
+
+  tutup() {
+    this.ditutup = true;
+    try { sessionStorage.setItem('undangan_putar', '1'); } catch (e) {}
+    this.perbarui();
+  },
+
+  // Android Chrome baru mengizinkan penguncian orientasi setelah layar penuh.
+  // iOS Safari tidak mendukung keduanya, jadi kalau gagal tamu cuma diingatkan
+  // untuk memutar HP-nya sendiri.
+  paksa() {
+    const root = document.documentElement;
+    let mulai;
+    try {
+      mulai = root.requestFullscreen ? root.requestFullscreen({ navigationUI: 'hide' })
+            : root.webkitRequestFullscreen ? Promise.resolve(root.webkitRequestFullscreen())
+            : Promise.reject();
+    } catch (e) { mulai = Promise.reject(); }
+    mulai
+      .then(() => (screen.orientation && screen.orientation.lock)
+        ? screen.orientation.lock('landscape') : Promise.reject())
+      .catch(() => { Toast.show('Putar HP-nya ke samping ya'); })
+      .then(() => this.tutup());
+  }
+};
+
 /* ---------------- Booting ---------------- */
 window.addEventListener('DOMContentLoaded', () => {
   // Identitas tamu dicari dulu (bisa dari Google Sheet, jadi perlu menunggu).
@@ -857,5 +919,6 @@ function mulaiUndangan() {
   }
 
   Game.init();
+  Layar.init();
   document.getElementById('btn-open').addEventListener('click', () => Game.start());
 }
