@@ -15,7 +15,7 @@ git push origin main
 
 ---
 
-## v1.6.0
+## v1.6.0 — commit `70e84c4`
 
 Versi sederhana jadi terasa seperti undangan pernikahan, plus lagu baru.
 
