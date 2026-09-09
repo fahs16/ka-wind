@@ -15,7 +15,7 @@ git push origin main
 
 ---
 
-## v1.4.0
+## v1.4.0 — commit `1f8ac98`
 
 Nyaman dibuka dari HP: kamera dimundurkan dan mode mendatar dirapikan.
 
@@ -33,7 +33,7 @@ Nyaman dibuka dari HP: kamera dimundurkan dan mode mendatar dirapikan.
   atau kamera layar.
 - Notifikasi kecil tidak lagi menimpa teks panel yang sedang terbuka.
 
-## v1.3.0
+## v1.3.0 — commit `e04d9e9`
 
 Daftar tamu pindah ke Google Sheet, supaya namanya tidak ikut ter-publish.
 
