@@ -122,7 +122,7 @@ const Access = {
       if (typeof Content !== 'undefined') Content._guest = null;   // buang hasil lama
       const el = document.getElementById('intro-guest');
       if (el) el.innerHTML = 'Kepada Yth.<br><b>' + U.esc(t.name) + '</b>';
-      // Versi sederhana (mudah.html) menandai sapaannya dengan atribut ini.
+      // Versi sederhana (simple.html) menandai sapaannya dengan atribut ini.
       const sapaan = document.querySelectorAll('[data-nama-tamu]');
       for (let i = 0; i < sapaan.length; i++) sapaan[i].textContent = t.name;
       if (typeof Net !== 'undefined' && Net.setName) Net.setName(t.name);

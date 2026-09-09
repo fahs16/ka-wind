@@ -19,6 +19,7 @@ const Game = {
   init() {
     this.canvas = document.getElementById('game');
     this.ctx = this.canvas.getContext('2d');
+    Chip.use((CONFIG.lagu && CONFIG.lagu.game) || 'taman');
     Sprites.init();
     World.init();
     Dialogue.init();
@@ -910,9 +911,12 @@ const Layar = {
 
 /* ---------------- Booting ---------------- */
 window.addEventListener('DOMContentLoaded', () => {
-  // ?mudah=1 langsung dibelokkan ke versi sederhana, supaya satu link undangan
+  // ?simple=1 langsung dibelokkan ke versi sederhana, supaya satu link undangan
   // tetap cukup buat tamu yang lebih nyaman membaca halaman biasa.
-  if (U.query('mudah') === '1') { location.replace('mudah.html' + location.search); return; }
+  // ?mudah=1 tetap dilayani, sebagai nama lama parameter yang sama.
+  if (U.query('simple') === '1' || U.query('mudah') === '1') {
+    location.replace('simple.html' + location.search); return;
+  }
 
   // Identitas tamu dicari dulu (bisa dari Google Sheet, jadi perlu menunggu).
   // Selama diperiksa, halaman sengaja kosong: tidak ada nama, tanggal, atau
@@ -942,8 +946,8 @@ function mulaiUndangan() {
 
   // Kode tamu ikut dibawa ke versi sederhana, supaya pindah versi tidak kena
   // gerbang akses lagi.
-  const alt = document.getElementById('link-mudah');
-  if (alt) alt.href = 'mudah.html' + (location.search || '');
+  const alt = document.getElementById('link-simple');
+  if (alt) alt.href = 'simple.html' + (location.search || '');
 
   Game.init();
   Layar.init();

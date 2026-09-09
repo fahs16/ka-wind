@@ -207,7 +207,24 @@ const CONFIG = {
     sarankanLandscape: true
   },
 
+  // ---------- SAPAAN VERSI SEDERHANA ----------
+  // Kalimat pembuka & penutup di simple.html. Kosongkan ('') kalau tidak mau
+  // dipakai, atau ganti sesuai keluarga kalian.
+  salam: {
+    pembuka: 'Assalamu\'alaikum Warahmatullahi Wabarakatuh',
+    niat: 'Dengan memohon rahmat dan ridho Tuhan Yang Maha Esa, serta doa restu ' +
+          'dari keluarga dan sahabat, kami bermaksud menyelenggarakan pernikahan ' +
+          'putra-putri kami.',
+    penutup: 'Merupakan suatu kebahagiaan dan kehormatan bagi kami apabila ' +
+             'Bapak/Ibu/Saudara/i berkenan hadir dan memberikan doa restu.',
+    salamPenutup: 'Wassalamu\'alaikum Warahmatullahi Wabarakatuh'
+  },
+
   // ---------- LAIN-LAIN ----------
   music: true,        // musik chiptune otomatis nyala setelah undangan dibuka
+  lagu: {
+    game: 'taman',    // lagu latar versi game  ('taman' riang, 'romansa' balada)
+    simple: 'romansa' // lagu latar versi sederhana
+  },
   liveStream: ''      // (opsional) link streaming, mis. 'https://youtube.com/live/xxxx'
 };

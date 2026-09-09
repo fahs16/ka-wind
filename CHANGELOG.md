@@ -15,6 +15,32 @@ git push origin main
 
 ---
 
+## v1.6.0
+
+Versi sederhana jadi terasa seperti undangan pernikahan, plus lagu baru.
+
+- **Tampilan `simple.html` dirombak.** Sebelumnya cuma halaman teks rapi tanpa
+  suasana. Sekarang amplop tertutup dulu — bingkai emas, monogram inisial
+  mempelai, sapaan nama tamu — lalu isinya terbuka lewat tombol
+  "Buka Undangan". Bagian barunya: salam pembuka, blok mempelai lengkap dengan
+  nama orang tua, dan salam penutup. Antar bagian dipisah ornamen dedaunan,
+  ada kelopak jatuh pelan di latar (mati sendiri kalau perangkat disetel hemat
+  gerak), dan hurufnya tetap besar seperti sebelumnya.
+- **Halamannya ganti nama jadi `simple.html`** (dulu `mudah.html`), begitu juga
+  `css/simple.css` dan `js/simple.js`. Parameternya `?simple=1`; `?mudah=1`
+  tetap dilayani supaya link yang terlanjur tersebar tidak mati.
+- **Lagu baru: "Romansa"** — balada 8-bit orisinal, F mayor, 72 BPM, 16 birama,
+  tiga jalur (melodi square, arpeggio, bas triangle). Dipakai di versi
+  sederhana; menyala saat tamu menekan "Buka Undangan" dan bisa dimatikan lewat
+  tombol di pojok kanan bawah.
+- Mesin musiknya dirapikan supaya bisa memuat lebih dari satu lagu. Lagu game
+  yang lama tetap sama persis, sekarang bernama "taman". Pilih lagu tiap versi
+  lewat `config.lagu`.
+- `tools/render-lagu.js`: ubah lagu chiptune jadi berkas WAV, buat ditempel di
+  story atau video save-the-date. Situsnya sendiri tetap nol berkas audio.
+- Kalimat salam pembuka/penutup diatur di `config.salam`, bisa diganti atau
+  dikosongkan.
+
 ## v1.5.0 — commit `9a0e25d`
 
 Versi sederhana untuk tamu yang tidak main game, plus dua perbaikan rasa pakai.

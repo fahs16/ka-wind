@@ -51,6 +51,8 @@ Cuma **satu file**. Semua teks, tanggal, lokasi, foto, dan rekening ada di sana:
 | `secret` | Isi pojokan rahasia & kode hadiah yang ditunjukkan tamu di hari H |
 | `access` | Kunci undangan: hanya link personal `?u=KODE` yang bisa membuka |
 | `view` | Jarak kamera (`zoom`) + ajakan memutar HP ke posisi mendatar |
+| `salam` | Kalimat pembuka & penutup di undangan versi sederhana |
+| `lagu` | Pilih lagu latar tiap versi (`taman` atau `romansa`) |
 
 ### Menambahkan foto
 
@@ -341,24 +343,68 @@ atau connect repo dengan build command kosong dan output directory `.`
 
 ## Versi sederhana untuk tamu yang tidak main game
 
-Selain versi game, ada **`mudah.html`**: satu halaman gulir biasa, huruf besar, tombol besar,
-tanpa kontrol dan tanpa suara. Isinya diambil dari `js/config.js` yang sama persis, jadi kamu
-tetap cuma mengubah satu file dan kedua versi ikut berubah.
+Selain versi game, ada **`simple.html`**: undangan biasa yang tinggal digulir. Amplop tertutup
+dulu dengan monogram dan bingkai emas, lalu isinya terbuka: salam pembuka, mempelai beserta
+orang tua, ayat, rangkaian acara, cerita, galeri, RSVP, tanda kasih, dan salam penutup. Huruf
+besar, tombol besar, tidak ada yang perlu dipelajari.
+
+Isinya diambil dari `js/config.js` yang sama persis, jadi kamu tetap cuma mengubah satu file dan
+kedua versi ikut berubah. Kalimat salamnya diatur di `config.salam` &mdash; ganti atau kosongkan
+(`''`) kalau tidak cocok dengan keluarga kalian.
 
 Tiga cara tamu sampai ke sana:
 
 | Cara | Kapan dipakai |
 |---|---|
 | Tautan **"Buka versi sederhana"** di layar pembuka | tamu sudah terlanjur buka versi game |
-| Link `?u=KODE&mudah=1` | kamu tahu dari awal tamunya kurang nyaman main game |
+| Link `?u=KODE&simple=1` | kamu tahu dari awal tamunya kurang nyaman main game |
 | Tombol **"Coba Versi Game"** di bawah halaman sederhana | tamu berubah pikiran |
 
 Kode tamu ikut terbawa saat pindah versi, jadi gerbang aksesnya tidak menanyakan ulang, dan RSVP
 dari kedua versi masuk ke baris Google Sheet yang sama.
 
-Di `undangan.html` ada kode `{linkmudah}` untuk template pesan WhatsApp, plus centangan
+Di `undangan.html` ada kode `{linksimple}` untuk template pesan WhatsApp, plus centangan
 **"Buat semua link langsung ke versi sederhana"** kalau daftar yang sedang kamu tempel memang
 khusus om, tante, dan sepuh.
+
+---
+
+## Musik
+
+Tidak ada satu pun berkas audio di proyek ini. Musiknya dibangkitkan langsung di browser lewat
+Web Audio, jadi tidak menambah beban unduhan sama sekali. Ada dua lagu, keduanya orisinal:
+
+| Lagu | Dipakai di | Rasanya |
+|---|---|---|
+| `taman` | versi game | riang, C mayor, 104 BPM |
+| `romansa` | versi sederhana | balada 8-bit, F mayor, 72 BPM, 16 birama |
+
+Pilih lagunya di `js/config.js`:
+
+```js
+music: true,                                   // false = matikan musik sama sekali
+lagu: { game: 'taman', simple: 'romansa' }     // boleh ditukar
+```
+
+Di versi game, musik menyala otomatis begitu undangan dibuka. Di versi sederhana, musik menyala
+saat tamu menekan **Buka Undangan** (browser melarang suara sebelum halaman disentuh) dan bisa
+dimatikan lewat tombol &#9834; di pojok kanan bawah.
+
+### Menulis lagu sendiri
+
+Not-notnya ada di `js/audio.js`, ditulis sebagai daftar `['nada', panjang dalam langkah]`.
+Tambahkan lagu baru di `Chip.songs`, lalu tunjuk namanya dari `config.lagu`.
+
+### Menjadikannya berkas audio
+
+Kalau mau menempelkan lagunya di story Instagram atau video save-the-date:
+
+```bash
+node tools/render-lagu.js romansa 2 lagu.wav
+```
+
+Argumennya: nama lagu, jumlah putaran, nama berkas keluaran. Hasilnya WAV; situsnya sendiri
+tidak memakai berkas ini.
 
 ---
 
@@ -401,14 +447,15 @@ di `js/world.js` kalau mau lebih longgar.
 
 ```
 index.html            undangan yang dibuka tamu (versi game)
-mudah.html            undangan versi sederhana: satu halaman gulir, huruf besar
+simple.html           undangan versi sederhana: satu halaman gulir, huruf besar
 undangan.html         alat panitia: bikin link personal per tamu
 admin.html            alat panitia: rekap RSVP dari Google Sheet
 preview.html          alat panitia: bikin kartu preview WhatsApp
 img/preview.png       gambar yang muncul saat link dibagikan
 server/apps-script.gs  kode yang ditempel ke Google Apps Script
+tools/render-lagu.js  ubah lagu chiptune jadi berkas WAV (opsional)
 css/style.css         tampilan undangan versi game
-css/mudah.css         tampilan undangan versi sederhana
+css/simple.css        tampilan undangan versi sederhana
 css/tools.css         tampilan dua halaman alat panitia
 js/config.js          ← SEMUA DATA UNDANGAN ADA DI SINI
 js/guests.js          ← DAFTAR TAMU (dibuat lewat undangan.html)
@@ -417,13 +464,13 @@ js/font.js            font bitmap 3x5 untuk papan nama di dalam game
 js/sprites.js         sprite karakter (tamu, mempelai) dari ASCII art
 js/world.js           peta tile, daftar bangunan, tabrakan
 js/paint.js           gambar tiap bangunan & dekorasi
-js/audio.js           musik chiptune + efek suara (Web Audio)
+js/audio.js           dua lagu chiptune + efek suara (Web Audio, tanpa file audio)
 js/dialogue.js        kotak dialog ala RPG
 js/ui.js              panel besar & notifikasi
 js/content.js         isi panel (acara, galeri, kado, RSVP, kalender)
 js/net.js             realtime: tamu lain, emote, chat, penyaring kata
 js/game.js            loop game, kamera, input, misi, ending
-js/mudah.js           penyusun halaman versi sederhana
+js/simple.js          penyusun halaman versi sederhana
 ```
 
 ### Menggeser atau menambah titik di peta
