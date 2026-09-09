@@ -45,7 +45,18 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
       <label>Template pesan WhatsApp</label>
       <textarea id="tpl" style="min-height:150px" spellcheck="false"></textarea>
       <p class="muted" style="font-size:19px">Kode yang bisa dipakai: <code>{nama}</code>, <code>{link}</code>,
-      <code>{kursi}</code>, <code>{mempelai}</code>, <code>{tanggal}</code>.</p>
+      <code>{linkmudah}</code>, <code>{kursi}</code>, <code>{mempelai}</code>, <code>{tanggal}</code>.</p>
+      <p class="muted" style="font-size:19px"><code>{linkmudah}</code> membuka undangan versi sederhana:
+      satu halaman gulir, huruf besar, tanpa game. Cocok diselipkan buat tamu yang kurang terbiasa main game.</p>
+    </div>
+
+    <div class="note">
+      <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer">
+        <input type="checkbox" id="modemudah" style="width:22px;height:22px;flex:0 0 auto;margin-top:4px">
+        <span>Buat <b>semua</b> link di daftar ini langsung ke versi sederhana.
+        Pakai kalau daftar yang sedang kamu tempel isinya om, tante, dan sepuh.
+        Tamu tetap bisa pindah ke versi game lewat tombol di bawah halaman.</span>
+      </label>
     </div>
 
     <div class="note danger">
@@ -149,11 +160,15 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
     return b;
   }
 
-  function linkOf(g) { return baseUrl() + '?u=' + encodeURIComponent(g.code); }
+  function linkOf(g, mudah) {
+    const dasar = baseUrl() + '?u=' + encodeURIComponent(g.code);
+    return (mudah === undefined ? $('modemudah').checked : mudah) ? dasar + '&mudah=1' : dasar;
+  }
 
   function messageOf(g) {
     return $('tpl').value
       .replace(/\{nama\}/g, g.name)
+      .replace(/\{linkmudah\}/g, linkOf(g, true))
       .replace(/\{link\}/g, linkOf(g))
       .replace(/\{kursi\}/g, g.seats)
       .replace(/\{mempelai\}/g, couple)
@@ -246,6 +261,7 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
 
   $('go').onclick = render;
   $('wapub').onchange = render;
+  $('modemudah').onchange = render;
   $('copygen').onclick = () => copy($('gen').value, modeSheet ? 'Blok kode tersalin' : 'Blok guests.js tersalin');
   $('sheet').onclick = () => {
     render();
@@ -258,8 +274,8 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
   $('csv').onclick = () => {
     render();
     const q = v => '"' + String(v).replace(/"/g, '""') + '"';
-    const csv = ['kode,nama,grup,kursi,wa,link'].concat(
-      rows.map(g => [g.code, g.name, g.group, g.seats, g.wa, linkOf(g)].map(q).join(','))
+    const csv = ['kode,nama,grup,kursi,wa,link,link_sederhana'].concat(
+      rows.map(g => [g.code, g.name, g.group, g.seats, g.wa, linkOf(g, false), linkOf(g, true)].map(q).join(','))
     ).join('\n');
     download('daftar-undangan.csv', '﻿' + csv, 'text/csv;charset=utf-8');
   };

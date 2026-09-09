@@ -147,8 +147,24 @@ const World = {
     if (o.solid) o.solid.forEach(s => this.markSolid(s.x, s.y, s.w, s.h));
     // Zona interaksi = badan objek. Tamu bisa mendekat dari sisi mana pun,
     // bukan cuma dari titik berdiri di depannya.
+    // Radius interaksi dihitung per bagian, bukan dari satu kotak pembungkus.
+    // Kotak pembungkus bikin bangunan lebar ikut aktif dari satu-dua petak di
+    // balik temboknya: tamu yang berdiri di bawah pohon di belakang gedung
+    // sudah kena prompt padahal tidak sedang menghadap apa-apa.
+    //   reach      : dari petak sambutan di depan objek (pintu / meja / mulut)
+    //   reachBadan : dari badan objek, cukup buat yang mepet tembok dari sisi
+    //                mana pun, tapi tidak sampai menjangkau pohon di sebelahnya
+    o.reach = o.reach || 16;
+    o.reachBadan = o.reachBadan || 8;
     o.zone = o.zone || U.unionRect([].concat(o.solid || [], o.hot ? [o.hot] : []));
-    o.reach = o.reach || 24;
+    // 'bias' bikin petak sambutan menang kalau jaraknya seri dengan badan objek
+    // tetangga, supaya berdiri di depan warung tidak malah membuka papan cerita
+    // yang kebetulan sama dekatnya.
+    o.dekat = [].concat(
+      (o.solid || []).map(r => ({ r: r, reach: o.reachBadan, bias: 4 })),
+      o.hot ? [{ r: o.hot, reach: o.reach, bias: 0 }] : []
+    );
+    if (!o.dekat.length && o.zone) o.dekat = [{ r: o.zone, reach: o.reach, bias: 0 }];
     this.objects.push(o);
     return o;
   },
@@ -245,11 +261,13 @@ const World = {
       draw: (g, o, t) => Paint.clockTower(g, o, t)
     });
 
+    // Digeser sepetak ke kanan dari pilar gerbang: sebelumnya petak sambutannya
+    // menindih pilar, jadi papan ini dan gerbang saling rebutan prompt.
     this.add({
       id: 'petunjuk', label: 'Papan Petunjuk',
-      x: T(31), y: T(33), w: T(2), h: T(3), base: T(36),
-      solid: [{ x: T(31), y: T(35), w: T(1), h: T(1) }],
-      hot: { x: T(31), y: T(36), w: T(2), h: T(2) },
+      x: T(33), y: T(33), w: T(2), h: T(3), base: T(36),
+      solid: [{ x: T(33), y: T(35), w: T(1), h: T(1) }],
+      hot: { x: T(33), y: T(36), w: T(2), h: T(2) },
       draw: (g, o, t) => Paint.signpost(g, o, t)
     });
 

@@ -217,6 +217,8 @@ Jangan lewati bagian ini. Urutannya:
 - [ ] Buka satu **link personal** (`?u=kode`) — nama tamu muncul di layar pembuka.
 - [ ] Kirim **RSVP percobaan**, cek masuk ke Sheet, lalu **hapus baris percobaannya**.
 - [ ] Buka `admin.html`, pastikan data muncul dan token berfungsi.
+- [ ] Buka versi sederhana (`?u=kode&mudah=1`), pastikan hurufnya besar, tombol peta jalan,
+      dan RSVP dari sana juga masuk ke Sheet.
 - [ ] Kirim link ke diri sendiri via WhatsApp, cek gambar preview-nya muncul (lihat catatan di bawah).
 - [ ] Minta 2–3 orang mencoba dari HP mereka sebelum disebar luas.
 
@@ -285,6 +287,7 @@ ditempel manual.
 |---|---|---|
 | Undangan | tamu | `situskamu.com/` |
 | Undangan personal | tamu | `situskamu.com/?u=and1` |
+| Undangan versi sederhana | tamu | `situskamu.com/?u=and1&mudah=1` |
 | Generator link | kamu | `situskamu.com/undangan.html` |
 | Kartu preview WA | kamu | `situskamu.com/preview.html` |
 | Rekap RSVP | kamu | `situskamu.com/admin.html` |

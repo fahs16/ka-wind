@@ -199,13 +199,17 @@ const Game = {
   openChat() {
     if (!Net.active() || !Net.ready) { Toast.show('Mode online belum tersambung', 1600); return; }
     this.chatOpen = true;
+    document.body.classList.add('mengetik');
     const bar = document.getElementById('chatbar');
     bar.classList.remove('hidden');
+    // focus() harus tetap di dalam gerakan tap tamu, kalau tidak keyboard iOS
+    // menolak muncul. Posisi bilahnya sendiri diurus Papan lewat --papan.
     document.getElementById('chat-input').focus();
   },
 
   closeChat() {
     this.chatOpen = false;
+    document.body.classList.remove('mengetik');
     document.getElementById('chatbar').classList.add('hidden');
     document.getElementById('chat-input').blur();
     this.keys = {};
@@ -292,16 +296,7 @@ const Game = {
 
   /* ---------- RSVP ---------- */
   submitRsvp(form) {
-    const info = Content.guestInfo();
-    const data = {
-      kode: info.code || '',
-      grup: info.group || '',
-      nama: form.nama.value.trim().slice(0, 60),
-      hadir: form.hadir.value,
-      jumlah: form.jumlah.value,
-      pesan: form.pesan.value.trim().slice(0, 400),
-      waktu: new Date().toISOString()
-    };
+    const data = Rsvp.dari(form);
     if (!data.nama) return;
     Store.set(data);
     this.markVisited('rsvp');
@@ -309,13 +304,7 @@ const Game = {
     if (typeof Net !== 'undefined') Net.setName(data.nama);
 
     const c = CONFIG.couple;
-    const text = 'Halo ' + c.groom.nick + ' & ' + c.bride.nick + '!%0A' +
-      'Nama: ' + encodeURIComponent(data.nama) + '%0A' +
-      (data.kode ? 'Kode: ' + encodeURIComponent(data.kode) + '%0A' : '') +
-      'Kehadiran: ' + encodeURIComponent(data.hadir) + '%0A' +
-      'Jumlah: ' + encodeURIComponent(data.jumlah) + ' orang%0A' +
-      (data.pesan ? 'Ucapan: ' + encodeURIComponent(data.pesan) : '');
-    const wa = 'https://wa.me/' + CONFIG.rsvp.whatsapp + '?text=' + text;
+    const wa = Rsvp.waLink(data);
 
     const box = document.getElementById('rsvp-result');
     const render = (statusHtml) => {
@@ -328,20 +317,11 @@ const Game = {
 
     if (CONFIG.rsvp.endpoint) {
       render('<div class="sync muted">Menyinkronkan ke buku tamu...</div>');
-      // text/plain = permintaan sederhana, jadi tidak kena preflight CORS-nya Apps Script
-      fetch(CONFIG.rsvp.endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(data)
-      })
-        .then(r => r.json())
-        .then(j => {
-          if (j && j.ok) render('<div class="sync ok-text">&#10003; Tersimpan di buku tamu ' + c.groom.nick + ' &amp; ' + c.bride.nick + '.</div>');
-          else throw new Error((j && j.error) || 'gagal');
-        })
-        .catch(() => {
-          render('<div class="sync warn-text">Koneksi ke buku tamu gagal. Jawabanmu tersimpan di HP ini &mdash; tolong kirim juga lewat tombol WhatsApp di bawah ya.</div>');
-        });
+      Rsvp.kirim(data).then(hasil => {
+        render(hasil.ok
+          ? '<div class="sync ok-text">&#10003; Tersimpan di buku tamu ' + c.groom.nick + ' &amp; ' + c.bride.nick + '.</div>'
+          : '<div class="sync warn-text">Koneksi ke buku tamu gagal. Jawabanmu tersimpan di HP ini &mdash; tolong kirim juga lewat tombol WhatsApp di bawah ya.</div>');
+      });
     } else {
       render('');
     }
@@ -395,14 +375,14 @@ const Game = {
     this.cam.x = worldW <= this.w ? (worldW - this.w) / 2 : U.clamp(p.x - this.w / 2, 0, worldW - this.w);
     this.cam.y = worldH <= this.h ? (worldH - this.h) / 2 : U.clamp(p.y - this.h / 2, 0, worldH - this.h);
 
-    // Objek terdekat: dihitung dari jarak ke badan objek, jadi bisa didekati
-    // dari kanan, kiri, depan, atau belakang selama masih dalam radius.
+    // Objek terdekat: tiap bagian objek punya radiusnya sendiri, jadi tamu tetap
+    // bisa mendekat dari kanan, kiri, depan, atau belakang tanpa bikin petak di
+    // sekitarnya (pohon, semak, objek sebelah) ikut memicu prompt.
     this.near = null;
     let best = 1e9;
     for (const o of World.objects) {
-      if (!o.zone) continue;
-      const d = U.rectDist(p.x, p.y, o.zone);
-      if (d <= o.reach && d < best) { best = d; this.near = o; }
+      const d = this.jarakKe(o, p.x, p.y);
+      if (d != null && d < best) { best = d; this.near = o; }
     }
 
     // realtime
@@ -421,6 +401,20 @@ const Game = {
       c2.vy += 30 * dt; c2.life -= dt;
       if (c2.life <= 0 || c2.y > this.h + 20) this.confetti.splice(i, 1);
     }
+  },
+
+  // Nilai kedekatan ke bagian terdekat yang masih terjangkau. null = di luar
+  // semua bagian. Makin kecil makin diprioritaskan.
+  jarakKe(o, px, py) {
+    if (!o.dekat) return null;
+    let d = null;
+    for (const bagian of o.dekat) {
+      const j = U.rectDist(px, py, bagian.r);
+      if (j > bagian.reach) continue;
+      const nilai = j + bagian.bias;
+      if (d === null || nilai < d) d = nilai;
+    }
+    return d;
   },
 
   canStand(x, y) {
@@ -833,6 +827,30 @@ const Actions = {
   }
 };
 
+/* ---------------- Keyboard layar sentuh ----------------
+   Di HP, keyboard naik menutupi bagian bawah layar tanpa mengubah tinggi
+   halaman. Halaman ini seluruhnya position:fixed, jadi browser tidak bisa
+   menggulirkan kolom yang tertutup ke tempat yang kelihatan: bilah chat dan
+   isian RSVP yang di bawah jadi tersembunyi sampai tamu mengetik sesuatu.
+   visualViewport tahu berapa tinggi yang benar-benar terlihat; selisihnya
+   dipasang sebagai --papan, lalu dipakai CSS buat menaikkan keduanya. */
+const Papan = {
+  init() {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const pasang = () => {
+      const tertutup = window.innerHeight - vv.height - vv.offsetTop;
+      // Di bawah 80px biasanya cuma bilah alamat browser yang menyusut,
+      // bukan keyboard. Diabaikan supaya tata letak tidak goyang saat digulir.
+      const papan = tertutup > 80 ? Math.round(tertutup) : 0;
+      document.documentElement.style.setProperty('--papan', papan + 'px');
+    };
+    vv.addEventListener('resize', pasang);
+    vv.addEventListener('scroll', pasang);
+    pasang();
+  }
+};
+
 /* ---------------- Ajakan putar layar ----------------
    Peta lebih luas dan stik jalannya lebih enak dipegang kalau HP dimiringkan,
    jadi tamu yang membuka sambil berdiri tegak dikasih tahu sekali. Bisa
@@ -892,6 +910,10 @@ const Layar = {
 
 /* ---------------- Booting ---------------- */
 window.addEventListener('DOMContentLoaded', () => {
+  // ?mudah=1 langsung dibelokkan ke versi sederhana, supaya satu link undangan
+  // tetap cukup buat tamu yang lebih nyaman membaca halaman biasa.
+  if (U.query('mudah') === '1') { location.replace('mudah.html' + location.search); return; }
+
   // Identitas tamu dicari dulu (bisa dari Google Sheet, jadi perlu menunggu).
   // Selama diperiksa, halaman sengaja kosong: tidak ada nama, tanggal, atau
   // lokasi yang sempat dirender untuk pengunjung tanpa undangan.
@@ -918,7 +940,13 @@ function mulaiUndangan() {
     document.getElementById('intro-count').textContent = cd.d + ' hari lagi menuju hari bahagia';
   }
 
+  // Kode tamu ikut dibawa ke versi sederhana, supaya pindah versi tidak kena
+  // gerbang akses lagi.
+  const alt = document.getElementById('link-mudah');
+  if (alt) alt.href = 'mudah.html' + (location.search || '');
+
   Game.init();
   Layar.init();
+  Papan.init();
   document.getElementById('btn-open').addEventListener('click', () => Game.start());
 }

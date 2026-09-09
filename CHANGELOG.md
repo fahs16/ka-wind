@@ -15,6 +15,30 @@ git push origin main
 
 ---
 
+## v1.5.0
+
+Versi sederhana untuk tamu yang tidak main game, plus dua perbaikan rasa pakai.
+
+- **`mudah.html`**: undangan versi satu halaman gulir — huruf besar, tombol besar,
+  tanpa kontrol, tanpa suara. Isinya dari `js/config.js` yang sama, jadi cukup
+  mengubah satu file untuk dua versi. Gerbang akses `?u=KODE` tetap berlaku.
+- Tamu bisa pindah versi dua arah: tautan di layar pembuka versi game, tombol
+  "Coba Versi Game" di bawah halaman sederhana, dan link langsung
+  `?u=KODE&mudah=1`. Kode tamu ikut terbawa jadi tidak ditanya ulang.
+- `undangan.html` dapat kode template `{linkmudah}` dan centangan untuk membuat
+  seluruh daftar langsung mengarah ke versi sederhana.
+- Kolom chat tidak lagi tertutup keyboard HP. Posisi bilah chat dan panel isian
+  sekarang mengikuti tinggi keyboard, jadi kolomnya langsung kelihatan begitu
+  ikon chat ditekan tanpa perlu mengetik dulu.
+- Radius interaksi dirapikan. Sebelumnya dihitung dari satu kotak pembungkus
+  seluruh objek, jadi berdiri di bawah pohon satu-dua petak di belakang gedung
+  sudah memunculkan prompt. Sekarang dihitung per bagian: petak sambutan di
+  depan objek menjangkau sekitar satu petak, badan objek cukup disenggol.
+  Terukur turun dari 69 jadi 7 titik pohon yang ikut memicu prompt, tanpa ada
+  objek yang jadi sulit dijangkau.
+- Papan petunjuk digeser sepetak dari pilar gerbang; petak sambutannya dulu
+  menindih pilar sehingga keduanya saling rebutan prompt.
+
 ## v1.4.0 — commit `1f8ac98`
 
 Nyaman dibuka dari HP: kamera dimundurkan dan mode mendatar dirapikan.

@@ -339,6 +339,29 @@ atau connect repo dengan build command kosong dan output directory `.`
 
 ---
 
+## Versi sederhana untuk tamu yang tidak main game
+
+Selain versi game, ada **`mudah.html`**: satu halaman gulir biasa, huruf besar, tombol besar,
+tanpa kontrol dan tanpa suara. Isinya diambil dari `js/config.js` yang sama persis, jadi kamu
+tetap cuma mengubah satu file dan kedua versi ikut berubah.
+
+Tiga cara tamu sampai ke sana:
+
+| Cara | Kapan dipakai |
+|---|---|
+| Tautan **"Buka versi sederhana"** di layar pembuka | tamu sudah terlanjur buka versi game |
+| Link `?u=KODE&mudah=1` | kamu tahu dari awal tamunya kurang nyaman main game |
+| Tombol **"Coba Versi Game"** di bawah halaman sederhana | tamu berubah pikiran |
+
+Kode tamu ikut terbawa saat pindah versi, jadi gerbang aksesnya tidak menanyakan ulang, dan RSVP
+dari kedua versi masuk ke baris Google Sheet yang sama.
+
+Di `undangan.html` ada kode `{linkmudah}` untuk template pesan WhatsApp, plus centangan
+**"Buat semua link langsung ke versi sederhana"** kalau daftar yang sedang kamu tempel memang
+khusus om, tante, dan sepuh.
+
+---
+
 ## Kontrol
 
 | Aksi | Desktop | HP |
@@ -357,8 +380,11 @@ Tamu harus menemukan **8 titik** (bertanda `!`). Titik yang sudah dikunjungi ber
 hati, progresnya disimpan di browser, dan setelah lengkap muncul pesan penutup + kembang api.
 Penunjuk arah kecil di tepi layar mengarah ke 3 titik terdekat yang belum dikunjungi.
 
-Objek bisa didekati **dari sisi mana pun** — kanan, kiri, depan, atau belakang — selama masih
-dalam radius sekitar satu setengah petak. Tidak ada titik berdiri khusus yang harus dicari.
+Objek bisa didekati **dari sisi mana pun** — kanan, kiri, depan, atau belakang. Petak sambutan di
+depan objek (pintu, meja, mulut warung) menjangkau sekitar satu petak; badan objek sendiri cukup
+disenggol dari sisi mana saja. Radiusnya sengaja tidak lebih lebar dari itu, supaya berdiri di
+bawah pohon di belakang gedung tidak ikut memunculkan prompt. Atur lewat `reach` dan `reachBadan`
+di `js/world.js` kalau mau lebih longgar.
 
 ### Bonus yang tidak ditandai di peta
 
@@ -374,13 +400,15 @@ dalam radius sekitar satu setengah petak. Tidak ada titik berdiri khusus yang ha
 ## Struktur file
 
 ```
-index.html            undangan yang dibuka tamu
+index.html            undangan yang dibuka tamu (versi game)
+mudah.html            undangan versi sederhana: satu halaman gulir, huruf besar
 undangan.html         alat panitia: bikin link personal per tamu
 admin.html            alat panitia: rekap RSVP dari Google Sheet
 preview.html          alat panitia: bikin kartu preview WhatsApp
 img/preview.png       gambar yang muncul saat link dibagikan
 server/apps-script.gs  kode yang ditempel ke Google Apps Script
-css/style.css         tampilan undangan
+css/style.css         tampilan undangan versi game
+css/mudah.css         tampilan undangan versi sederhana
 css/tools.css         tampilan dua halaman alat panitia
 js/config.js          ← SEMUA DATA UNDANGAN ADA DI SINI
 js/guests.js          ← DAFTAR TAMU (dibuat lewat undangan.html)
@@ -395,6 +423,7 @@ js/ui.js              panel besar & notifikasi
 js/content.js         isi panel (acara, galeri, kado, RSVP, kalender)
 js/net.js             realtime: tamu lain, emote, chat, penyaring kata
 js/game.js            loop game, kamera, input, misi, ending
+js/mudah.js           penyusun halaman versi sederhana
 ```
 
 ### Menggeser atau menambah titik di peta
