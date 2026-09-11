@@ -15,7 +15,7 @@ git push origin main
 
 ---
 
-## v2.1.0
+## v2.1.0 — commit `acc2972`
 
 Sumber daftar tamu jadi berurutan, dan bawaannya kembali ke Google Sheet.
 
