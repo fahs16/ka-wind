@@ -125,34 +125,47 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
 'Mohon konfirmasi kehadirannya lewat tombol RSVP di dalam undangan ya. Terima kasih banyak.\n\n' +
 'Wassalamualaikum Wr. Wb.';
 
-  const mode = ((CONFIG.guests && CONFIG.guests.source) || 'lokal').toLowerCase();
-  const modeDb = mode === 'db';
-  const modeSheet = mode === 'sheet';
-  $('mode-note').innerHTML = modeDb
-    ? '<b>Daftar tamu disimpan di basis data</b> (<code>guests.source: \'db\'</code>). ' +
-      'Setelah membuat daftar di bawah, klik <b>Salin SQL Tamu</b>, lalu tempel ke ' +
-      '<b>Supabase &rsaquo; SQL Editor</b> dan tekan Run. Nama, nomor WA, dan jatah kursi tinggal ' +
-      'di basis data &mdash; tidak ada satu pun berkas di situs yang memuatnya, jadi tidak ada yang ' +
-      'bisa dibaca publik. Pastikan <code>js/guests.js</code> di situs kamu dalam keadaan kosong.'
-    : modeSheet
-    ? '<b>Daftar tamu diambil dari Google Sheet</b> (<code>guests.source: \'sheet\'</code>). ' +
-      'Setelah membuat daftar di bawah, klik <b>Salin untuk Google Sheet</b>, lalu tempel ke tab ' +
-      '<code>TAMU</code> di Sheet kamu mulai baris ke-2. Nama tamu tidak ikut ter-upload ke situs, ' +
-      'jadi tidak bisa dibaca publik. Berkas <code>js/guests.js</code> cukup berisi kodenya saja ' +
-      'sebagai cadangan kalau Sheet sedang tidak bisa dihubungi.'
-    : '<b>Undangan dikunci lewat <code>js/guests.js</code></b>. Setelah membuat daftar, unduh berkasnya ' +
-      'dan unggah ulang situsnya &mdash; kalau tidak, tamu kamu ikut terkunci. Perlu diketahui: berkas itu ' +
-      'bisa dibaca siapa pun lewat <code>situskamu.com/js/guests.js</code>. Kalau tidak mau nama tamu ' +
-      'terbaca publik, ganti <code>guests.source</code> jadi <code>\'db\'</code> di <code>js/config.js</code>.';
+  // guests.source boleh satu nama atau urutan; halaman ini menyiapkan keluaran
+  // untuk semua sumber yang disebut di sana.
+  const rantai = (function () {
+    const v = (CONFIG.guests && CONFIG.guests.source) || 'lokal';
+    return (Array.isArray(v) ? v : [v]).map(x => String(x).trim().toLowerCase());
+  })();
+  const modeDb = rantai.indexOf('db') >= 0;
+  const modeSheet = rantai.indexOf('sheet') >= 0;
+  const modeLokal = rantai.indexOf('lokal') >= 0;
 
+  const catatan = [];
+  if (modeSheet) {
+    catatan.push('<b>Google Sheet.</b> Klik <b>Salin untuk Google Sheet</b>, lalu tempel ke tab ' +
+      '<code>TAMU</code> di Sheet kamu mulai baris ke-2.');
+  }
   if (modeDb) {
-    $('sql-panel').style.display = '';
-    $('gen-note').innerHTML = 'Di mode basis data, berkas ini sengaja <b>kosong</b>. ' +
-      'Salin blok di bawah dan timpa isi <code>js/guests.js</code> supaya tidak ada sisa nama ' +
-      'atau kode yang bisa dibaca dari <code>situskamu.com/js/guests.js</code>.';
-    $('sheet').style.display = 'none';
-  } else {
-    $('sql-copy').style.display = 'none';
+    catatan.push('<b>Basis data.</b> Klik <b>Salin SQL Tamu</b>, lalu tempel ke ' +
+      '<b>Supabase &rsaquo; SQL Editor</b> dan tekan Run.');
+  }
+  if (modeLokal) {
+    catatan.push('<b>js/guests.js.</b> Unduh berkasnya dan unggah ulang situsnya. ' +
+      'Perlu diketahui: berkas itu bisa dibaca siapa pun lewat ' +
+      '<code>situskamu.com/js/guests.js</code>, termasuk seluruh nama tamu.');
+  }
+  $('mode-note').innerHTML =
+    'Tujuan daftar tamu menurut <code>js/config.js</code>: <code>' +
+      esc(JSON.stringify((CONFIG.guests && CONFIG.guests.source) || 'lokal')) + '</code>.' +
+    '<ul style="margin:10px 0 0;padding-left:22px">' +
+      catatan.map(c => '<li style="margin-bottom:6px">' + c + '</li>').join('') +
+    '</ul>' +
+    (modeLokal ? '' :
+      '<div style="margin-top:10px">Nama tamu tidak ikut ter-upload ke situs, jadi tidak bisa ' +
+      'dibaca publik. Pastikan <code>js/guests.js</code> di situs kamu dalam keadaan kosong.</div>');
+
+  if (modeDb) $('sql-panel').style.display = '';
+  else $('sql-copy').style.display = 'none';
+  if (!modeSheet) $('sheet').style.display = 'none';
+  if (!modeLokal) {
+    $('gen-note').innerHTML = 'Daftar tamunya tidak disimpan di sini, jadi berkas ini sengaja ' +
+      '<b>kosong</b>. Salin blok di bawah dan timpa isi <code>js/guests.js</code> supaya tidak ada ' +
+      'sisa nama atau kode yang bisa dibaca dari <code>situskamu.com/js/guests.js</code>.';
   }
 
   $('tpl').value = DEFAULT_TPL;
@@ -280,27 +293,21 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
       '<th>#</th><th>Nama</th><th>Kode</th><th>Link</th><th>Aksi</th>' +
       '</tr></thead><tbody>' + body + '</tbody></table></div>';
 
-    if (modeDb) {
+    if (modeDb) $('sql').value = sqlTamu(rows);
+
+    // Selama daftar aslinya tidak disimpan di berkas ini, isinya dikosongkan.
+    if (!modeLokal) {
       $('gen').value =
         '/* Dibuat lewat undangan.html pada ' + new Date().toLocaleString('id-ID') + ' */\n' +
-        '/* Mode basis data: seluruh daftar tamu ada di tabel `tamu` di Supabase.\n' +
-        '   Berkas ini sengaja KOSONG — tidak ada nama, tidak ada kode, jadi tidak\n' +
-        '   ada yang bisa dibaca dari situskamu.com/js/guests.js. */\n\n' +
+        '/* Daftar tamu yang sebenarnya ada di luar situs ini (Google Sheet dan/atau\n' +
+        '   tabel `tamu` di Supabase). Berkas ini sengaja KOSONG — tidak ada nama,\n' +
+        '   tidak ada kode, jadi tidak ada yang bisa dibaca dari\n' +
+        '   situskamu.com/js/guests.js. */\n\n' +
         'const GUESTS = [];\n';
-      $('sql').value = sqlTamu(rows);
       return;
     }
-    const bawaWa = $('wapub').checked && !modeSheet;
-    if (modeSheet) {
-      $('gen').value =
-        '/* Dibuat lewat undangan.html pada ' + new Date().toLocaleString('id-ID') + ' */\n' +
-        '/* Mode Sheet: nama tamu ada di Google Sheet, di sini cukup kodenya saja\n' +
-        '   sebagai cadangan kalau Sheet sedang tidak bisa dihubungi. */\n\n' +
-        'const GUESTS = [\n' +
-        rows.map(g => "  { code: '" + g.code + "' }").join(',\n') +
-        '\n];\n';
-      return;
-    }
+
+    const bawaWa = $('wapub').checked;
     $('gen').value =
       '/* Dibuat lewat undangan.html pada ' + new Date().toLocaleString('id-ID') + ' */\n' +
       (bawaWa

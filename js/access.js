@@ -19,7 +19,18 @@ const Access = {
   darurat: false,        // true kalau tamu diloloskan karena server sedang mati
 
   aktif() { return !!(CONFIG.access && CONFIG.access.private); },
-  sumber() { return ((CONFIG.guests && CONFIG.guests.source) || 'lokal').toLowerCase(); },
+  // CONFIG.guests.source boleh satu nama ('sheet') atau urutan
+  // (['sheet', 'db']). Yang pertama menjawab dipakai; yang belum kamu pasang
+  // tinggal diabaikan, jadi menambah sumber baru nanti cukup satu kata.
+  rantai() {
+    const v = (CONFIG.guests && CONFIG.guests.source) || 'lokal';
+    return (Array.isArray(v) ? v : [v])
+      .map(x => String(x).trim().toLowerCase())
+      .filter(x => x === 'db' || x === 'sheet' || x === 'lokal');
+  },
+  // Sumber utama, dipakai untuk pertanyaan "ini mode apa".
+  sumber() { return this.rantai()[0] || 'lokal'; },
+  punya(nama) { return this.rantai().indexOf(nama) >= 0; },
   alamat() {
     return ((CONFIG.guests && CONFIG.guests.endpoint) || CONFIG.rsvp.endpoint || '').trim();
   },
@@ -77,7 +88,7 @@ const Access = {
   // Tanya Apps Script. Sama idenya dengan dariDb, beda pintunya saja.
   dariSheet(kode) {
     const url = this.alamat();
-    if (!url) return Promise.resolve(null);
+    if (!url) return Promise.resolve(null);   // belum dipasang, bukan gangguan
 
     const ingat = this.dariIngatan(kode);
     if (ingat) return Promise.resolve(ingat);
@@ -155,13 +166,20 @@ const Access = {
     return String((CONFIG.access && CONFIG.access.saatServerMati) || 'buka').toLowerCase();
   },
 
-  // Satu pintu ke sumber mana pun yang sedang dipakai.
+  // Satu pintu ke seluruh sumber, dicoba berurutan. Berhenti begitu ada yang
+  // mengenali kodenya. Kalau semuanya menjawab "tidak kenal", jawabannya
+  // memang tidak kenal; kalau semuanya tidak bisa dihubungi, gagalHubungi
+  // sudah tercatat dan penanganannya ada di mulai().
   dariServer(kode) {
     if (!kode) return Promise.resolve(null);
-    const dari = this.sumber();
-    if (dari === 'db') return this.dariDb(kode);
-    if (dari === 'sheet') return this.dariSheet(kode);
-    return Promise.resolve(null);
+    const daftar = this.rantai().filter(x => x !== 'lokal');
+
+    const coba = i => {
+      if (i >= daftar.length) return Promise.resolve(null);
+      const satu = daftar[i] === 'db' ? this.dariDb(kode) : this.dariSheet(kode);
+      return satu.then(t => t || coba(i + 1));
+    };
+    return coba(0);
   },
 
   // Nama tamu datang setelah undangan terlanjur tampil: perbarui sapaannya.

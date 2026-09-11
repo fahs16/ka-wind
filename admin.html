@@ -20,6 +20,10 @@
 
 <div class="wrap">
   <div class="panel">
+    <div class="field" id="field-sumber" style="display:none">
+      <label>Sumber data</label>
+      <select id="sumber"></select>
+    </div>
     <div class="field" id="field-ep">
       <label>URL Web App Apps Script</label>
       <input id="ep" placeholder="https://script.google.com/macros/s/.../exec">
@@ -61,16 +65,42 @@
 
   let data = { rows: [], stats: null };
 
-  // Dua sumber rekap. Mode 'db' membaca langsung dari Supabase lewat fungsi
-  // yang dijaga token; mode lama membaca Google Sheet lewat Apps Script.
-  const modeDb = String((CONFIG.rsvp && CONFIG.rsvp.provider) || '').toLowerCase() === 'db'
-    || String((CONFIG.guests && CONFIG.guests.source) || '').toLowerCase() === 'db';
+  // Dua sumber rekap. 'db' membaca langsung dari Supabase lewat fungsi yang
+  // dijaga token; 'sheet' membaca Google Sheet lewat Apps Script. Setelan di
+  // config.js boleh menyebut keduanya — kalau begitu, pilihannya ditaruh di
+  // layar biar kamu bisa melihat dua-duanya.
+  const daftarSumber = (function () {
+    const kumpul = [];
+    [(CONFIG.rsvp && CONFIG.rsvp.provider), (CONFIG.guests && CONFIG.guests.source)]
+      .forEach(v => (Array.isArray(v) ? v : [v]).forEach(x => {
+        const n = String(x || '').trim().toLowerCase();
+        if ((n === 'db' || n === 'sheet') && kumpul.indexOf(n) < 0) kumpul.push(n);
+      }));
+    if (!kumpul.length && CONFIG.rsvp.endpoint) kumpul.push('sheet');
+    return kumpul.length ? kumpul : ['sheet'];
+  })();
 
-  if (modeDb) {
-    $('field-ep').style.display = 'none';
-    $('label-tok').textContent = 'Token panitia';
-    $('tok').placeholder = 'token yang kamu pasang di server/schema.sql';
+  function sumberAktif() {
+    const pilih = $('sumber');
+    return pilih && pilih.value ? pilih.value : daftarSumber[0];
   }
+
+  if (daftarSumber.length > 1) {
+    $('field-sumber').style.display = '';
+    $('sumber').innerHTML = daftarSumber.map(n =>
+      '<option value="' + n + '">' + (n === 'db' ? 'Basis data (Supabase)' : 'Google Sheet') + '</option>'
+    ).join('');
+  }
+
+  function setelTampilan() {
+    const db = sumberAktif() === 'db';
+    $('field-ep').style.display = db ? 'none' : '';
+    $('label-tok').textContent = db ? 'Token panitia' : 'Token admin';
+    $('tok').placeholder = db
+      ? 'token yang kamu pasang di server/schema.sql'
+      : 'ADMIN_TOKEN dari apps-script.gs';
+  }
+  setelTampilan();
 
   try {
     const saved = JSON.parse(localStorage.getItem(K) || '{}');
@@ -225,7 +255,7 @@
   // ---- jalur Google Sheet (Apps Script) ----
   function load() {
     const tok = $('tok').value.trim();
-    if (modeDb) { loadDb(tok); return; }
+    if (sumberAktif() === 'db') { loadDb(tok); return; }
 
     const ep = $('ep').value.trim();
     if (!ep) { toast('URL Apps Script belum diisi'); return; }
@@ -259,6 +289,7 @@
   }
 
   $('load').onclick = load;
+  if ($('sumber')) $('sumber').onchange = () => { setelTampilan(); $('out').innerHTML = ''; };
   $('q').oninput = renderRows;
   $('lupa').onclick = () => { localStorage.removeItem(K); $('tok').value = ''; toast('Token dihapus dari browser ini'); };
 
@@ -287,7 +318,7 @@
     else toast(teks);
   };
 
-  if ($('tok').value && (modeDb || $('ep').value)) load();
+  if ($('tok').value && (sumberAktif() === 'db' || $('ep').value)) load();
 })();
 </script>
 </body>

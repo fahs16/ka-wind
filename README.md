@@ -85,16 +85,52 @@ Nama itu muncul di layar pembuka, di sapaan gerbang, dan otomatis mengisi form R
 
 ## Di mana daftar tamu disimpan
 
-Tiga pilihan, diatur di `js/config.js`:
+Tiga sumber, diatur di `js/config.js`. **Boleh satu, boleh berurutan** — yang pertama
+mengenali kodenya dipakai, yang belum kamu pasang tinggal dilewati:
 
 ```js
 guests: {
-  source: 'db',      // 'db' (bawaan) | 'sheet' | 'lokal'
-  endpoint: ''       // khusus mode 'sheet'; kosong = ikut rsvp.endpoint
+  source: 'sheet',            // bawaan: Google Sheet saja, tanpa basis data
+  // source: 'db',            // basis data saja
+  // source: ['sheet', 'db'], // tanya Sheet dulu, basis data kalau tidak ketemu
+  // source: ['db', 'sheet'], // basis data dulu, Sheet sebagai cadangan
+  endpoint: ''                // khusus mode 'sheet'; kosong = ikut rsvp.endpoint
 }
 ```
 
-### `'db'` — basis data, daftar tamu tidak ada di berkas mana pun (disarankan)
+Apa pun pilihannya, yang dikirim ke browser tamu selalu sama: jawaban atas satu
+pertanyaan, *"siapa pemilik kode ini?"*, berisi satu tamu saja dan tanpa nomor WA.
+`js/guests.js` dibiarkan kosong, jadi tidak ada berkas di situs yang memuat nama siapa pun.
+
+Kenapa dibuat berurutan: kamu bisa jalan dengan Sheet lebih dulu tanpa menunggu apa pun,
+lalu memasang basis data kapan pun sempat. Menambahkannya nanti cukup mengubah satu baris
+ini — tamu yang kodenya sudah ada di Sheet tetap jalan, tamu baru tinggal dimasukkan ke
+basis data. Yang sama berlaku untuk RSVP:
+
+```js
+rsvp: { provider: ['sheet', 'db'] }   // coba Sheet dulu; kalau gagal, simpan ke basis data
+```
+
+Untuk RSVP urutannya dicoba sampai **berhasil**, bukan sampai ketemu — jadi satu tujuan
+yang lagi ngadat tidak membuat jawaban tamu hilang.
+
+### `'sheet'` — Google Sheet (bawaan, tidak perlu memasang apa-apa lagi)
+
+Daftar tinggal di tab `TAMU` pada Google Sheet kamu, diakses lewat Apps Script yang sudah
+kamu pasang untuk RSVP. Nama tamu tidak ikut ter-upload ke situs. Jawabannya lebih lambat
+daripada basis data (Apps Script perlu beberapa ratus milidetik) dan kena kuota harian
+Google, tapi untuk ratusan tamu tidak terasa.
+
+Cara mengisinya:
+
+1. Jalankan `initSheet()` sekali di Apps Script — tab `TAMU` otomatis dibuat dengan
+   kolom `Kode | Nama | Kursi | Grup | WA`.
+2. Buka `undangan.html`, susun daftarnya, klik **Salin untuk Google Sheet**.
+3. Tempel di tab `TAMU` mulai baris ke-2. Kolomnya langsung pas.
+4. Klik **Salin Blok Ini** di panel `js/guests.js` (isinya kosong), timpa berkasnya,
+   unggah ulang situsnya.
+
+### `'db'` — basis data (paling cepat & paling ketat, perlu sekali pasang)
 
 Semua tamu tinggal di tabel `tamu` di Supabase. Tabelnya **terkunci total**: Row Level
 Security menyala tanpa satu pun policy, dan hak akses peran publik dicabut. Browser tamu
@@ -130,22 +166,9 @@ Bonus dari punya basis data: tercatat juga **siapa yang sudah membuka undanganny
 (tabel `kunjungan`), jadi `admin.html` bisa menunjukkan tamu mana yang belum melihat
 sama sekali.
 
-Cara memasangnya ada di bawah, dan langkah lengkapnya di `DEPLOY.md`.
-
-### `'sheet'` — daftar tamu di Google Sheet
-
-Daftar tinggal di tab `TAMU` pada Google Sheet kamu, diakses lewat Apps Script. Idenya
-sama dengan mode `db` — browser cuma menanyakan satu kode — tapi jawabannya lebih lambat
-dan kena kuota harian Google. `js/guests.js` berisi kode saja, tanpa nama, sebagai
-cadangan kalau Sheet tidak bisa dihubungi.
-
-Cara mengisinya:
-
-1. Jalankan `initSheet()` sekali di Apps Script — tab `TAMU` otomatis dibuat dengan
-   kolom `Kode | Nama | Kursi | Grup | WA`.
-2. Buka `undangan.html`, susun daftarnya, klik **Salin untuk Google Sheet**.
-3. Tempel di tab `TAMU` mulai baris ke-2. Kolomnya langsung pas.
-4. Klik **Unduh js/guests.js** (isinya kode saja) dan unggah ulang situsnya.
+Perlu menjalankan `server/schema.sql` sekali di SQL Editor Supabase — caranya di bawah,
+langkah lengkapnya di `DEPLOY.md` Tahap 2. Selama itu belum dilakukan, biarkan
+`guests.source` di `'sheet'`; undangannya jalan seperti biasa.
 
 ### `'lokal'` — cara lama
 
@@ -167,7 +190,7 @@ bisa memanfaatkannya.
 
 ---
 
-## Memasang basis data (sekali, ~5 menit)
+## Memasang basis data (opsional, sekali, ~5 menit)
 
 1. Buka proyek Supabase kamu &rsaquo; **SQL Editor** &rsaquo; **New query**.
 2. Tempel seluruh isi **`server/schema.sql`**.

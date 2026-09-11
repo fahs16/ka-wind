@@ -128,10 +128,16 @@ Semuanya gratis untuk kebutuhan ini. Kalau bingung: **GitHub Pages**.
 
 ---
 
-## Tahap 2 — Basis data tamu & RSVP (~5 menit)
+## Tahap 2 — Basis data tamu & RSVP (opsional, ~5 menit)
 
-Ini yang bikin daftar tamu tidak bisa dibaca publik. Tanpa langkah ini, link
-`?u=kode` belum dikenali siapa pun.
+**Boleh dilewati.** Bawaannya undangan ini membaca daftar tamu dari Google Sheet
+(Tahap 2b), jadi tidak ada yang terkunci kalau bagian ini belum dikerjakan.
+
+Kerjakan kalau mau jawabannya lebih cepat (Apps Script perlu beberapa ratus
+milidetik; basis data puluhan milidetik) dan tidak kena kuota harian Google.
+Bisa dipasang kapan saja, termasuk setelah undangan tersebar: ganti
+`guests.source` jadi `['sheet', 'db']` dan dua-duanya jalan berdampingan —
+Sheet ditanya dulu, basis data kalau kodenya tidak ketemu di sana.
 
 1. Buka **[supabase.com](https://supabase.com)** → proyek kamu (bikin baru kalau belum,
    gratis) → **SQL Editor** → **New query**.
@@ -150,6 +156,12 @@ Ini yang bikin daftar tamu tidak bisa dibaca publik. Tanpa langkah ini, link
    ```
    Kosongkan keduanya kalau sudah diisi di `net` — nanti ikut yang itu.
 
+   Lalu arahkan sumbernya ke basis data:
+   ```js
+   guests: { source: ['sheet', 'db'] },   // atau 'db' saja kalau Sheet mau dipensiunkan
+   rsvp:   { provider: ['sheet', 'db'] }
+   ```
+
    > **Jangan pernah** menaruh `service_role` key atau password database di berkas ini.
    > Yang boleh cuma publishable key, dan itu memang dirancang untuk terlihat publik.
 6. Buka `undangan.html`, susun daftar tamu, klik **Salin SQL Tamu** → tempel ke SQL
@@ -165,10 +177,10 @@ curl "https://xxxx.supabase.co/rest/v1/tamu?select=*" -H "apikey: PUBLISHABLE_KE
 
 ---
 
-## Tahap 2b — Google Sheet buat rekap kehadiran (opsional, ~10 menit)
+## Tahap 2b — Google Sheet buat daftar tamu & rekap kehadiran (~10 menit)
 
-Lewati bagian ini kalau sudah memakai basis data di Tahap 2. Ini cara lama, buat yang
-lebih nyaman melihat rekapnya langsung di Google Sheet.
+Ini jalur bawaannya. Daftar tamu dan jawaban RSVP sama-sama masuk ke Google Sheet lewat
+Apps Script, dan nama tamu tidak ikut ter-upload ke situs.
 
 Tanpa ini, RSVP tetap jalan lewat WhatsApp. Dengan ini, jawaban tamu masuk otomatis ke Sheet.
 
