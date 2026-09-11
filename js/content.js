@@ -193,43 +193,55 @@ const Rsvp = {
     return 'https://wa.me/' + CONFIG.rsvp.whatsapp + '?text=' + text;
   },
 
-  // Ke mana jawaban disimpan. Kalau provider tidak diisi, ditebak dari
-  // setelan lama: ada endpoint Apps Script berarti 'sheet'.
-  tujuan() {
-    const p = String((CONFIG.rsvp && CONFIG.rsvp.provider) || '').toLowerCase();
-    if (p) return p;
-    return CONFIG.rsvp.endpoint ? 'sheet' : 'off';
+  // Ke mana jawaban disimpan. Boleh satu nama ('sheet') atau urutan
+  // (['sheet', 'db']) — dicoba berurutan sampai ada yang berhasil, jadi satu
+  // tujuan yang lagi ngadat tidak membuat jawaban tamu hilang.
+  // Kalau provider tidak diisi, ditebak dari setelan lama: ada endpoint Apps
+  // Script berarti 'sheet'.
+  rantai() {
+    const v = (CONFIG.rsvp && CONFIG.rsvp.provider);
+    const daftar = (Array.isArray(v) ? v : [v])
+      .map(x => String(x || '').trim().toLowerCase())
+      .filter(x => x === 'db' || x === 'sheet');
+    if (daftar.length) return daftar;
+    return CONFIG.rsvp.endpoint ? ['sheet'] : [];
   },
 
-  aktif() { return this.tujuan() !== 'off'; },
+  // Tujuan yang benar-benar siap dipakai (sudah ada alamat / kuncinya).
+  siap() {
+    return this.rantai().filter(ke => ke === 'db'
+      ? (typeof Db !== 'undefined' && Db.aktif())
+      : !!CONFIG.rsvp.endpoint);
+  },
+
+  aktif() { return this.siap().length > 0; },
+
+  keSatu(ke, data) {
+    if (ke === 'db') return Db.simpanRsvp(data).catch(() => ({ ok: false }));
+    // text/plain = permintaan sederhana, jadi tidak kena preflight CORS-nya Apps Script
+    return fetch(CONFIG.rsvp.endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(data)
+    })
+      .then(r => r.json())
+      .then(j => (j && j.ok) ? { ok: true } : { ok: false })
+      .catch(() => ({ ok: false }));
+  },
 
   // Selalu berhasil sebagai Promise. { ok: true } = tercatat di buku tamu,
   // { ok: false } = hanya tersimpan di perangkat tamu, tombol WhatsApp jadi
   // jalan cadangannya.
   kirim(data) {
-    const ke = this.tujuan();
+    const daftar = this.siap();
+    if (!daftar.length) return Promise.resolve({ ok: false, tanpaBukuTamu: true });
 
-    if (ke === 'db') {
-      if (typeof Db === 'undefined' || !Db.aktif()) {
-        return Promise.resolve({ ok: false, tanpaBukuTamu: true });
-      }
-      return Db.simpanRsvp(data).catch(() => ({ ok: false }));
-    }
-
-    if (ke === 'sheet') {
-      if (!CONFIG.rsvp.endpoint) return Promise.resolve({ ok: false, tanpaBukuTamu: true });
-      // text/plain = permintaan sederhana, jadi tidak kena preflight CORS-nya Apps Script
-      return fetch(CONFIG.rsvp.endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(data)
-      })
-        .then(r => r.json())
-        .then(j => (j && j.ok) ? { ok: true } : { ok: false })
-        .catch(() => ({ ok: false }));
-    }
-
-    return Promise.resolve({ ok: false, tanpaBukuTamu: true });
+    const coba = i => {
+      if (i >= daftar.length) return Promise.resolve({ ok: false });
+      return this.keSatu(daftar[i], data)
+        .then(h => (h && h.ok) ? { ok: true, lewat: daftar[i] } : coba(i + 1));
+    };
+    return coba(0);
   }
 };
 

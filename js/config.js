@@ -85,11 +85,14 @@ const CONFIG = {
 
   // ---------- RSVP ----------
   rsvp: {
-    // Ke mana jawaban kehadiran disimpan:
-    //   'db'    -> tabel rsvp di Supabase (lihat server/schema.sql)  <- disarankan
-    //   'sheet' -> Google Sheet lewat Apps Script (endpoint di bawah)
-    //   'off'   -> tidak disimpan ke mana pun, cuma tombol WhatsApp
-    provider: 'db',
+    // Ke mana jawaban kehadiran disimpan. Boleh satu nama, boleh urutan —
+    // dicoba dari kiri sampai ada yang berhasil, jadi satu tujuan yang lagi
+    // ngadat tidak membuat jawaban tamu hilang.
+    //   'sheet'          -> Google Sheet lewat Apps Script (endpoint di bawah)
+    //   'db'             -> tabel rsvp di Supabase (lihat server/schema.sql)
+    //   ['sheet', 'db']  -> Sheet dulu, basis data sebagai cadangan
+    //   []               -> tidak disimpan ke mana pun, cuma tombol WhatsApp
+    provider: 'sheet',
     // Nomor WhatsApp penerima konfirmasi. Format internasional tanpa "+" dan tanpa "0" di depan.
     whatsapp: '6281234567890',
     // URL Web App Google Apps Script buat nyimpen RSVP ke Google Sheet.
@@ -125,9 +128,10 @@ const CONFIG = {
     source: 'QS. Ar-Rum: 21'
   },
 
-  // ---------- BASIS DATA ----------
+  // ---------- BASIS DATA (opsional) ----------
   // Tabel tamu & rsvp di Supabase. Skemanya ada di server/schema.sql — tempel
-  // sekali ke SQL Editor Supabase, selesai.
+  // sekali ke SQL Editor Supabase, selesai. Boleh dilewati: kalau guests.source
+  // dan rsvp.provider tidak menyebut 'db', bagian ini tidak dipakai sama sekali.
   //
   // Kosongkan url & key untuk memakai Supabase yang sama dengan net di atas.
   // Yang boleh ditaruh di sini CUMA publishable key. Service role key dan
@@ -138,15 +142,23 @@ const CONFIG = {
   },
 
   // ---------- SUMBER DAFTAR TAMU ----------
+  // Boleh satu nama, boleh urutan. Dicoba dari kiri; yang pertama mengenali
+  // kodenya dipakai. Sumber yang belum kamu pasang tinggal dilewati, jadi
+  // menambah yang kedua nanti cukup mengubah satu baris ini.
+  //
+  // 'sheet' : dari tab TAMU di Google Sheet, lewat Apps Script. Nama tamu tidak
+  //           ikut ter-upload ke situs. Tidak perlu memasang basis data.
   // 'db'    : dari tabel tamu di Supabase. Browser cuma boleh bertanya "siapa
-  //           pemilik kode ini?" dan server cuma menjawab satu tamu itu; tidak
-  //           ada cara mengunduh daftarnya.       <- paling aman, disarankan
-  // 'sheet' : dari tab TAMU di Google Sheet, lewat Apps Script. Juga aman,
-  //           tapi jawabannya lebih lambat dan kena kuota harian Google.
+  //           pemilik kode ini?"; tidak ada cara mengunduh daftarnya. Paling
+  //           cepat dan paling ketat, tapi perlu menjalankan server/schema.sql
+  //           sekali di SQL Editor.
   // 'lokal' : dari js/guests.js. Praktis, tapi seluruh nama tamu bisa dibaca
   //           siapa pun yang membuka situskamu.com/js/guests.js
+  //
+  // Contoh: ['sheet', 'db']  -> tanya Sheet dulu, basis data kalau tidak ketemu
+  //         ['db', 'sheet']  -> basis data dulu, Sheet sebagai cadangan
   guests: {
-    source: 'db',
+    source: 'sheet',
     endpoint: ''        // khusus mode 'sheet'; kosong = ikut rsvp.endpoint
   },
 

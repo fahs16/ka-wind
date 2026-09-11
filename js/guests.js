@@ -1,18 +1,21 @@
 /* =========================================================================
-   DAFTAR KODE UNDANGAN (cadangan)
+   DAFTAR TAMU CADANGAN — sengaja dibiarkan KOSONG.
 
-   Undangan ini disetel mengambil daftar tamu dari basis data
-   (js/config.js -> guests.source: 'db'), jadi berkas ini SENGAJA KOSONG.
+   Daftar tamu yang sebenarnya tinggal di luar situs ini: di tab TAMU pada
+   Google Sheet kamu, atau di tabel `tamu` di Supabase (lihat guests.source
+   di js/config.js). Keduanya cuma mau menjawab satu pertanyaan dari browser
+   tamu — "siapa pemilik kode ini?" — dan cuma menjawab satu tamu itu, tanpa
+   nomor WA.
 
-   Semua nama, jatah kursi, grup, dan nomor WA tinggal di tabel `tamu` di
-   Supabase. Tabelnya terkunci: browser tamu cuma boleh memanggil satu fungsi,
-   cek_tamu(kode), yang jawabannya satu baris saja dan tanpa nomor WA. Tidak
-   ada cara mengunduh daftarnya, dan tidak ada berkas di situs ini yang
-   memuatnya — termasuk berkas yang sedang kamu baca.
+   Berkas ini ikut ter-upload dan bisa dibuka siapa pun lewat
+   situskamu.com/js/guests.js, jadi apa pun yang ditaruh di sini jadi
+   konsumsi publik. Karena itu dibiarkan kosong.
 
-   Isi berkas ini kalau, dan hanya kalau, kamu memilih guests.source: 'lokal'
-   di js/config.js. Perlu diingat, mode itu membuat seluruh isi berkas ini bisa
-   dibaca siapa pun lewat situskamu.com/js/guests.js.
+   Dulu berkas ini dipakai sebagai cadangan kalau server sedang mati. Sekarang
+   urusan itu ditangani access.saatServerMati di js/config.js, yang
+   mempersilakan tamu masuk dengan sapaan umum tanpa membocorkan satu nama pun.
+
+   Isi berkas ini kalau, dan hanya kalau, kamu memilih guests.source: 'lokal'.
    ========================================================================= */
 
 const GUESTS = [];

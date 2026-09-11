@@ -15,6 +15,28 @@ git push origin main
 
 ---
 
+## v2.1.0
+
+Sumber daftar tamu jadi berurutan, dan bawaannya kembali ke Google Sheet.
+
+- `guests.source` dan `rsvp.provider` sekarang boleh berisi urutan, bukan cuma
+  satu nama: `['sheet', 'db']` berarti tanya Google Sheet dulu, basis data
+  kalau kodenya tidak ketemu di sana. Untuk RSVP, urutannya dicoba sampai
+  berhasil, jadi satu tujuan yang lagi ngadat tidak membuat jawaban tamu
+  hilang.
+- **Bawaannya kembali ke `'sheet'`.** Basis data jadi benar-benar opsional:
+  undangan jalan apa adanya tanpa menjalankan `server/schema.sql` sama sekali,
+  dan bisa dipasang kapan saja nanti dengan mengubah satu baris. Yang sudah
+  memasang basis data tinggal menyetel `'db'` atau `['db', 'sheet']`.
+- `js/guests.js` tetap kosong di semua mode kecuali `'lokal'`, jadi tidak ada
+  berkas di situs yang memuat nama atau kode siapa pun. Gangguan server
+  ditangani `access.saatServerMati`, bukan dengan menyalin kode ke situ.
+- `undangan.html` menyiapkan keluaran untuk semua sumber yang disebut di
+  config: panel SQL dan tombol Salin untuk Google Sheet muncul berbarengan
+  kalau rantainya menyebut keduanya.
+- `admin.html` menampilkan pemilih sumber kalau config menyebut dua-duanya,
+  jadi rekap dari Sheet dan dari basis data bisa dilihat bergantian.
+
 ## v2.0.0 — commit `73c518e`
 
 Daftar tamu pindah ke basis data. Tidak ada lagi berkas di situs yang memuat
