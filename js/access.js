@@ -1,9 +1,12 @@
 /* Gerbang akses + pencarian identitas tamu.
 
-   Dua sumber daftar tamu (diatur di CONFIG.guests.source):
-     'lokal' : dari js/guests.js  -> ikut ter-publish, nama tamu bisa dibaca siapa pun
-     'sheet' : dari Google Sheet  -> browser hanya menanyakan SATU kode, dan server
-               hanya menjawab satu tamu itu. Daftar lengkapnya tidak pernah keluar.
+   Tiga sumber daftar tamu (diatur di CONFIG.guests.source):
+     'db'    : dari tabel tamu di Supabase -> browser cuma boleh memanggil
+               cek_tamu(kode); tabelnya sendiri terkunci total. Paling aman.
+     'sheet' : dari Google Sheet -> browser hanya menanyakan SATU kode, dan
+               server hanya menjawab satu tamu itu.
+     'lokal' : dari js/guests.js -> ikut ter-publish, nama tamu bisa dibaca
+               siapa pun. Cuma untuk undangan yang memang tidak dikunci.
 
    CATATAN: pemeriksaan ini berjalan di browser tamu. Untuk kunci sungguhan,
    pakai gerbang sisi server di netlify/edge-functions/gate.js (lihat README). */
@@ -12,7 +15,8 @@ const Access = {
   granted: false,
   code: '',
   tamu: null,            // { code, name, seats, group }
-  gagalHubungi: false,   // true kalau Sheet tidak bisa dihubungi
+  gagalHubungi: false,   // true kalau server daftar tamu tidak bisa dihubungi
+  darurat: false,        // true kalau tamu diloloskan karena server sedang mati
 
   aktif() { return !!(CONFIG.access && CONFIG.access.private); },
   sumber() { return ((CONFIG.guests && CONFIG.guests.source) || 'lokal').toLowerCase(); },
@@ -38,18 +42,46 @@ const Access = {
     };
   },
 
-  // Tanya server: "siapa pemilik kode ini?" Jawabannya cuma satu tamu.
+  /* ---------- ingatan sementara ----------
+     Hasil pencarian disimpan sepanjang tab terbuka, supaya buka-tutup panel
+     tidak menembak server berulang kali. */
+  dariIngatan(kode) {
+    try {
+      const simpan = sessionStorage.getItem('undangan-tamu-' + kode);
+      return simpan ? JSON.parse(simpan) : null;
+    } catch (e) { return null; }
+  },
+  keIngatan(kode, tamu) {
+    try { sessionStorage.setItem('undangan-tamu-' + kode, JSON.stringify(tamu)); } catch (e) {}
+  },
+
+  // Tanya basis data: "siapa pemilik kode ini?" Jawabannya cuma satu tamu,
+  // tanpa nomor WA, dan tidak ada cara menariknya jadi daftar penuh.
+  dariDb(kode) {
+    if (typeof Db === 'undefined' || !Db.aktif()) return Promise.resolve(null);
+    const ingat = this.dariIngatan(kode);
+    if (ingat) return Promise.resolve(ingat);
+
+    return Db.cekTamu(kode, 5000)
+      .then(t => {
+        if (!t) return null;
+        this.keIngatan(kode, t);
+        return t;
+      })
+      .catch(() => {
+        this.gagalHubungi = true;   // dibedakan dari "kode tidak terdaftar"
+        return null;
+      });
+  },
+
+  // Tanya Apps Script. Sama idenya dengan dariDb, beda pintunya saja.
   dariSheet(kode) {
     const url = this.alamat();
     if (!url) return Promise.resolve(null);
 
-    // Hasil disimpan sepanjang tab terbuka, supaya buka-tutup panel tidak
-    // menembak server berulang kali.
+    const ingat = this.dariIngatan(kode);
+    if (ingat) return Promise.resolve(ingat);
     const kunci = 'undangan-tamu-' + kode;
-    try {
-      const simpan = sessionStorage.getItem(kunci);
-      if (simpan) return Promise.resolve(JSON.parse(simpan));
-    } catch (e) {}
 
     const batas = new AbortController();
     const jam = setTimeout(() => batas.abort(), 5000);
@@ -96,26 +128,45 @@ const Access = {
       this.tamu = lokal;
       this.code = String(lokal.code);
       this.granted = true;
-      if (this.sumber() === 'sheet' && !lokal.name) this.namaMenyusul(kode);
+      if (this.sumber() !== 'lokal' && !lokal.name) this.namaMenyusul(kode);
       return Promise.resolve(true);
     }
 
     // Kode tidak dikenal daftar lokal: barulah bertanya ke server.
-    const cari = (!kode || this.sumber() !== 'sheet')
-      ? Promise.resolve(null)
-      : this.dariSheet(kode);
-
-    return cari.then(tamu => {
+    return this.dariServer(kode).then(tamu => {
       this.tamu = tamu;
       this.code = tamu ? String(tamu.code) : '';
+
+      // Server benar-benar tidak bisa dihubungi (bukan "kode salah"). Gangguan
+      // di hari H tidak bisa diulang, jadi bawaannya tamu tetap dipersilakan
+      // masuk dengan sapaan umum. Atur lewat access.saatServerMati.
+      if (!tamu && this.gagalHubungi && privat && this.saatMati() !== 'tutup') {
+        this.granted = true;
+        this.darurat = true;
+        return true;
+      }
+
       this.granted = privat ? !!tamu : true;
       return this.granted;
     });
   },
 
+  saatMati() {
+    return String((CONFIG.access && CONFIG.access.saatServerMati) || 'buka').toLowerCase();
+  },
+
+  // Satu pintu ke sumber mana pun yang sedang dipakai.
+  dariServer(kode) {
+    if (!kode) return Promise.resolve(null);
+    const dari = this.sumber();
+    if (dari === 'db') return this.dariDb(kode);
+    if (dari === 'sheet') return this.dariSheet(kode);
+    return Promise.resolve(null);
+  },
+
   // Nama tamu datang setelah undangan terlanjur tampil: perbarui sapaannya.
   namaMenyusul(kode) {
-    this.dariSheet(kode).then(t => {
+    this.dariServer(kode).then(t => {
       if (!t || !t.name) return;
       this.tamu = t;
       this.code = String(t.code);

@@ -316,7 +316,7 @@ const Game = {
         '<div class="btn-row"><a class="btn btn-primary" href="' + wa + '" target="_blank" rel="noopener">Kirim juga via WhatsApp</a></div></div>';
     };
 
-    if (CONFIG.rsvp.endpoint) {
+    if (Rsvp.aktif()) {
       render('<div class="sync muted">Menyinkronkan ke buku tamu...</div>');
       Rsvp.kirim(data).then(hasil => {
         render(hasil.ok

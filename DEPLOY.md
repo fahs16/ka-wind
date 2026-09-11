@@ -128,7 +128,47 @@ Semuanya gratis untuk kebutuhan ini. Kalau bingung: **GitHub Pages**.
 
 ---
 
-## Tahap 2 — Google Sheet buat rekap kehadiran (opsional, ~10 menit)
+## Tahap 2 — Basis data tamu & RSVP (~5 menit)
+
+Ini yang bikin daftar tamu tidak bisa dibaca publik. Tanpa langkah ini, link
+`?u=kode` belum dikenali siapa pun.
+
+1. Buka **[supabase.com](https://supabase.com)** → proyek kamu (bikin baru kalau belum,
+   gratis) → **SQL Editor** → **New query**.
+2. Tempel seluruh isi **`server/schema.sql`**.
+3. Cari bagian 7 di berkas itu dan ganti tokennya:
+   ```sql
+   values (1, crypt('GANTI-JADI-TOKEN-PANJANG-KAMU-SENDIRI', gen_salt('bf')))
+   ```
+   Pakai kalimat panjang yang tidak bisa ditebak. Token ini yang nanti diketik di
+   `admin.html`; yang tersimpan di basis data cuma hash-nya.
+4. Tekan **Run**. Aman dijalankan ulang kapan saja.
+5. **Settings → API**, salin **Project URL** dan **publishable key** (yang diawali
+   `sb_publishable_` atau `anon public`). Tempel ke `js/config.js`:
+   ```js
+   db: { url: 'https://xxxx.supabase.co', key: 'sb_publishable_xxxx' }
+   ```
+   Kosongkan keduanya kalau sudah diisi di `net` — nanti ikut yang itu.
+
+   > **Jangan pernah** menaruh `service_role` key atau password database di berkas ini.
+   > Yang boleh cuma publishable key, dan itu memang dirancang untuk terlihat publik.
+6. Buka `undangan.html`, susun daftar tamu, klik **Salin SQL Tamu** → tempel ke SQL
+   Editor → **Run**.
+7. Masih di `undangan.html`, klik **Salin Blok Ini** di panel `js/guests.js` (isinya
+   kosong), timpa berkasnya, unggah ulang situsnya.
+
+Cek cepat bahwa pintunya benar-benar terkunci — ini harus menjawab *permission denied*:
+
+```bash
+curl "https://xxxx.supabase.co/rest/v1/tamu?select=*" -H "apikey: PUBLISHABLE_KEY"
+```
+
+---
+
+## Tahap 2b — Google Sheet buat rekap kehadiran (opsional, ~10 menit)
+
+Lewati bagian ini kalau sudah memakai basis data di Tahap 2. Ini cara lama, buat yang
+lebih nyaman melihat rekapnya langsung di Google Sheet.
 
 Tanpa ini, RSVP tetap jalan lewat WhatsApp. Dengan ini, jawaban tamu masuk otomatis ke Sheet.
 
@@ -216,7 +256,9 @@ Jangan lewati bagian ini. Urutannya:
 - [ ] Nomor rekening benar sampai digit terakhir. Tombol salin berfungsi.
 - [ ] Buka satu **link personal** (`?u=kode`) — nama tamu muncul di layar pembuka.
 - [ ] Kirim **RSVP percobaan**, cek masuk ke Sheet, lalu **hapus baris percobaannya**.
-- [ ] Buka `admin.html`, pastikan data muncul dan token berfungsi.
+- [ ] Buka `admin.html`, ketik token panitia, pastikan rekap & daftar tamu muncul.
+- [ ] Jalankan `curl` cek pintu terkunci di Tahap 2 &mdash; harus *permission denied*.
+- [ ] Buka satu link dengan kode ngawur (`?u=ngasal123`) &mdash; harus cuma gambar polos.
 - [ ] Buka versi sederhana (`?u=kode&simple=1`), pastikan hurufnya besar, tombol peta jalan,
       dan RSVP dari sana juga masuk ke Sheet.
 - [ ] Kirim link ke diri sendiri via WhatsApp, cek gambar preview-nya muncul (lihat catatan di bawah).
@@ -291,4 +333,5 @@ ditempel manual.
 | Generator link | kamu | `situskamu.com/undangan.html` |
 | Kartu preview WA | kamu | `situskamu.com/preview.html` |
 | Rekap RSVP | kamu | `situskamu.com/admin.html` |
+| Basis data | kamu | Supabase &rsaquo; Table Editor / SQL Editor |
 | Mode uji multiplayer | kamu | `situskamu.com/?net=local` |

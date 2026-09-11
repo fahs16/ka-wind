@@ -20,12 +20,12 @@
 
 <div class="wrap">
   <div class="panel">
-    <div class="field">
+    <div class="field" id="field-ep">
       <label>URL Web App Apps Script</label>
       <input id="ep" placeholder="https://script.google.com/macros/s/.../exec">
     </div>
     <div class="field">
-      <label>Token admin</label>
+      <label id="label-tok">Token admin</label>
       <input id="tok" type="password" placeholder="ADMIN_TOKEN dari apps-script.gs">
     </div>
     <div class="btn-row">
@@ -51,6 +51,7 @@
 
 <script src="js/config.js"></script>
 <script src="js/guests.js"></script>
+<script src="js/db.js"></script>
 <script>
 (function () {
   const $ = id => document.getElementById(id);
@@ -59,6 +60,17 @@
   const K = 'undangan-admin';
 
   let data = { rows: [], stats: null };
+
+  // Dua sumber rekap. Mode 'db' membaca langsung dari Supabase lewat fungsi
+  // yang dijaga token; mode lama membaca Google Sheet lewat Apps Script.
+  const modeDb = String((CONFIG.rsvp && CONFIG.rsvp.provider) || '').toLowerCase() === 'db'
+    || String((CONFIG.guests && CONFIG.guests.source) || '').toLowerCase() === 'db';
+
+  if (modeDb) {
+    $('field-ep').style.display = 'none';
+    $('label-tok').textContent = 'Token panitia';
+    $('tok').placeholder = 'token yang kamu pasang di server/schema.sql';
+  }
 
   try {
     const saved = JSON.parse(localStorage.getItem(K) || '{}');
@@ -136,7 +148,11 @@
     const items = belum.map(g => {
       const link = base + '?u=' + encodeURIComponent(g.code);
       const teks = encodeURIComponent('Halo ' + g.name + ', maaf mengingatkan ya. Mohon konfirmasi kehadirannya di undangan kami: ' + link);
-      return '<tr><td>' + esc(g.name) + '</td><td class="nowrap">' + esc(g.group || '-') + '</td>' +
+      const buka = g.sudahBuka === undefined ? ''
+        : '<td class="nowrap">' + (g.sudahBuka
+            ? '<span class="pill mb">SUDAH BUKA</span>'
+            : '<span class="muted">belum dibuka</span>') + '</td>';
+      return '<tr><td>' + esc(g.name) + '</td><td class="nowrap">' + esc(g.group || '-') + '</td>' + buka +
         '<td class="nowrap">' + (g.wa
           ? '<a class="btn btn-small btn-primary" target="_blank" rel="noopener" href="https://wa.me/' + esc(g.wa) + '?text=' + teks + '">Ingatkan via WA</a>'
           : '<span class="muted">nomor WA kosong</span>') + '</td></tr>';
@@ -144,12 +160,74 @@
 
     $('belum').innerHTML =
       '<h2>Belum menjawab (' + belum.length + ' dari ' + semua.length + ')</h2>' +
-      '<div class="table-wrap"><table><thead><tr><th>Nama</th><th>Grup</th><th>Aksi</th></tr></thead>' +
+      '<div class="table-wrap"><table><thead><tr><th>Nama</th><th>Grup</th>' +
+      (belum[0] && belum[0].sudahBuka !== undefined ? '<th>Undangan</th>' : '') +
+      '<th>Aksi</th></tr></thead>' +
       '<tbody>' + items + '</tbody></table></div>';
   }
 
+  function gagal(pesan, saran) {
+    $('out').innerHTML = '<div class="panel empty">Gagal memuat data.<br><span class="muted">' +
+      esc(String(pesan)) + '</span><br><br>' + saran + '</div>';
+  }
+
+  // ---- jalur basis data (Supabase) ----
+  function loadDb(tok) {
+    if (!tok) { toast('Token panitia belum diisi'); return; }
+    if (!Db.aktif()) {
+      gagal('db.url / db.key belum diisi di js/config.js',
+        'Isi <code>db</code> atau <code>net</code> di <code>js/config.js</code> dengan URL dan publishable key Supabase kamu.');
+      return;
+    }
+    localStorage.setItem(K, JSON.stringify({ ep: $('ep').value.trim(), tok: tok }));
+    $('out').innerHTML = '<div class="panel empty">Mengambil data...</div>';
+
+    // Tokennya diperiksa lewat SATU panggilan dulu. Tiap panggilan yang ditolak
+    // ikut menghabiskan jatah rem penebak token di server, jadi salah ketik
+    // sekali sebaiknya cuma dihitung sekali, bukan tiga kali.
+    Db.statistik(tok)
+      .then(stat => {
+        if (!stat || !stat.ok) throw new Error((stat && stat.error) || 'token ditolak');
+        return Promise.all([Db.rekap(tok), Promise.resolve(stat), Db.daftarTamu(tok)]);
+      })
+      .then(([rekap, stat, tamu]) => {
+        if (!rekap || !rekap.ok) throw new Error((rekap && rekap.error) || 'token ditolak');
+
+        data = {
+          rows: (rekap.baris || []).map(r => ({
+            waktu: r.diperbarui || r.dibuat, kode: r.kode || '', nama: r.nama || '',
+            grup: r.grup || '', hadir: r.hadir || '', jumlah: r.jumlah || 0, pesan: r.pesan || ''
+          })),
+          stats: stat && stat.ok ? {
+            total: stat.sudahJawab, hadir: stat.hadir, ragu: stat.ragu,
+            tidak: stat.tidakHadir, orang: stat.totalOrang
+          } : null
+        };
+
+        if (data.stats) renderStats(data.stats);
+        $('searchbox').style.display = '';
+        renderRows();
+        toast('Data termuat: ' + data.rows.length + ' baris');
+
+        const daftar = (tamu && tamu.ok && Array.isArray(tamu.baris))
+          ? tamu.baris.map(t => ({
+              code: t.kode, name: t.nama, group: t.grup, seats: t.kursi, wa: t.wa,
+              sudahBuka: t.sudahBuka, terakhirBuka: t.terakhirBuka
+            }))
+          : null;
+        renderBelum(daftar);
+      })
+      .catch(err => gagal(err.message || err,
+        'Cek lagi: token sudah sama persis dengan yang kamu pasang di <code>server/schema.sql</code>? ' +
+        'Skemanya sudah dijalankan di SQL Editor Supabase? URL dan publishable key di <code>js/config.js</code> sudah benar?'));
+  }
+
+  // ---- jalur Google Sheet (Apps Script) ----
   function load() {
-    const ep = $('ep').value.trim(), tok = $('tok').value.trim();
+    const tok = $('tok').value.trim();
+    if (modeDb) { loadDb(tok); return; }
+
+    const ep = $('ep').value.trim();
     if (!ep) { toast('URL Apps Script belum diisi'); return; }
     localStorage.setItem(K, JSON.stringify({ ep: ep, tok: tok }));
     $('out').innerHTML = '<div class="panel empty">Mengambil data...</div>';
@@ -175,11 +253,9 @@
           })
           .catch(() => renderBelum());
       })
-      .catch(err => {
-        $('out').innerHTML = '<div class="panel empty">Gagal memuat data.<br><span class="muted">' +
-          esc(String(err.message || err)) + '</span><br><br>Cek lagi: URL sudah yang berakhiran <code>/exec</code>? ' +
-          'Token sudah sama persis dengan ADMIN_TOKEN? Deployment sudah disetel "Anyone"?</div>';
-      });
+      .catch(err => gagal(err.message || err,
+        'Cek lagi: URL sudah yang berakhiran <code>/exec</code>? ' +
+        'Token sudah sama persis dengan ADMIN_TOKEN? Deployment sudah disetel "Anyone"?'));
   }
 
   $('load').onclick = load;
@@ -211,7 +287,7 @@
     else toast(teks);
   };
 
-  if ($('ep').value && $('tok').value) load();
+  if ($('tok').value && (modeDb || $('ep').value)) load();
 })();
 </script>
 </body>

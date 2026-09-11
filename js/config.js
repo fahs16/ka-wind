@@ -85,6 +85,11 @@ const CONFIG = {
 
   // ---------- RSVP ----------
   rsvp: {
+    // Ke mana jawaban kehadiran disimpan:
+    //   'db'    -> tabel rsvp di Supabase (lihat server/schema.sql)  <- disarankan
+    //   'sheet' -> Google Sheet lewat Apps Script (endpoint di bawah)
+    //   'off'   -> tidak disimpan ke mana pun, cuma tombol WhatsApp
+    provider: 'db',
     // Nomor WhatsApp penerima konfirmasi. Format internasional tanpa "+" dan tanpa "0" di depan.
     whatsapp: '6281234567890',
     // URL Web App Google Apps Script buat nyimpen RSVP ke Google Sheet.
@@ -120,15 +125,29 @@ const CONFIG = {
     source: 'QS. Ar-Rum: 21'
   },
 
+  // ---------- BASIS DATA ----------
+  // Tabel tamu & rsvp di Supabase. Skemanya ada di server/schema.sql — tempel
+  // sekali ke SQL Editor Supabase, selesai.
+  //
+  // Kosongkan url & key untuk memakai Supabase yang sama dengan net di atas.
+  // Yang boleh ditaruh di sini CUMA publishable key. Service role key dan
+  // password database tidak boleh menyentuh berkas ini.
+  db: {
+    url: '',
+    key: ''
+  },
+
   // ---------- SUMBER DAFTAR TAMU ----------
-  // 'sheet' : nama tamu diambil dari tab TAMU di Google Sheet. Browser hanya
-  //           menanyakan satu kode dan server hanya menjawab satu tamu itu,
-  //           jadi daftar lengkapnya tidak ikut ter-publish.
-  // 'lokal' : dari js/guests.js seperti sebelumnya. Praktis, tapi seluruh nama
-  //           tamu bisa dibaca siapa pun yang membuka situskamu.com/js/guests.js
+  // 'db'    : dari tabel tamu di Supabase. Browser cuma boleh bertanya "siapa
+  //           pemilik kode ini?" dan server cuma menjawab satu tamu itu; tidak
+  //           ada cara mengunduh daftarnya.       <- paling aman, disarankan
+  // 'sheet' : dari tab TAMU di Google Sheet, lewat Apps Script. Juga aman,
+  //           tapi jawabannya lebih lambat dan kena kuota harian Google.
+  // 'lokal' : dari js/guests.js. Praktis, tapi seluruh nama tamu bisa dibaca
+  //           siapa pun yang membuka situskamu.com/js/guests.js
   guests: {
-    source: 'sheet',
-    endpoint: ''        // kosong = ikut rsvp.endpoint di atas
+    source: 'db',
+    endpoint: ''        // khusus mode 'sheet'; kosong = ikut rsvp.endpoint
   },
 
   // ---------- AKSES: HANYA TAMU YANG DIUNDANG ----------
@@ -142,7 +161,16 @@ const CONFIG = {
     // Ganti jadi tebakan yang susah, ini sama saja seperti kata sandi.
     bypass: ['fitrahnadia-panitia'],
     // Gambar yang ditampilkan ke pengunjung tanpa undangan. Tidak memuat teks apa pun.
-    image: 'img/closed.png'
+    image: 'img/closed.png',
+    // Kalau server daftar tamu sedang tidak bisa dihubungi (bukan "kode salah",
+    // tapi benar-benar mati):
+    //   'buka'  -> tamu tetap dipersilakan masuk, hanya sapaannya jadi umum.
+    //   'tutup' -> semua ditutup sampai server hidup lagi.
+    // 'buka' dipilih sebagai bawaan karena gangguan server di hari H tidak bisa
+    // diulang, sementara orang asing yang kebetulan melihat undangan tidak
+    // merugikan apa-apa. Penebak kode tetap tidak bisa memanfaatkan ini: jalur
+    // ini cuma terbuka kalau server memang sedang mati.
+    saatServerMati: 'buka'
   },
 
   // ---------- TEMPAT FAVORIT (bonus, bukan bagian dari 8 titik misi) ----------

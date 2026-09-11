@@ -17,6 +17,10 @@
 
 const HALAMAN_PANITIA = ['/undangan.html', '/admin.html', '/preview.html'];
 const SELALU_BOLEH = ['/img/closed.png', '/favicon.ico', '/robots.txt'];
+// Isi folder server/ tidak pernah dibutuhkan browser mana pun: itu kode yang
+// kalian tempel sendiri ke Supabase / Apps Script, dan gampang keisi token
+// panitia. Ditutup untuk semua, termasuk tamu yang kodenya benar.
+const SELALU_TUTUP = ['/server/'];
 
 /* Inti keputusan, sengaja dipisah supaya bisa diuji tanpa runtime Netlify. */
 export function putuskan({ path, kodeUrl, kodeAdminUrl, cookie, codes, adminCode }) {
@@ -27,6 +31,9 @@ export function putuskan({ path, kodeUrl, kodeAdminUrl, cookie, codes, adminCode
   if (!daftar.length) return { aksi: 'lewat', gerbang: 'disabled' };
 
   const p = bersih(path);
+  if (SELALU_TUTUP.some(awalan => p.indexOf(awalan) === 0)) {
+    return { aksi: 'hilang', gerbang: 'on' };
+  }
   if (SELALU_BOLEH.indexOf(p) >= 0) return { aksi: 'lewat', gerbang: 'on' };
 
   const uUrl = bersih(kodeUrl);

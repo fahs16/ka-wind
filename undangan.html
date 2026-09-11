@@ -72,16 +72,28 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
     <div class="btn-row">
       <button class="btn btn-primary" id="go">Buat Link</button>
       <button class="btn" id="csv">Unduh CSV</button>
+      <button class="btn btn-gold" id="sql-copy">Salin SQL Tamu</button>
       <button class="btn btn-gold" id="sheet">Salin untuk Google Sheet</button>
       <button class="btn" id="dl">Unduh js/guests.js</button>
       <button class="btn" id="copyall">Salin Semua Link</button>
+      <button class="btn btn-small" id="reset-kode">Buat Ulang Semua Kode</button>
     </div>
   </div>
 
   <div id="out"></div>
 
+  <div id="sql-panel" style="display:none">
+    <h2>SQL untuk basis data</h2>
+    <p class="muted">Salin blok ini, tempel ke <b>Supabase &rsaquo; SQL Editor</b>, lalu tekan <b>Run</b>.
+    Aman dijalankan berkali-kali: tamu yang sudah ada diperbarui, bukan digandakan.
+    Tanpa langkah ini, link <code>?u=kode</code> belum dikenali.</p>
+    <div class="panel"><textarea id="sql" style="min-height:230px" spellcheck="false" readonly></textarea>
+      <div class="btn-row"><button class="btn btn-small" id="copysql">Salin Blok SQL</button></div>
+    </div>
+  </div>
+
   <h2>Isi file js/guests.js</h2>
-  <p class="muted">Salin blok di bawah ini, timpa isi file <code>js/guests.js</code>, lalu unggah ulang situsnya.
+  <p class="muted" id="gen-note">Salin blok di bawah ini, timpa isi file <code>js/guests.js</code>, lalu unggah ulang situsnya.
   Tanpa langkah ini, link <code>?u=kode</code> belum mengenali nama tamu.</p>
   <div class="panel"><textarea id="gen" style="min-height:210px" spellcheck="false" readonly></textarea>
     <div class="btn-row"><button class="btn btn-small" id="copygen">Salin Blok Ini</button></div>
@@ -113,8 +125,16 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
 'Mohon konfirmasi kehadirannya lewat tombol RSVP di dalam undangan ya. Terima kasih banyak.\n\n' +
 'Wassalamualaikum Wr. Wb.';
 
-  const modeSheet = ((CONFIG.guests && CONFIG.guests.source) || 'lokal').toLowerCase() === 'sheet';
-  $('mode-note').innerHTML = modeSheet
+  const mode = ((CONFIG.guests && CONFIG.guests.source) || 'lokal').toLowerCase();
+  const modeDb = mode === 'db';
+  const modeSheet = mode === 'sheet';
+  $('mode-note').innerHTML = modeDb
+    ? '<b>Daftar tamu disimpan di basis data</b> (<code>guests.source: \'db\'</code>). ' +
+      'Setelah membuat daftar di bawah, klik <b>Salin SQL Tamu</b>, lalu tempel ke ' +
+      '<b>Supabase &rsaquo; SQL Editor</b> dan tekan Run. Nama, nomor WA, dan jatah kursi tinggal ' +
+      'di basis data &mdash; tidak ada satu pun berkas di situs yang memuatnya, jadi tidak ada yang ' +
+      'bisa dibaca publik. Pastikan <code>js/guests.js</code> di situs kamu dalam keadaan kosong.'
+    : modeSheet
     ? '<b>Daftar tamu diambil dari Google Sheet</b> (<code>guests.source: \'sheet\'</code>). ' +
       'Setelah membuat daftar di bawah, klik <b>Salin untuk Google Sheet</b>, lalu tempel ke tab ' +
       '<code>TAMU</code> di Sheet kamu mulai baris ke-2. Nama tamu tidak ikut ter-upload ke situs, ' +
@@ -123,35 +143,95 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
     : '<b>Undangan dikunci lewat <code>js/guests.js</code></b>. Setelah membuat daftar, unduh berkasnya ' +
       'dan unggah ulang situsnya &mdash; kalau tidak, tamu kamu ikut terkunci. Perlu diketahui: berkas itu ' +
       'bisa dibaca siapa pun lewat <code>situskamu.com/js/guests.js</code>. Kalau tidak mau nama tamu ' +
-      'terbaca publik, ganti <code>guests.source</code> jadi <code>\'sheet\'</code> di <code>js/config.js</code>.';
+      'terbaca publik, ganti <code>guests.source</code> jadi <code>\'db\'</code> di <code>js/config.js</code>.';
+
+  if (modeDb) {
+    $('sql-panel').style.display = '';
+    $('gen-note').innerHTML = 'Di mode basis data, berkas ini sengaja <b>kosong</b>. ' +
+      'Salin blok di bawah dan timpa isi <code>js/guests.js</code> supaya tidak ada sisa nama ' +
+      'atau kode yang bisa dibaca dari <code>situskamu.com/js/guests.js</code>.';
+    $('sheet').style.display = 'none';
+  } else {
+    $('sql-copy').style.display = 'none';
+  }
 
   $('tpl').value = DEFAULT_TPL;
   $('base').value = location.href.replace(/undangan\.html.*$/, '');
 
   let rows = [];
 
+  /* ---------- kode undangan ----------
+     Kode adalah satu-satunya yang memisahkan tamu undangan dari orang lewat,
+     jadi diperlakukan seperti kata sandi: potongan nama supaya kamu bisa
+     mengenalinya, lalu 5 huruf acak. Hurufnya sengaja tanpa 0/o/1/l/i supaya
+     tidak salah baca kalau ada yang mengetik ulang.
+
+     Kode disimpan di browser ini per nama, jadi membuka halaman ini lagi
+     besok tidak mengubah kode yang sudah terlanjur kamu kirim. */
+  const HURUF = 'abcdefghjkmnpqrstuvwxyz23456789';
+  const INGATAN = 'undangan-kode-tamu';
+
+  function acak(n) {
+    const buf = new Uint32Array(n);
+    (window.crypto || window.msCrypto).getRandomValues(buf);
+    let out = '';
+    for (let i = 0; i < n; i++) out += HURUF[buf[i] % HURUF.length];
+    return out;
+  }
+
+  function ingatan() {
+    try { return JSON.parse(localStorage.getItem(INGATAN) || '{}'); } catch (e) { return {}; }
+  }
+  function simpanIngatan(m) {
+    try { localStorage.setItem(INGATAN, JSON.stringify(m)); } catch (e) {}
+  }
+
   function slug(name) {
     const s = name.toLowerCase().replace(/[^a-z0-9]+/g, '');
-    return (s.slice(0, 3) || 'tmu');
+    return (s.slice(0, 4) || 'tamu');
   }
 
   function parse() {
-    const used = Object.create(null);
-    return $('src').value.split('\n').map(line => line.trim()).filter(Boolean).map((line, i) => {
+    const dipakai = Object.create(null);
+    const ingat = ingatan();
+    let berubah = false;
+
+    const hasil = $('src').value.split('\n').map(l => l.trim()).filter(Boolean).map(line => {
       const part = line.split('|').map(x => x.trim());
       const name = part[0].replace(/\s+/g, ' ').slice(0, 60);
-      let code = slug(name);
-      let n = 1;
-      while (used[code]) { n++; code = slug(name) + n; }
-      used[code] = 1;
+      // Kolom ke-5 (opsional) = kode yang sudah terlanjur dipakai. Berguna kalau
+      // kamu menempel ulang daftar lama dan tidak mau kodenya berubah.
+      let code = (part[4] || ingat[name] || '').toLowerCase().replace(/[^a-z0-9-]/g, '');
+      if (!code || dipakai[code]) {
+        do { code = slug(name) + '-' + acak(5); } while (dipakai[code]);
+        berubah = true;
+      }
+      dipakai[code] = 1;
+      if (ingat[name] !== code) { ingat[name] = code; berubah = true; }
       return {
-        code: code + (n === 1 ? String((i % 9) + 1) : ''),
+        code: code,
         name: name,
-        seats: Math.max(1, Math.min(10, parseInt(part[1], 10) || 2)),
+        seats: Math.max(1, Math.min(20, parseInt(part[1], 10) || 2)),
         group: part[2] || '',
         wa: (part[3] || '').replace(/[^0-9]/g, '')
       };
     });
+
+    if (berubah) simpanIngatan(ingat);
+    return hasil;
+  }
+
+  // Teks SQL siap tempel ke Supabase. ON CONFLICT membuatnya aman dijalankan
+  // berkali-kali: tamu lama diperbarui, bukan digandakan.
+  function sqlTamu(list) {
+    const q = v => "'" + String(v == null ? '' : v).replace(/'/g, "''") + "'";
+    return '-- Dibuat lewat undangan.html pada ' + new Date().toLocaleString('id-ID') + '\n' +
+      '-- Tempel ke Supabase > SQL Editor, lalu Run. Aman dijalankan ulang.\n' +
+      'insert into tamu (kode, nama, kursi, grup, wa) values\n' +
+      list.map(g => '  (' + [q(g.code), q(g.name), g.seats, q(g.group), q(g.wa)].join(', ') + ')').join(',\n') +
+      '\non conflict (lower(kode)) do update set\n' +
+      '  nama = excluded.nama, kursi = excluded.kursi,\n' +
+      '  grup = excluded.grup, wa = excluded.wa;\n';
   }
 
   function baseUrl() {
@@ -200,6 +280,16 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
       '<th>#</th><th>Nama</th><th>Kode</th><th>Link</th><th>Aksi</th>' +
       '</tr></thead><tbody>' + body + '</tbody></table></div>';
 
+    if (modeDb) {
+      $('gen').value =
+        '/* Dibuat lewat undangan.html pada ' + new Date().toLocaleString('id-ID') + ' */\n' +
+        '/* Mode basis data: seluruh daftar tamu ada di tabel `tamu` di Supabase.\n' +
+        '   Berkas ini sengaja KOSONG — tidak ada nama, tidak ada kode, jadi tidak\n' +
+        '   ada yang bisa dibaca dari situskamu.com/js/guests.js. */\n\n' +
+        'const GUESTS = [];\n';
+      $('sql').value = sqlTamu(rows);
+      return;
+    }
     const bawaWa = $('wapub').checked && !modeSheet;
     if (modeSheet) {
       $('gen').value =
@@ -262,6 +352,14 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
   $('go').onclick = render;
   $('wapub').onchange = render;
   $('modesimple').onchange = render;
+  $('sql-copy').onclick = () => { render(); copy($('sql').value, 'SQL tamu tersalin'); };
+  $('copysql').onclick = () => copy($('sql').value, 'SQL tamu tersalin');
+  $('reset-kode').onclick = () => {
+    if (!confirm('Semua kode dibuat ulang. Link yang sudah terlanjur dikirim ke tamu jadi tidak berlaku. Lanjut?')) return;
+    try { localStorage.removeItem(INGATAN); } catch (e) {}
+    render();
+    toast('Kode dibuat ulang');
+  };
   $('copygen').onclick = () => copy($('gen').value, modeSheet ? 'Blok kode tersalin' : 'Blok guests.js tersalin');
   $('sheet').onclick = () => {
     render();
