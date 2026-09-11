@@ -15,7 +15,7 @@ git push origin main
 
 ---
 
-## v2.0.0
+## v2.0.0 — commit `73c518e`
 
 Daftar tamu pindah ke basis data. Tidak ada lagi berkas di situs yang memuat
 nama siapa pun.
