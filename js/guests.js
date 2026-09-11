@@ -1,24 +1,18 @@
 /* =========================================================================
    DAFTAR KODE UNDANGAN (cadangan)
 
-   Undangan ini disetel mengambil nama tamu dari Google Sheet
-   (js/config.js -> guests.source: 'sheet'), jadi berkas ini SENGAJA hanya
-   berisi kode. Nama, jatah kursi, grup, dan nomor WA tinggal di tab TAMU pada
-   Sheet kamu, tidak ikut ter-upload, sehingga tidak bisa dibaca publik.
+   Undangan ini disetel mengambil daftar tamu dari basis data
+   (js/config.js -> guests.source: 'db'), jadi berkas ini SENGAJA KOSONG.
 
-   Gunanya berkas ini: kalau Google Sheet sedang tidak bisa dihubungi (sinyal
-   tamu jelek, kuota harian habis, skrip sedang diperbarui), tamu dengan kode
-   yang terdaftar di sini tetap bisa masuk — hanya saja sapaannya jadi umum,
-   tanpa nama.
+   Semua nama, jatah kursi, grup, dan nomor WA tinggal di tabel `tamu` di
+   Supabase. Tabelnya terkunci: browser tamu cuma boleh memanggil satu fungsi,
+   cek_tamu(kode), yang jawabannya satu baris saja dan tanpa nomor WA. Tidak
+   ada cara mengunduh daftarnya, dan tidak ada berkas di situs ini yang
+   memuatnya — termasuk berkas yang sedang kamu baca.
 
-   Isinya dibuat lewat undangan.html: tombol "Unduh js/guests.js".
-   Kalau ingin kembali ke cara lama (nama disimpan di berkas ini dan ikut
-   terbaca publik), ganti guests.source jadi 'lokal' di js/config.js.
+   Isi berkas ini kalau, dan hanya kalau, kamu memilih guests.source: 'lokal'
+   di js/config.js. Perlu diingat, mode itu membuat seluruh isi berkas ini bisa
+   dibaca siapa pun lewat situskamu.com/js/guests.js.
    ========================================================================= */
 
-const GUESTS = [
-  { code: 'and1' },
-  { code: 'rin2' },
-  { code: 'dew3' },
-  { code: 'kel4' }
-];
+const GUESTS = [];

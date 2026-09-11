@@ -357,7 +357,7 @@ const Simple = {
           '" target="_blank" rel="noopener">Kirim juga lewat WhatsApp</a></div>' +
       '</div>';
 
-    if (CONFIG.rsvp.endpoint) {
+    if (Rsvp.aktif()) {
       gambar('<p class="status">Sedang mengirim ke buku tamu...</p>');
       Rsvp.kirim(data).then(hasil => {
         gambar(hasil.ok

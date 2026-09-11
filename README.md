@@ -49,6 +49,7 @@ Cuma **satu file**. Semua teks, tanggal, lokasi, foto, dan rekening ada di sana:
 | `quote` | Ayat/kutipan pembuka |
 | `spots` | Tiga warung favorit (Kopi Ukut, Refo Coffee, Nasi Bebek) + obrolannya |
 | `secret` | Isi pojokan rahasia & kode hadiah yang ditunjukkan tamu di hari H |
+| `db` | URL & publishable key Supabase untuk tabel tamu/RSVP |
 | `access` | Kunci undangan: hanya link personal `?u=KODE` yang bisa membuka |
 | `view` | Jarak kamera (`zoom`) + ajakan memutar HP ke posisi mendatar |
 | `salam` | Kalimat pembuka & penutup di undangan versi sederhana |
@@ -84,30 +85,61 @@ Nama itu muncul di layar pembuka, di sapaan gerbang, dan otomatis mengisi form R
 
 ## Di mana daftar tamu disimpan
 
-Ada dua pilihan, diatur di `js/config.js`:
+Tiga pilihan, diatur di `js/config.js`:
 
 ```js
 guests: {
-  source: 'sheet',   // 'sheet' (bawaan) atau 'lokal'
-  endpoint: ''       // kosong = ikut rsvp.endpoint
+  source: 'db',      // 'db' (bawaan) | 'sheet' | 'lokal'
+  endpoint: ''       // khusus mode 'sheet'; kosong = ikut rsvp.endpoint
 }
 ```
 
-**`'sheet'` — nama tamu tidak ikut ter-publish (disarankan).** Daftar tinggal di tab
-`TAMU` pada Google Sheet kamu. Saat tamu membuka `?u=and1`, browsernya cuma bertanya
-*"siapa pemilik kode and1?"* dan server cuma menjawab satu tamu itu — nama, jatah kursi,
-dan grupnya. Daftar lengkapnya tidak pernah keluar dari Sheet, dan nomor WA tidak pernah
-dikirim ke browser sama sekali.
+### `'db'` — basis data, daftar tamu tidak ada di berkas mana pun (disarankan)
 
-`js/guests.js` tetap ada tapi **hanya berisi kode**, tanpa nama. Gunanya sebagai cadangan:
-kalau Sheet sedang tidak bisa dihubungi, tamu tetap bisa masuk — hanya sapaannya jadi umum.
-Jadi Sheet yang ngadat tidak pernah mengunci tamu di luar pintu.
+Semua tamu tinggal di tabel `tamu` di Supabase. Tabelnya **terkunci total**: Row Level
+Security menyala tanpa satu pun policy, dan hak akses peran publik dicabut. Browser tamu
+tidak bisa menyentuh tabelnya sama sekali.
 
-**`'lokal'` — cara lama.** Semua nama ada di `js/guests.js`. Praktis dan tanpa
-ketergantungan jaringan, tapi siapa pun bisa membuka `situskamu.com/js/guests.js` dan
-membaca seluruh daftar tamu.
+Yang boleh dipanggil dari browser cuma dua fungsi:
 
-### Mengisi tab TAMU
+| Fungsi | Yang dijawab |
+|---|---|
+| `cek_tamu(kode)` | **satu** baris tamu pemilik kode itu — kode, nama, jatah kursi, grup. Nomor WA tidak pernah ikut. Kode tak terdaftar dijawab kosong. |
+| `simpan_rsvp(...)` | menyimpan jawaban kehadiran satu tamu |
+
+Jadi pertanyaan yang bisa diajukan browser cuma *"siapa pemilik kode ini?"* — tidak ada
+bentuk pertanyaan *"sebutkan semua tamu"*. `js/guests.js` dikosongkan, dan memang tidak
+ada lagi berkas di situs yang memuat nama siapa pun.
+
+Kunci Supabase yang terpampang di `js/config.js` adalah **publishable key**, yang
+tugasnya memang terpampang. Yang menahan pintu bukan kuncinya, tapi aturan di server.
+Coba sendiri setelah skemanya dipasang:
+
+```bash
+curl "https://xxxx.supabase.co/rest/v1/tamu?select=*" -H "apikey: PUBLISHABLE_KEY"
+# -> permission denied for table tamu
+```
+
+**Kode undangan itu kata sandi.** Karena itu `undangan.html` sekarang membuat kode
+sepanjang 10 huruf (`bapa-5mg4m`): potongan nama supaya kamu bisa mengenalinya, lalu
+5 huruf acak. Server juga punya rem: kalau ada 120 tebakan gagal dalam 5 menit, semua
+kode tak dikenal langsung dijawab kosong sampai reda. Tamu asli tidak terpengaruh,
+karena kode yang benar tidak ikut dihitung.
+
+Bonus dari punya basis data: tercatat juga **siapa yang sudah membuka undangannya**
+(tabel `kunjungan`), jadi `admin.html` bisa menunjukkan tamu mana yang belum melihat
+sama sekali.
+
+Cara memasangnya ada di bawah, dan langkah lengkapnya di `DEPLOY.md`.
+
+### `'sheet'` — daftar tamu di Google Sheet
+
+Daftar tinggal di tab `TAMU` pada Google Sheet kamu, diakses lewat Apps Script. Idenya
+sama dengan mode `db` — browser cuma menanyakan satu kode — tapi jawabannya lebih lambat
+dan kena kuota harian Google. `js/guests.js` berisi kode saja, tanpa nama, sebagai
+cadangan kalau Sheet tidak bisa dihubungi.
+
+Cara mengisinya:
 
 1. Jalankan `initSheet()` sekali di Apps Script — tab `TAMU` otomatis dibuat dengan
    kolom `Kode | Nama | Kursi | Grup | WA`.
@@ -115,8 +147,52 @@ membaca seluruh daftar tamu.
 3. Tempel di tab `TAMU` mulai baris ke-2. Kolomnya langsung pas.
 4. Klik **Unduh js/guests.js** (isinya kode saja) dan unggah ulang situsnya.
 
-Halaman rekap `admin.html` otomatis menarik daftar tamu dari Sheet untuk tabel
-"belum menjawab", jadi tidak perlu daftar terpisah lagi.
+### `'lokal'` — cara lama
+
+Semua nama ada di `js/guests.js`. Praktis dan tanpa ketergantungan jaringan, tapi siapa
+pun bisa membuka `situskamu.com/js/guests.js` dan membaca seluruh daftar tamu. Cuma
+masuk akal kalau undangannya memang tidak dikunci.
+
+### Kalau servernya sedang mati
+
+Gangguan di hari H tidak bisa diulang, jadi bawaannya tamu tetap dipersilakan masuk —
+hanya sapaannya jadi umum, tanpa nama:
+
+```js
+access: { saatServerMati: 'buka' }   // 'tutup' kalau mau benar-benar ketat
+```
+
+Jalur ini cuma terbuka kalau server memang tidak bisa dihubungi, jadi penebak kode tidak
+bisa memanfaatkannya.
+
+---
+
+## Memasang basis data (sekali, ~5 menit)
+
+1. Buka proyek Supabase kamu &rsaquo; **SQL Editor** &rsaquo; **New query**.
+2. Tempel seluruh isi **`server/schema.sql`**.
+3. Ganti baris token panitia di bagian 7 dengan kalimat panjang buatanmu sendiri:
+   ```sql
+   values (1, crypt('GANTI-JADI-TOKEN-PANJANG-KAMU-SENDIRI', gen_salt('bf')))
+   ```
+   Token ini yang nanti diketik di `admin.html`. Yang tersimpan cuma hash-nya.
+4. Tekan **Run**. Aman dijalankan ulang kapan saja — data lama tidak terhapus.
+5. Di `js/config.js`, isi `db.url` & `db.key` (atau kosongkan supaya ikut `net`).
+6. Buka `undangan.html`, susun daftar tamu, klik **Salin SQL Tamu**, tempel ke SQL
+   Editor, **Run**.
+7. Klik **Salin Blok Ini** di panel `js/guests.js` (isinya jadi kosong), timpa berkasnya,
+   unggah ulang situsnya.
+
+Apa saja yang dibuat: tabel `tamu`, `rsvp`, `kunjungan`, `panitia`, `percobaan`; lima
+fungsi (`cek_tamu`, `simpan_rsvp`, `rekap_rsvp`, `daftar_tamu`, `statistik`); dan
+penguncian RLS untuk seluruh tabel. Semuanya berkomentar di `server/schema.sql`.
+
+### Melihat isinya
+
+- **`admin.html`** — rekap RSVP, statistik, dan daftar tamu yang belum menjawab
+  (lengkap dengan penanda "sudah buka undangan"). Cukup ketik token panitia.
+- **Supabase &rsaquo; Table Editor** — kalian sendiri masuk sebagai pemilik proyek, jadi
+  bisa melihat dan mengubah semuanya langsung dari sana.
 
 ---
 
@@ -452,13 +528,14 @@ undangan.html         alat panitia: bikin link personal per tamu
 admin.html            alat panitia: rekap RSVP dari Google Sheet
 preview.html          alat panitia: bikin kartu preview WhatsApp
 img/preview.png       gambar yang muncul saat link dibagikan
-server/apps-script.gs  kode yang ditempel ke Google Apps Script
+server/schema.sql      skema basis data — tempel sekali ke SQL Editor Supabase
+server/apps-script.gs  kode yang ditempel ke Google Apps Script (mode 'sheet')
 tools/render-lagu.js  ubah lagu chiptune jadi berkas WAV (opsional)
 css/style.css         tampilan undangan versi game
 css/simple.css        tampilan undangan versi sederhana
 css/tools.css         tampilan dua halaman alat panitia
 js/config.js          ← SEMUA DATA UNDANGAN ADA DI SINI
-js/guests.js          ← DAFTAR TAMU (dibuat lewat undangan.html)
+js/guests.js          daftar tamu cadangan — KOSONG di mode basis data
 js/utils.js           helper (pixel, hash, hitung mundur)
 js/font.js            font bitmap 3x5 untuk papan nama di dalam game
 js/sprites.js         sprite karakter (tamu, mempelai) dari ASCII art
@@ -468,6 +545,7 @@ js/audio.js           dua lagu chiptune + efek suara (Web Audio, tanpa file audi
 js/dialogue.js        kotak dialog ala RPG
 js/ui.js              panel besar & notifikasi
 js/content.js         isi panel (acara, galeri, kado, RSVP, kalender)
+js/db.js              sambungan ke basis data (cek tamu, simpan RSVP, rekap)
 js/net.js             realtime: tamu lain, emote, chat, penyaring kata
 js/game.js            loop game, kamera, input, misi, ending
 js/simple.js          penyusun halaman versi sederhana

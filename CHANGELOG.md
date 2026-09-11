@@ -15,6 +15,49 @@ git push origin main
 
 ---
 
+## v2.0.0
+
+Daftar tamu pindah ke basis data. Tidak ada lagi berkas di situs yang memuat
+nama siapa pun.
+
+**Perubahan besar.** `js/guests.js` sekarang kosong dan `guests.source` berubah
+jadi `'db'`. Undangan tidak akan mengenali tamu sebelum `server/schema.sql`
+dijalankan di Supabase dan daftar tamunya dimasukkan. Langkahnya ada di
+DEPLOY.md Tahap 2. Mode `'sheet'` dan `'lokal'` yang lama tetap jalan kalau
+setelannya dikembalikan.
+
+- **`server/schema.sql`** — skema lengkap: tabel `tamu`, `rsvp`, `kunjungan`,
+  `panitia`, `percobaan`. Seluruh tabel dikunci (RLS menyala tanpa policy, hak
+  akses peran publik dicabut), jadi browser tamu tidak bisa menyentuh tabelnya
+  sama sekali.
+- Yang boleh dipanggil dari browser tamu cuma dua fungsi: `cek_tamu(kode)` yang
+  menjawab satu baris saja dan tidak pernah menyertakan nomor WA, dan
+  `simpan_rsvp(...)`. Tidak ada bentuk pertanyaan "sebutkan semua tamu".
+- Tiga fungsi panitia (`rekap_rsvp`, `daftar_tamu`, `statistik`) dijaga token
+  yang disimpan sebagai hash bcrypt, bukan teks asli, dan tidak pernah ditulis
+  di berkas mana pun.
+- Rem penebak: 120 kode gagal dalam 5 menit membuat semua kode tak dikenal
+  dijawab kosong; 10 token salah dalam 15 menit mengunci pintu panitia. Kode
+  yang benar tidak ikut dihitung, jadi tamu asli tidak terkena.
+- Jumlah tamu di RSVP dipagari jatah kursi masing-masing, jadi kode orang lain
+  tidak bisa dipakai mendaftarkan serombongan orang.
+- **Kode undangan sekarang 10 huruf** (`bapa-5mg4m`) — potongan nama plus lima
+  huruf acak. Kode itu satu-satunya yang memisahkan tamu dari orang lewat, jadi
+  diperlakukan seperti kata sandi. Kode diingat per nama di browser kamu, jadi
+  membuka `undangan.html` lagi besok tidak mengubah link yang terlanjur dikirim.
+- `undangan.html` mengeluarkan **SQL siap tempel** ke Supabase, dan isi
+  `js/guests.js` versi kosong. Ada juga tombol "Buat Ulang Semua Kode".
+- `admin.html` membaca rekap langsung dari basis data dengan token panitia,
+  lengkap dengan penanda tamu mana yang **sudah membuka undangannya** (tabel
+  `kunjungan`).
+- Kalau server daftar tamu benar-benar tidak bisa dihubungi, tamu tetap
+  dipersilakan masuk dengan sapaan umum (`access.saatServerMati: 'buka'`).
+  Gangguan di hari H tidak bisa diulang; penebak kode tidak bisa memanfaatkan
+  jalur ini karena cuma terbuka saat server memang mati. Setel `'tutup'` kalau
+  mau ketat.
+- Gerbang Netlify menutup seluruh folder `server/` untuk semua orang, supaya
+  token yang tidak sengaja tersimpan di sana tidak ikut terbaca.
+
 ## v1.6.0 — commit `70e84c4`
 
 Versi sederhana jadi terasa seperti undangan pernikahan, plus lagu baru.

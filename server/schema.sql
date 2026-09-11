@@ -1,0 +1,439 @@
+-- =============================================================================
+--  SKEMA DATABASE UNDANGAN  —  Supabase / PostgreSQL
+--
+--  Tujuannya satu: daftar tamu tidak pernah bisa dibaca publik.
+--
+--  Caranya: semua tabel dikunci (Row Level Security menyala, tanpa satu pun
+--  policy, dan hak akses peran anon/authenticated dicabut). Browser tamu TIDAK
+--  bisa menyentuh tabel sama sekali. Yang boleh dipanggil hanya beberapa fungsi
+--  di bawah, dan tiap fungsi cuma mengembalikan sepotong data yang memang perlu:
+--
+--    cek_tamu(kode)     -> SATU baris tamu pemilik kode itu. Nomor WA tidak
+--                          pernah ikut. Kode yang tidak terdaftar dijawab kosong.
+--    simpan_rsvp(...)   -> menyimpan/memperbarui jawaban satu tamu.
+--    rekap_rsvp(token)  -> seluruh rekap, hanya untuk panitia yang punya token.
+--    daftar_tamu(token) -> seluruh daftar tamu (termasuk WA), hanya panitia.
+--
+--  Jadi walaupun kunci publik Supabase memang terpampang di js/config.js
+--  (begitu memang desainnya), yang bisa dilakukan pemegang kunci itu cuma
+--  "tanya satu kode" — bukan "unduh semua tamu".
+--
+--  JANGAN SIMPAN TOKEN ASLI DI BERKAS INI
+--  Berkas ini ikut ter-upload bersama situsnya. Ganti tokennya di kotak SQL
+--  Editor Supabase, bukan di sini, lalu biarkan berkas ini tetap memakai teks
+--  contoh. (Gerbang Netlify sudah menutup seluruh folder server/, tapi jangan
+--  bergantung pada satu lapis saja.)
+--
+--  CARA PAKAI
+--    1. Buka Supabase -> SQL Editor -> New query.
+--    2. Tempel SELURUH berkas ini, ganti baris TOKEN PANITIA di bawah, Run.
+--    3. Tempel daftar tamu (dibuat lewat undangan.html -> "Salin SQL Tamu").
+--    4. Di js/config.js pastikan guests.source = 'db' dan rsvp.provider = 'db'.
+--
+--  Aman dijalankan ulang: semuanya "if not exists" / "or replace", data lama
+--  tidak terhapus.
+-- =============================================================================
+
+create extension if not exists pgcrypto;
+
+-- =============================================================================
+--  1. TABEL
+-- =============================================================================
+
+-- Daftar undangan. Satu baris per kartu undangan (boleh atas nama keluarga).
+create table if not exists tamu (
+  id        uuid primary key default gen_random_uuid(),
+  kode      text not null,
+  nama      text not null,
+  kursi     smallint not null default 2 check (kursi between 0 and 20),
+  grup      text not null default '',
+  wa        text not null default '',   -- tidak pernah dikirim ke browser tamu
+  catatan   text not null default '',
+  dibuat    timestamptz not null default now()
+);
+-- Kode dibandingkan tanpa peduli besar-kecil huruf, jadi keunikannya juga.
+create unique index if not exists tamu_kode_unik on tamu (lower(kode));
+
+-- Jawaban kehadiran. Satu baris per tamu; jawaban baru menimpa yang lama dan
+-- menaikkan nomor revisi, biar ketahuan kalau ada yang berubah pikiran.
+create table if not exists rsvp (
+  id          uuid primary key default gen_random_uuid(),
+  tamu_id     uuid references tamu(id) on delete set null,
+  kode        text not null default '',
+  nama        text not null,
+  hadir       text not null check (hadir in ('Hadir', 'Masih ragu', 'Tidak bisa hadir')),
+  jumlah      smallint not null default 1 check (jumlah between 0 and 20),
+  pesan       text not null default '',
+  grup        text not null default '',
+  revisi      integer not null default 1,
+  dibuat      timestamptz not null default now(),
+  diperbarui  timestamptz not null default now()
+);
+-- Tamu berkode: satu baris per kode. Tamu tanpa kode: satu baris per nama.
+create unique index if not exists rsvp_kode_unik on rsvp (lower(kode)) where kode <> '';
+create unique index if not exists rsvp_nama_unik on rsvp (lower(nama)) where kode = '';
+
+-- Catatan siapa saja yang sudah membuka undangannya. Berguna buat mengingatkan
+-- tamu yang belum melihat sama sekali.
+create table if not exists kunjungan (
+  tamu_id   uuid primary key references tamu(id) on delete cascade,
+  pertama   timestamptz not null default now(),
+  terakhir  timestamptz not null default now(),
+  jumlah    integer not null default 1
+);
+
+-- Token panitia (disimpan sebagai hash bcrypt, bukan teks asli).
+create table if not exists panitia (
+  id          smallint primary key default 1 check (id = 1),
+  token_hash  text not null,
+  diperbarui  timestamptz not null default now()
+);
+
+-- Catatan percobaan yang gagal, dipakai untuk mengerem penebak kode.
+create table if not exists percobaan (
+  id     bigserial primary key,
+  jenis  text not null,
+  saat   timestamptz not null default now()
+);
+create index if not exists percobaan_saat on percobaan (jenis, saat desc);
+
+-- =============================================================================
+--  2. KUNCI SEMUA TABEL
+--     RLS menyala tanpa policy = tidak ada baris yang lolos untuk siapa pun
+--     selain pemilik tabel. Hak aksesnya sekalian dicabut, supaya kalau nanti
+--     ada yang tidak sengaja menambahkan policy, pintunya tetap tertutup.
+-- =============================================================================
+
+alter table tamu      enable row level security;
+alter table rsvp      enable row level security;
+alter table kunjungan enable row level security;
+alter table panitia   enable row level security;
+alter table percobaan enable row level security;
+
+revoke all on table tamu, rsvp, kunjungan, panitia, percobaan from anon, authenticated;
+revoke all on sequence percobaan_id_seq from anon, authenticated;
+
+-- =============================================================================
+--  3. FUNGSI BANTU (internal, tidak boleh dipanggil dari browser)
+-- =============================================================================
+
+-- Benar kalau token yang dikirim cocok dengan hash yang tersimpan.
+create or replace function panitia_ok(p_token text)
+returns boolean
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  h text;
+begin
+  select token_hash into h from panitia where id = 1;
+  -- Belum diisi = selalu tolak. Lebih baik panitia bingung daripada bocor.
+  if h is null or coalesce(p_token, '') = '' then
+    return false;
+  end if;
+  return h = crypt(p_token, h);
+end
+$$;
+
+-- Rem sederhana: berapa kali sebuah jenis percobaan gagal belakangan ini.
+create or replace function terlalu_sering(p_jenis text, p_batas integer, p_menit integer)
+returns boolean
+language sql
+security definer
+set search_path = public, pg_temp
+as $$
+  select count(*) >= p_batas
+  from percobaan
+  where jenis = p_jenis and saat > now() - make_interval(mins => p_menit);
+$$;
+
+create or replace function catat_gagal(p_jenis text)
+returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+begin
+  insert into percobaan (jenis) values (p_jenis);
+  -- Buang jejak lama biar tabelnya tidak tumbuh selamanya.
+  delete from percobaan where saat < now() - interval '1 day';
+end
+$$;
+
+revoke all on function panitia_ok(text)                      from public, anon, authenticated;
+revoke all on function terlalu_sering(text, integer, integer) from public, anon, authenticated;
+revoke all on function catat_gagal(text)                      from public, anon, authenticated;
+
+-- =============================================================================
+--  4. FUNGSI UNTUK BROWSER TAMU
+-- =============================================================================
+
+-- Menanyakan SATU kode undangan.
+--
+-- Yang keluar cuma kode, nama, jatah kursi, dan grup. Nomor WA sengaja tidak
+-- ikut: browser tamu tidak pernah punya alasan untuk tahu nomor tamu lain.
+-- Kode yang tidak terdaftar dijawab kosong, tanpa membedakan "salah ketik" dan
+-- "tidak diundang".
+--
+-- Penebak kode diladeni sampai batas tertentu saja: kalau dalam 5 menit sudah
+-- ada 120 percobaan gagal, semua kode tak dikenal langsung dijawab kosong.
+-- Tamu asli tidak terpengaruh, karena kode yang benar tidak ikut dihitung.
+create or replace function cek_tamu(p_kode text)
+returns table (kode text, nama text, kursi smallint, grup text)
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_kode text := lower(btrim(coalesce(p_kode, '')));
+  v_id   uuid;
+begin
+  if v_kode = '' or length(v_kode) > 64 then
+    return;
+  end if;
+
+  select t.id into v_id from tamu t where lower(t.kode) = v_kode;
+
+  if v_id is null then
+    if not terlalu_sering('kode', 120, 5) then
+      perform catat_gagal('kode');
+    end if;
+    return;
+  end if;
+
+  insert into kunjungan (tamu_id) values (v_id)
+  on conflict (tamu_id) do update
+    set terakhir = now(), jumlah = kunjungan.jumlah + 1;
+
+  return query
+    select t.kode, t.nama, t.kursi, t.grup
+    from tamu t
+    where t.id = v_id;
+end
+$$;
+
+-- Menyimpan atau memperbarui jawaban kehadiran satu tamu.
+--
+-- Kalau kodenya terdaftar, jumlah tamu dipagari jatah kursinya sendiri, jadi
+-- tidak ada yang bisa mendaftarkan 50 orang lewat kode orang lain.
+create or replace function simpan_rsvp(
+  p_kode   text,
+  p_nama   text,
+  p_hadir  text,
+  p_jumlah integer,
+  p_pesan  text
+)
+returns json
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_kode   text     := lower(btrim(coalesce(p_kode, '')));
+  v_nama   text     := btrim(coalesce(p_nama, ''));
+  v_hadir  text     := btrim(coalesce(p_hadir, ''));
+  v_pesan  text     := btrim(coalesce(p_pesan, ''));
+  v_tamu   tamu%rowtype;
+  v_jumlah smallint;
+  v_revisi integer;
+begin
+  if v_nama = '' then
+    return json_build_object('ok', false, 'error', 'nama kosong');
+  end if;
+  if v_hadir not in ('Hadir', 'Masih ragu', 'Tidak bisa hadir') then
+    return json_build_object('ok', false, 'error', 'pilihan kehadiran tidak dikenal');
+  end if;
+
+  v_nama  := left(v_nama, 60);
+  v_pesan := left(v_pesan, 400);
+
+  if v_kode <> '' then
+    select * into v_tamu from tamu t where lower(t.kode) = v_kode;
+  end if;
+
+  -- Jatah kursi jadi batas atas; tanpa kode, batasnya 10.
+  v_jumlah := greatest(0, least(coalesce(p_jumlah, 1),
+                                coalesce(v_tamu.kursi, 10)))::smallint;
+
+  if v_tamu.id is not null then
+    insert into rsvp (tamu_id, kode, nama, hadir, jumlah, pesan, grup)
+    values (v_tamu.id, v_tamu.kode, v_nama, v_hadir, v_jumlah, v_pesan, v_tamu.grup)
+    on conflict (lower(kode)) where kode <> ''
+    do update set
+      nama = excluded.nama, hadir = excluded.hadir, jumlah = excluded.jumlah,
+      pesan = excluded.pesan, grup = excluded.grup,
+      revisi = rsvp.revisi + 1, diperbarui = now()
+    returning revisi into v_revisi;
+  else
+    -- Tanpa kode yang terdaftar: dicatat atas nama saja. Berguna kalau undangan
+    -- disetel terbuka (access.private = false).
+    insert into rsvp (kode, nama, hadir, jumlah, pesan)
+    values ('', v_nama, v_hadir, v_jumlah, v_pesan)
+    on conflict (lower(nama)) where kode = ''
+    do update set
+      hadir = excluded.hadir, jumlah = excluded.jumlah, pesan = excluded.pesan,
+      revisi = rsvp.revisi + 1, diperbarui = now()
+    returning revisi into v_revisi;
+  end if;
+
+  return json_build_object('ok', true, 'revisi', v_revisi, 'jumlah', v_jumlah);
+end
+$$;
+
+-- =============================================================================
+--  5. FUNGSI UNTUK PANITIA (dikunci token)
+--
+--  Ketiganya menjawab dengan bungkus json { ok, ... } dan TIDAK pernah melempar
+--  error. Ini bukan soal selera: kalau fungsi melempar exception, seluruh
+--  pekerjaannya ikut dibatalkan Postgres — termasuk catatan "token salah" yang
+--  baru saja ditulis. Rem penebak token jadi tidak pernah menghitung apa pun.
+--  Dengan menjawab biasa, catatannya tersimpan dan remnya benar-benar bekerja.
+-- =============================================================================
+
+-- Token salah dijeda setengah detik dan dicatat. Sesudah 10 kali salah dalam 15
+-- menit, semua percobaan ditolak sampai jendelanya lewat.
+create or replace function tolak_panitia(p_token text)
+returns json
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+begin
+  if terlalu_sering('token', 10, 15) then
+    return json_build_object('ok', false, 'error',
+      'terlalu banyak percobaan, coba lagi 15 menit lagi');
+  end if;
+  if not panitia_ok(p_token) then
+    perform pg_sleep(0.5);
+    perform catat_gagal('token');
+    return json_build_object('ok', false, 'error', 'token panitia salah');
+  end if;
+  return null;   -- null = token benar, silakan lanjut
+end
+$$;
+
+revoke all on function tolak_panitia(text) from public, anon, authenticated;
+
+-- Rekap seluruh jawaban kehadiran.
+create or replace function rekap_rsvp(p_token text)
+returns json
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  tolak json := tolak_panitia(p_token);
+begin
+  if tolak is not null then return tolak; end if;
+
+  return json_build_object('ok', true, 'baris', coalesce((
+    select json_agg(json_build_object(
+      'kode', r.kode, 'nama', r.nama, 'grup', r.grup, 'hadir', r.hadir,
+      'jumlah', r.jumlah, 'pesan', r.pesan, 'revisi', r.revisi,
+      'dibuat', r.dibuat, 'diperbarui', r.diperbarui
+    ) order by r.diperbarui desc)
+    from rsvp r
+  ), '[]'::json));
+end
+$$;
+
+-- Daftar tamu lengkap, termasuk nomor WA dan status "sudah buka undangan".
+create or replace function daftar_tamu(p_token text)
+returns json
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  tolak json := tolak_panitia(p_token);
+begin
+  if tolak is not null then return tolak; end if;
+
+  return json_build_object('ok', true, 'baris', coalesce((
+    select json_agg(json_build_object(
+      'kode', t.kode, 'nama', t.nama, 'kursi', t.kursi, 'grup', t.grup,
+      'wa', t.wa,
+      'sudahBuka', (k.tamu_id is not null),
+      'terakhirBuka', k.terakhir,
+      'sudahRsvp', (r.id is not null)
+    ) order by t.nama)
+    from tamu t
+    left join kunjungan k on k.tamu_id = t.id
+    left join rsvp r      on r.tamu_id = t.id
+  ), '[]'::json));
+end
+$$;
+
+-- Angka ringkas buat dipajang di halaman panitia.
+create or replace function statistik(p_token text)
+returns json
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  tolak json := tolak_panitia(p_token);
+begin
+  if tolak is not null then return tolak; end if;
+
+  return json_build_object(
+    'ok',             true,
+    'tamu',           (select count(*) from tamu),
+    'sudahBuka',      (select count(*) from kunjungan),
+    'sudahJawab',     (select count(*) from rsvp),
+    'hadir',          (select count(*) from rsvp where hadir = 'Hadir'),
+    'ragu',           (select count(*) from rsvp where hadir = 'Masih ragu'),
+    'tidakHadir',     (select count(*) from rsvp where hadir = 'Tidak bisa hadir'),
+    'totalOrang',     (select coalesce(sum(jumlah), 0) from rsvp where hadir = 'Hadir'),
+    'kursiDisiapkan', (select coalesce(sum(kursi), 0) from tamu)
+  );
+end
+$$;
+
+-- =============================================================================
+--  6. SIAPA BOLEH MEMANGGIL APA
+-- =============================================================================
+
+revoke all on function cek_tamu(text)                                   from public;
+revoke all on function simpan_rsvp(text, text, text, integer, text)     from public;
+revoke all on function rekap_rsvp(text)                                 from public;
+revoke all on function daftar_tamu(text)                                from public;
+revoke all on function statistik(text)                                  from public;
+
+grant execute on function cek_tamu(text)                               to anon, authenticated;
+grant execute on function simpan_rsvp(text, text, text, integer, text) to anon, authenticated;
+-- Tiga di bawah ini tetap terbuka untuk anon, tapi isinya dijaga token.
+grant execute on function rekap_rsvp(text)                             to anon, authenticated;
+grant execute on function daftar_tamu(text)                            to anon, authenticated;
+grant execute on function statistik(text)                              to anon, authenticated;
+
+-- =============================================================================
+--  7. TOKEN PANITIA  —  GANTI BARIS DI BAWAH INI
+--
+--  Pakai kalimat panjang yang tidak bisa ditebak, minimal 20 huruf. Token ini
+--  yang nanti diketik di admin.html. Yang tersimpan cuma hash-nya, jadi kalau
+--  lupa tinggal jalankan ulang baris ini dengan token baru.
+--
+--  Sekali lagi: gantinya di kotak SQL Editor, JANGAN disimpan balik ke berkas
+--  ini lalu ikut ter-upload.
+-- =============================================================================
+
+insert into panitia (id, token_hash)
+values (1, crypt('GANTI-JADI-TOKEN-PANJANG-KAMU-SENDIRI', gen_salt('bf')))
+on conflict (id) do update
+  set token_hash = excluded.token_hash, diperbarui = now();
+
+-- =============================================================================
+--  8. CONTOH ISI (hapus/ganti dengan daftar tamu kamu sendiri)
+--
+--  Daftar aslinya dibuat lewat undangan.html -> tombol "Salin SQL Tamu",
+--  lalu tinggal ditempel di sini.
+-- =============================================================================
+
+-- insert into tamu (kode, nama, kursi, grup, wa) values
+--   ('and1-7k2p', 'Bapak Andi & Keluarga', 4, 'Keluarga', '6281200000001'),
+--   ('rin2-q94m', 'Rina',                  2, 'Teman',    '6281200000002')
+-- on conflict (lower(kode)) do update set
+--   nama = excluded.nama, kursi = excluded.kursi,
+--   grup = excluded.grup, wa = excluded.wa;
