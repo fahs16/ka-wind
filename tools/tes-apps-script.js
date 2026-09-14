@@ -99,7 +99,15 @@ cek('tamu baru ditolak', get({ action: 'gem-klaim', u: 'telat-1', titik: SEMUA }
 cek('pemegang lama tetap bisa', get({ action: 'gem-klaim', u: 'andi-7k2p', titik: SEMUA }).kode, k1.kode);
 cek('status tutup', get({ action: 'gem-status', u: 'telat-1' }).tutup, true);
 
-console.log('\n=== 12. 300 tamu -> kode semua unik ===');
+console.log('\n=== 12. RSVP lewat doPost masuk ke tab RSVP ===');
+const post = (obj) => JSON.parse(doPost({ parameter: {}, postData: { contents: JSON.stringify(obj) } }).getContent());
+cek('kiriman pertama', post({ kode: 'andi-7k2p', nama: 'Bapak Andi', hadir: 'Hadir', jumlah: 4, pesan: 'Barakallah' }).ok, true);
+cek('baris RSVP', sheet_().getLastRow(), 2);
+cek('kiriman ulang memperbarui', post({ kode: 'andi-7k2p', nama: 'Bapak Andi', hadir: 'Masih ragu', jumlah: 2, pesan: '' }).updated, true);
+cek('baris tetap 1', sheet_().getLastRow(), 2);
+cek('nama kosong ditolak', post({ kode: 'andi-7k2p', nama: '  ' }).error, 'nama kosong');
+
+console.log('\n=== 13. 300 tamu -> kode semua unik ===');
 GEM_BATAS = '2026-12-11T23:59:00+07:00';
 const kodes = {};
 let gagal = 0;

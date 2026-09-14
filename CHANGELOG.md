@@ -15,6 +15,13 @@ git push origin main
 
 ---
 
+## v2.2.2
+
+- `tools/tes-apps-script.js` sekarang ikut menguji `doPost` (kiriman RSVP):
+  tersimpan, kiriman ulang memperbarui baris yang sama alih-alih menambah baris
+  baru, dan nama kosong ditolak. Sebelumnya tiruannya belum menyediakan
+  `LockService`, jadi seluruh jalur RSVP tidak pernah tersentuh pengujian.
+
 ## v2.2.1 — commit `f3abfc6`
 
 Perbaikan jalur Google Sheet untuk hadiah pojokan rahasia.
