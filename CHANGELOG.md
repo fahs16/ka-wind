@@ -15,7 +15,7 @@ git push origin main
 
 ---
 
-## v2.2.2
+## v2.2.2 — commit `c4855de`
 
 - `tools/tes-apps-script.js` sekarang ikut menguji `doPost` (kiriman RSVP):
   tersimpan, kiriman ulang memperbarui baris yang sama alih-alih menambah baris
