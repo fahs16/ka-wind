@@ -15,7 +15,7 @@ git push origin main
 
 ---
 
-## v2.4.0
+## v2.4.0 — commit `cf6723f`
 
 Kunci gerbang Netlify tinggal disalin, tidak perlu diketik manual.
 
