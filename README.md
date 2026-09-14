@@ -48,7 +48,7 @@ Cuma **satu file**. Semua teks, tanggal, lokasi, foto, dan rekening ada di sana:
 | `rsvp` | Nomor WhatsApp penerima konfirmasi + deadline |
 | `quote` | Ayat/kutipan pembuka |
 | `spots` | Tiga warung favorit (Kopi Ukut, Refo Coffee, Nasi Bebek) + obrolannya |
-| `secret` | Isi pojokan rahasia & kode hadiah yang ditunjukkan tamu di hari H |
+| `secret` | Percakapan pojokan rahasia (kode & teks hadiahnya ada di server) |
 | `db` | URL & publishable key Supabase untuk tabel tamu/RSVP |
 | `access` | Kunci undangan: hanya link personal `?u=KODE` yang bisa membuka |
 | `view` | Jarak kamera (`zoom`) + ajakan memutar HP ke posisi mendatar |
@@ -507,6 +507,77 @@ tidak memakai berkas ini.
 
 ---
 
+## Hadiah pojokan rahasia (hidden gem)
+
+Pojokan rahasia di sudut peta baru mau bicara setelah tamu mengunjungi **seluruh 8 titik**.
+Sebelum itu pohonnya diam saja &mdash; dan yang penting, browser tamu belum menghubungi server
+sama sekali, jadi tidak ada apa pun yang bisa diintip lebih awal.
+
+Setelah lengkap, tamu menekan **Ambil hadiahnya** dan server mengeluarkan **satu kode unik
+khusus untuk dia**, misalnya `GEM-B8CMNH`. Kode itu ditunjukkan ke meja **pager ayu** di hari H.
+
+### Kenapa ini tidak bisa dibocorkan dari berkas js
+
+Dulu kodenya satu untuk semua dan ditulis di `js/config.js` &mdash; siapa pun yang membuka
+`situskamu.com/js/config.js` bisa membacanya lalu menyebarkannya. Sekarang tidak ada lagi
+kode di berkas mana pun:
+
+| Apa | Di mana |
+|---|---|
+| Percakapan pohonnya | `config.secret.lines` (memang boleh dibaca) |
+| **Kode hadiah** | dibuat server saat diklaim, unik per tamu |
+| **Teks hadiah** | `server/schema.sql` bagian 8, atau `GEM_HADIAH` di `server/apps-script.gs` |
+| **Batas waktu** | sama, `gem_batas` / `GEM_BATAS` |
+
+Server memeriksa empat hal sebelum mengeluarkan kode, dan semuanya di sisi server:
+
+1. kodenya tamu terdaftar di daftar undangan
+2. seluruh titik wajib sudah dikunjungi
+3. belum lewat batas waktu
+4. sudah lewat jeda minimal sejak undangan pertama kali dibuka (bawaan 3 menit), supaya
+   tidak bisa diselesaikan dalam hitungan detik oleh skrip
+
+Satu hal yang jujur perlu diketahui: progres "8 titik" itu sendiri disimpan di perangkat tamu,
+jadi orang yang niat masih bisa mengaku sudah keliling. Yang **tidak** bisa dipalsukan adalah
+identitasnya &mdash; kode hadiah selalu terikat ke satu nama di daftar undangan kalian, dan
+namanya langsung masuk catatan. Jadi kalaupun ada yang curang, dia curang atas namanya sendiri,
+dan kalian tahu persis siapa.
+
+### Batas waktu H-1
+
+Klaim ditutup sehari sebelum hari H. Tujuannya supaya tamu tidak sibuk berburu hadiah waktu
+acaranya berlangsung &mdash; yang keliling dari jauh-jauh hari dapat bagian eksklusifnya.
+
+Yang **sudah** terlanjur dapat kode tetap bisa membukanya kapan saja setelah batas lewat;
+yang ditutup cuma klaim baru.
+
+Atur batasnya di:
+
+```sql
+-- server/schema.sql bagian 8
+gem_batas = '2026-12-11 23:59:00+07'    -- H-1 untuk hari H 12 Desember
+```
+
+```js
+// server/apps-script.gs
+var GEM_BATAS = '2026-12-11T23:59:00+07:00';
+```
+
+### Meja pager ayu
+
+Buka `admin.html`, isi token, lalu gulir ke **Pojokan Rahasia**. Ada dua hal di sana:
+
+- **Daftar penemu** &mdash; siapa saja yang dapat, kapan, sudah ditukar atau belum. Bisa
+  diunduh sebagai CSV buat dibawa ke meja.
+- **Kotak penukaran** &mdash; ketik kode yang ditunjukkan tamu. Kalau asli, muncul namanya dan
+  kodenya langsung ditandai sudah ditukar, jadi **satu hadiah tidak bisa keluar dua kali**.
+  Huruf besar-kecil tidak masalah.
+
+Catatannya tersimpan di tabel `gem` (basis data) atau tab `GEM` (Google Sheet), jadi sinkron
+dengan data yang lain.
+
+---
+
 ## Kontrol
 
 | Aksi | Desktop | HP |
@@ -537,8 +608,8 @@ di `js/world.js` kalau mau lebih longgar.
   tanpa tanda `!`. Begitu satu ditemukan, penghitung ☕ muncul di HUD. Isinya diatur di
   `config.spots` — ganti jadi tempat nongkrong kalian sendiri.
 - **Pojokan rahasia** di sudut kiri-bawah peta, tertutup barisan pohon dengan satu celah sempit
-  dan jejak batu samar sebagai petunjuk. Tamu yang menemukannya dapat **kode hadiah** untuk
-  ditunjukkan ke mempelai di hari H. Atur teks dan kodenya di `config.secret`.
+  dan jejak batu samar sebagai petunjuk. Baru mau bicara setelah tamu mengunjungi
+  **seluruh 8 titik**, dan hadiahnya berupa **kode unik per tamu**. Selengkapnya di bawah.
 
 ---
 
@@ -569,6 +640,7 @@ js/dialogue.js        kotak dialog ala RPG
 js/ui.js              panel besar & notifikasi
 js/content.js         isi panel (acara, galeri, kado, RSVP, kalender)
 js/db.js              sambungan ke basis data (cek tamu, simpan RSVP, rekap)
+js/gem.js             hadiah pojokan rahasia (isinya TIDAK memuat hadiahnya)
 js/net.js             realtime: tamu lain, emote, chat, penyaring kata
 js/game.js            loop game, kamera, input, misi, ending
 js/simple.js          penyusun halaman versi sederhana

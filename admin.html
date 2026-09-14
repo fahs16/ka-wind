@@ -49,6 +49,30 @@
   </div>
   <div id="out"></div>
   <div id="belum"></div>
+
+  <div id="gem-panel" style="display:none">
+    <h2>Pojokan Rahasia &mdash; meja pager ayu</h2>
+    <p class="muted">Tamu menunjukkan kode <code>GEM-XXXXXX</code> dari layar HP-nya.
+    Ketik di sini untuk memastikan kodenya asli sekaligus menandainya sudah ditukar,
+    supaya satu hadiah tidak keluar dua kali.</p>
+    <div class="panel">
+      <div class="field">
+        <label>Kode hadiah</label>
+        <input id="gem-kode" placeholder="GEM-XXXXXX" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="field">
+        <label>Ditukar oleh (nama penjaga meja)</label>
+        <input id="gem-oleh" placeholder="mis. Mbak Sari" autocomplete="off">
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="gem-tukar">Tandai Sudah Ditukar</button>
+        <button class="btn" id="gem-muat">Muat Ulang Daftar</button>
+        <button class="btn" id="gem-csv">Unduh CSV</button>
+      </div>
+      <div id="gem-hasil"></div>
+    </div>
+    <div id="gem-out"></div>
+  </div>
 </div>
 
 <div id="toast"></div>
@@ -56,6 +80,7 @@
 <script src="js/config.js"></script>
 <script src="js/guests.js"></script>
 <script src="js/db.js"></script>
+<script src="js/gem.js"></script>
 <script>
 (function () {
   const $ = id => document.getElementById(id);
@@ -238,6 +263,8 @@
         $('searchbox').style.display = '';
         renderRows();
         toast('Data termuat: ' + data.rows.length + ' baris');
+        $('gem-panel').style.display = '';
+        gemMuat();
 
         const daftar = (tamu && tamu.ok && Array.isArray(tamu.baris))
           ? tamu.baris.map(t => ({
@@ -271,6 +298,8 @@
         $('searchbox').style.display = '';
         renderRows();
         toast('Data termuat: ' + j.rows.length + ' baris');
+        $('gem-panel').style.display = '';
+        gemMuat();
 
         // Daftar tamu: dari Google Sheet kalau tersedia, kalau tidak dari js/guests.js
         fetch(ep + (ep.indexOf('?') >= 0 ? '&' : '?') + 'action=tamu-all&token=' + encodeURIComponent(tok))
@@ -287,6 +316,126 @@
         'Cek lagi: URL sudah yang berakhiran <code>/exec</code>? ' +
         'Token sudah sama persis dengan ADMIN_TOKEN? Deployment sudah disetel "Anyone"?'));
   }
+
+  /* ---------------- pojokan rahasia (pager ayu) ---------------- */
+  let gemRows = [];
+
+  function gemPanggil(action, extra) {
+    const tok = $('tok').value.trim();
+    const db = sumberAktif() === 'db';
+    if (db) {
+      const nama = action === 'gem-list' ? 'daftar_gem' : 'tukar_gem';
+      const arg = action === 'gem-list'
+        ? { p_token: tok }
+        : { p_token: tok, p_kode: extra.gem, p_oleh: extra.oleh };
+      return Db.panggil(nama, arg, 15000);
+    }
+    const ep = $('ep').value.trim();
+    if (!ep) return Promise.reject(new Error('URL Apps Script belum diisi'));
+    const q = Object.keys(extra || {})
+      .map(k => '&' + k + '=' + encodeURIComponent(extra[k])).join('');
+    return fetch(ep + (ep.indexOf('?') >= 0 ? '&' : '?') +
+                 'action=' + action + '&token=' + encodeURIComponent(tok) + q)
+      .then(r => r.json());
+  }
+
+  function gemWaktu(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return isNaN(d) ? '' : d.toLocaleString('id-ID',
+      { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  }
+
+  function gemRender(j) {
+    if (!j || !j.ok) {
+      $('gem-out').innerHTML = '<div class="panel empty">Gagal memuat daftar hadiah.<br>' +
+        '<span class="muted">' + esc((j && j.error) || 'tidak dikenal') + '</span></div>';
+      return;
+    }
+    gemRows = j.baris || [];
+    const batas = j.batas ? gemWaktu(j.batas) : '-';
+    const status = j.tutup
+      ? '<span class="pill no">DITUTUP</span>'
+      : '<span class="pill ya">MASIH DIBUKA</span>';
+    const ditukar = gemRows.filter(g => g.ditukar).length;
+
+    if (!gemRows.length) {
+      $('gem-out').innerHTML = '<div class="panel empty">Belum ada yang menemukan pojokan rahasia. ' +
+        'Batas klaim: ' + esc(batas) + ' ' + status + '</div>';
+      return;
+    }
+    const body = gemRows.map(g =>
+      '<tr>' +
+        '<td class="nowrap"><code>' + esc(g.kode) + '</code></td>' +
+        '<td>' + esc(g.nama) + '<div class="muted" style="font-size:18px">' + esc(g.kodeTamu || '') + '</div></td>' +
+        '<td class="nowrap">' + esc(g.grup || '-') + '</td>' +
+        '<td class="nowrap">' + esc(gemWaktu(g.ditemukan)) + '</td>' +
+        '<td class="nowrap">' + (g.ditukar
+          ? '<span class="pill ya">SUDAH</span><div class="muted" style="font-size:17px">' +
+            esc(gemWaktu(g.ditukar)) + (g.ditukarOleh ? ' &middot; ' + esc(g.ditukarOleh) : '') + '</div>'
+          : '<span class="pill mb">BELUM</span>') + '</td>' +
+      '</tr>').join('');
+
+    $('gem-out').innerHTML =
+      '<h2>' + gemRows.length + ' tamu menemukan pojokan rahasia &mdash; ' +
+        ditukar + ' sudah ditukar</h2>' +
+      '<p class="muted">Batas klaim: ' + esc(batas) + ' ' + status + '</p>' +
+      '<div class="table-wrap"><table><thead><tr>' +
+      '<th>Kode Hadiah</th><th>Nama</th><th>Grup</th><th>Ditemukan</th><th>Ditukar</th>' +
+      '</tr></thead><tbody>' + body + '</tbody></table></div>';
+  }
+
+  function gemMuat() {
+    $('gem-out').innerHTML = '<div class="panel empty">Mengambil data...</div>';
+    gemPanggil('gem-list', {})
+      .then(gemRender)
+      .catch(e => gemRender({ ok: false, error: e.message || e }));
+  }
+
+  $('gem-muat').onclick = gemMuat;
+
+  $('gem-tukar').onclick = () => {
+    const kode = $('gem-kode').value.trim();
+    if (!kode) { toast('Kode hadiahnya belum diketik'); return; }
+    $('gem-hasil').innerHTML = '<p class="muted">Memeriksa...</p>';
+    gemPanggil('gem-tukar', { gem: kode, oleh: $('gem-oleh').value.trim() })
+      .then(j => {
+        if (j && j.ok) {
+          $('gem-hasil').innerHTML =
+            '<div class="note"><b>Asli.</b> Kode <code>' + esc(kode.toUpperCase()) + '</code> milik <b>' +
+            esc(j.nama) + '</b>' + (j.grup ? ' (' + esc(j.grup) + ')' : '') +
+            '. Sudah ditandai ditukar. Silakan serahkan hadiahnya.</div>';
+          $('gem-kode').value = '';
+          gemMuat();
+        } else if (j && j.error === 'sudah ditukar') {
+          $('gem-hasil').innerHTML =
+            '<div class="note danger"><b>Sudah pernah ditukar.</b> Kode ini milik ' +
+            esc(j.nama || '-') + ', ditukar ' + esc(gemWaktu(j.ditukar)) +
+            (j.ditukarOleh ? ' oleh ' + esc(j.ditukarOleh) : '') + '.</div>';
+        } else {
+          $('gem-hasil').innerHTML = '<div class="note danger"><b>Tidak dikenal.</b> ' +
+            esc((j && j.error) || 'kode tidak ada di daftar') + '</div>';
+        }
+      })
+      .catch(e => {
+        $('gem-hasil').innerHTML = '<div class="note danger">Gagal menghubungi server: ' +
+          esc(e.message || e) + '</div>';
+      });
+  };
+
+  $('gem-csv').onclick = () => {
+    if (!gemRows.length) { toast('Belum ada data'); return; }
+    const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const csv = ['kode_hadiah,kode_tamu,nama,grup,ditemukan,ditukar,ditukar_oleh'].concat(
+      gemRows.map(g => [g.kode, g.kodeTamu, g.nama, g.grup, g.ditemukan, g.ditukar, g.ditukarOleh].map(q).join(','))
+    ).join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'pojokan-rahasia.csv';
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 400);
+  };
 
   $('load').onclick = load;
   if ($('sumber')) $('sumber').onchange = () => { setelTampilan(); $('out').innerHTML = ''; };

@@ -156,6 +156,10 @@ Sheet ditanya dulu, basis data kalau kodenya tidak ketemu di sana.
    ```
    Kosongkan keduanya kalau sudah diisi di `net` — nanti ikut yang itu.
 
+   Sekalian atur hadiah pojokan rahasia di **bagian 8** `server/schema.sql`: batas waktunya
+   (isi H-1) dan teks hadiahnya. Keduanya sengaja di sana, bukan di `js/config.js`, supaya
+   tidak bisa dibaca dari situs.
+
    Lalu arahkan sumbernya ke basis data:
    ```js
    guests: { source: ['sheet', 'db'] },   // atau 'db' saja kalau Sheet mau dipensiunkan
@@ -269,6 +273,9 @@ Jangan lewati bagian ini. Urutannya:
 - [ ] Buka satu **link personal** (`?u=kode`) — nama tamu muncul di layar pembuka.
 - [ ] Kirim **RSVP percobaan**, cek masuk ke Sheet, lalu **hapus baris percobaannya**.
 - [ ] Buka `admin.html`, ketik token panitia, pastikan rekap & daftar tamu muncul.
+- [ ] Uji hadiah pojokan rahasia: buka satu link tamu, selesaikan 8 titik, ambil hadiahnya,
+      lalu tukar kodenya di `admin.html` &mdash; setelah itu hapus baris ujinya.
+- [ ] Pastikan `GEM_BATAS` (atau `gem_batas`) sudah diisi H-1, bukan hari H.
 - [ ] Jalankan `curl` cek pintu terkunci di Tahap 2 &mdash; harus *permission denied*.
 - [ ] Buka satu link dengan kode ngawur (`?u=ngasal123`) &mdash; harus cuma gambar polos.
 - [ ] Buka versi sederhana (`?u=kode&simple=1`), pastikan hurufnya besar, tombol peta jalan,

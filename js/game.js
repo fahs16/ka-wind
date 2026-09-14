@@ -758,42 +758,110 @@ const Actions = {
   refo() { Actions.warung('refo'); },
   bebek() { Actions.warung('bebek'); },
 
-  /* ---------- Pojokan rahasia ---------- */
+  /* ---------- Pojokan rahasia ----------
+     Pintunya baru terbuka setelah SELURUH titik misi dikunjungi. Kode hadiah
+     dan teks hadiahnya tidak ada di berkas mana pun di situs ini: keduanya
+     diminta ke server, dan server yang memutuskan boleh atau tidak. */
   rahasia() {
     const sc = CONFIG.secret || {};
+    const nama = sc.name || 'Pojokan Rahasia';
+    const kurang = QUEST_IDS.length - Game.visited.length;
+
+    // Belum keliling semua: pohonnya diam saja, tidak ada yang bocor.
+    if (kurang > 0) {
+      Dialogue.show([{
+        name: nama,
+        text: (sc.belumLengkap || 'Sepertinya kamu belum keliling semua titik.') +
+              '\n\n(Masih ada ' + kurang + ' titik lagi.)'
+      }]);
+      return;
+    }
+
     const baru = !Game.secretFound;
     Game.secretFound = true;
     Store.extra.set({ fav: Game.favorites, secret: true });
     Game.updateHud();
     if (baru) { Chip.fanfare(); Game.burst(50); }
 
-    const pages = (sc.lines || []).map(teks => ({ name: sc.name || 'Pojokan Rahasia', text: teks }));
+    const pages = (sc.lines || []).map(teks => ({ name: nama, text: teks }));
     Dialogue.show(pages, {
       actions: [{
-        label: 'Lihat hadiahnya', primary: true, fn: () => {
+        label: 'Ambil hadiahnya', primary: true, fn: () => {
           Dialogue.close();
-          Game.burst(30);
-          const c = CONFIG.couple;
-          const fav = Game.favorites.length, total = FAVORITE_IDS.length;
-          Modal.show('Kode Rahasia',
-            '<div class="card secret center">' +
-              '<div class="card-kicker">HANYA UNTUK YANG SAMPAI SINI</div>' +
-              '<div class="code-big">' + U.esc(sc.code || 'RAHASIA') + '</div>' +
-              '<div class="btn-row" style="justify-content:center">' +
-                '<button class="btn btn-small" data-copy="' + U.esc(sc.code || '') + '">Salin Kode</button>' +
-              '</div>' +
-            '</div>' +
-            '<p class="lead">' + U.esc(sc.reward || '') + '</p>' +
-            '<div class="card"><div class="card-kicker">TEMPAT FAVORIT KAMI</div>' +
-              '<div>' + (fav >= total
-                ? 'Lengkap, ' + fav + '/' + total + '. Kamu sudah mampir ke semua tempat nongkrong kami. Hormat kami.'
-                : 'Baru ' + fav + ' dari ' + total + ' yang kamu temukan. Masih ada warung kesukaan kami yang kelewat di peta.') +
-              '</div></div>' +
-            '<p class="hint-text">Kode ini tersimpan di HP kamu, jadi tinggal buka lagi halaman ini kalau lupa. ' +
-            U.esc(c.groom.nick + ' & ' + c.bride.nick) + '.</p>');
+          Actions.ambilGem();
         }
       }]
     });
+  },
+
+  // Meminta hadiah ke server, lalu menampilkan apa pun jawabannya.
+  ambilGem() {
+    const c = CONFIG.couple;
+    const simpan = Gem.tersimpan();
+
+    Modal.show('Hadiah Pojokan Rahasia',
+      '<div class="card center"><div class="card-kicker">SEBENTAR</div>' +
+      '<div>Sedang menyiapkan hadiahmu...</div></div>');
+
+    Gem.klaim(Game.visited.slice()).then(j => {
+      // Jaringan mati tapi kodenya pernah didapat: tampilkan salinan lokalnya.
+      if ((!j || !j.ok) && simpan && simpan.kode) j = simpan;
+      Modal.show('Hadiah Pojokan Rahasia', Actions.gemHtml(j, c));
+      if (j && j.ok && j.baru) Game.burst(40);
+    });
+  },
+
+  gemHtml(j, c) {
+    const fav = Game.favorites.length, total = FAVORITE_IDS.length;
+    const catatanFavorit =
+      '<div class="card"><div class="card-kicker">TEMPAT FAVORIT KAMI</div><div>' +
+      (fav >= total
+        ? 'Lengkap, ' + fav + '/' + total + '. Kamu sudah mampir ke semua tempat nongkrong kami. Hormat kami.'
+        : 'Baru ' + fav + ' dari ' + total + ' yang kamu temukan. Masih ada warung kesukaan kami yang kelewat di peta.') +
+      '</div></div>';
+
+    if (j && j.ok) {
+      const kode = String(j.kode || '');
+      const sudah = j.ditukar
+        ? '<p class="hint-text">Kode ini tercatat sudah ditukar. Kalau menurutmu belum, ' +
+          'bilang saja ke kami langsung.</p>'
+        : '';
+      return '<div class="card secret center">' +
+          '<div class="card-kicker">HANYA UNTUK YANG SAMPAI SINI</div>' +
+          '<div class="code-big">' + U.esc(kode) + '</div>' +
+          '<div class="btn-row" style="justify-content:center">' +
+            '<button class="btn btn-small" data-copy="' + U.esc(kode) + '">Salin Kode</button>' +
+          '</div>' +
+        '</div>' +
+        '<p class="lead">' + U.esc(j.hadiah || '') + '</p>' + sudah +
+        catatanFavorit +
+        '<p class="hint-text">Kode ini milikmu sendiri, tidak sama dengan punya tamu lain, ' +
+        'dan sudah tercatat atas namamu. Tersimpan juga di HP ini, jadi tinggal buka lagi ' +
+        'halaman ini kalau lupa. ' + U.esc(c.groom.nick + ' & ' + c.bride.nick) + '.</p>';
+    }
+
+    const galat = (j && j.error) || 'jaringan';
+    const pesan = {
+      'lewat-batas': 'Perburuan hadiahnya sudah ditutup sejak sehari sebelum hari H. ' +
+        'Maaf ya &mdash; tapi kamu tetap sampai di pojokan ini, dan itu yang kami ingat.',
+      'belum-lengkap': 'Ternyata masih ada titik yang belum kamu datangi. Keliling dulu, ' +
+        'nanti balik ke sini lagi.',
+      'terlalu-cepat': 'Sebentar ya, pohonnya belum selesai mengenali kamu. ' +
+        'Coba lagi beberapa menit lagi.',
+      'tanpa-kode': 'Undangan ini dibuka tanpa link personal, jadi kami belum tahu ' +
+        'hadiahnya buat siapa. Buka lewat link yang kami kirim ya.',
+      'belum-disetel': 'Hadiahnya belum kami siapkan. Simpan dulu penemuanmu ini, ' +
+        'nanti coba lagi.',
+      'jaringan': 'Sambungannya lagi tidak bersahabat. Penemuanmu sudah tercatat di HP ini &mdash; ' +
+        'coba buka lagi nanti pas sinyalnya enak.'
+    }[galat] || 'Hadiahnya belum bisa diambil sekarang. Coba lagi nanti ya.';
+
+    const tunggu = (galat === 'terlalu-cepat' && j && j.tunggu_detik)
+      ? '<p class="hint-text">Kira-kira ' + Math.ceil(j.tunggu_detik / 60) + ' menit lagi.</p>'
+      : '';
+
+    return '<div class="card center"><div class="card-kicker">BELUM BISA DIAMBIL</div>' +
+      '<div>' + pesan + '</div>' + tunggu + '</div>' + catatanFavorit;
   },
 
   jukebox() {

@@ -6,7 +6,11 @@
  *  2. Menu Extensions (Ekstensi) > Apps Script. Hapus isi Code.gs, tempel file ini.
  *  3. Ganti ADMIN_TOKEN di bawah dengan kata sandi panjang buatanmu sendiri.
  *  4. Jalankan fungsi initSheet() sekali (pilih di dropdown lalu Run) dan izinkan aksesnya.
- *     Ini membuat dua tab: RSVP (jawaban tamu) dan TAMU (daftar undangan).
+ *     Ini membuat empat tab: RSVP (jawaban tamu), TAMU (daftar undangan),
+ *     GEM (penemu pojokan rahasia), dan KUNJUNGAN (siapa yang sudah membuka).
+ *  3b. Kalau memakai hadiah pojokan rahasia, atur GEM_BATAS dan GEM_HADIAH
+ *     di bawah. Keduanya sengaja di sini, bukan di js/config.js, supaya isinya
+ *     tidak bisa dibaca dari situs.
  *     Isi tab TAMU lewat tombol "Salin untuk Google Sheet" di undangan.html.
  *  5. Deploy > New deployment > pilih tipe "Web app".
  *       - Execute as        : Me
@@ -22,10 +26,29 @@
 
 var SHEET_NAME  = 'RSVP';
 var SHEET_TAMU  = 'TAMU';
+var SHEET_GEM   = 'GEM';
+var SHEET_BUKA  = 'KUNJUNGAN';
 var ADMIN_TOKEN = 'ganti-dengan-kata-sandi-panjang-punyamu';
+
+/* ---------------- HADIAH POJOKAN RAHASIA ("hidden gem") ----------------
+   Teks hadiah dan batas waktunya tinggal DI SINI, bukan di js/config.js,
+   karena berkas di situs bisa dibaca siapa pun. Yang ada di situs cuma
+   percakapannya; isi hadiahnya baru dikirim setelah syaratnya lolos.
+
+   GEM_BATAS diisi H-1: tamu yang baru sadar di hari H tidak perlu repot
+   berburu, dan yang keliling dari jauh-jauh hari dapat bagian eksklusifnya.
+   Formatnya 'YYYY-MM-DDTHH:mm:ss+07:00' (WIB +07, WITA +08, WIT +09).       */
+var GEM_BATAS  = '2026-12-11T23:59:00+07:00';
+var GEM_HADIAH = 'Tunjukkan kode ini ke meja pager ayu waktu kamu datang. ' +
+                 'Ada satu bingkisan kecil yang kami siapkan khusus buat tamu ' +
+                 'yang main sampai habis, dan kami bakal tahu persis kamu siapa.';
+var GEM_TITIK  = ['gate', 'akad', 'resepsi', 'galeri', 'cerita', 'couple', 'kado', 'rsvp'];
+var GEM_JEDA_DETIK = 180;   // jeda minimal sejak tamu pertama kali membuka undangan
 
 var HEADERS = ['Waktu', 'Kode', 'Nama', 'Grup', 'Kehadiran', 'Jumlah', 'Ucapan', 'Revisi'];
 var HEADERS_TAMU = ['Kode', 'Nama', 'Kursi', 'Grup', 'WA'];
+var HEADERS_GEM = ['Kode Hadiah', 'Kode Tamu', 'Nama', 'Grup', 'Ditemukan', 'Ditukar', 'Oleh'];
+var HEADERS_BUKA = ['Kode Tamu', 'Nama', 'Pertama Buka', 'Terakhir Buka', 'Jumlah'];
 
 /* ------------------------------------------------------------------ utils */
 function json_(obj) {
@@ -75,6 +98,96 @@ function bacaTamu_() {
   return out;
 }
 
+function sheetGem_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(SHEET_GEM);
+  if (!sh) {
+    sh = ss.insertSheet(SHEET_GEM);
+    sh.appendRow(HEADERS_GEM);
+  }
+  return sh;
+}
+
+function bacaGem_() {
+  var sh = sheetGem_();
+  var last = sh.getLastRow();
+  if (last < 2) return [];
+  var data = sh.getRange(2, 1, last - 1, HEADERS_GEM.length).getValues();
+  var out = [];
+  for (var i = 0; i < data.length; i++) {
+    var kode = str_(data[i][0]);
+    if (!kode) continue;
+    out.push({
+      baris: i + 2,
+      kode: kode,
+      kodeTamu: str_(data[i][1]),
+      nama: str_(data[i][2]),
+      grup: str_(data[i][3]),
+      ditemukan: data[i][4] ? new Date(data[i][4]).toISOString() : '',
+      ditukar: data[i][5] ? new Date(data[i][5]).toISOString() : '',
+      ditukarOleh: str_(data[i][6])
+    });
+  }
+  return out;
+}
+
+/* ------------------------------------------------------- catatan kunjungan
+   Siapa saja yang sudah membuka undangannya. Dua gunanya: kalian tahu tamu
+   mana yang belum melihat sama sekali, dan hadiah pojokan rahasia punya
+   patokan "sudah berapa lama tamu ini keliling". */
+function sheetBuka_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(SHEET_BUKA);
+  if (!sh) {
+    sh = ss.insertSheet(SHEET_BUKA);
+    sh.appendRow(HEADERS_BUKA);
+  }
+  return sh;
+}
+
+function barisBuka_(kode) {
+  var sh = sheetBuka_();
+  var last = sh.getLastRow();
+  if (last < 2) return null;
+  var data = sh.getRange(2, 1, last - 1, HEADERS_BUKA.length).getValues();
+  for (var i = 0; i < data.length; i++) {
+    if (str_(data[i][0]).toLowerCase() === String(kode).toLowerCase()) {
+      return { baris: i + 2, pertama: data[i][2] ? new Date(data[i][2]) : null,
+               jumlah: Number(data[i][4]) || 0 };
+    }
+  }
+  return null;
+}
+
+function catatBuka_(kode, nama) {
+  var sh = sheetBuka_();
+  var ada = barisBuka_(kode);
+  var kini = new Date();
+  if (ada) {
+    sh.getRange(ada.baris, 4).setValue(kini);
+    sh.getRange(ada.baris, 5).setValue(ada.jumlah + 1);
+  } else {
+    sh.appendRow([kode, nama, kini, kini, 1]);
+  }
+}
+
+function bukaPertama_(kode) {
+  var ada = barisBuka_(kode);
+  return ada ? ada.pertama : null;
+}
+
+// Kode hadiah unik. Huruf yang gampang salah baca (0 O 1 I L) sengaja dibuang,
+// karena kode ini nanti dibacakan ke pager ayu dari layar HP.
+function kodeGem_(dipakai) {
+  var HURUF = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  for (var coba = 0; coba < 40; coba++) {
+    var k = 'GEM-';
+    for (var i = 0; i < 6; i++) k += HURUF.charAt(Math.floor(Math.random() * HURUF.length));
+    if (dipakai.indexOf(k) < 0) return k;
+  }
+  return '';
+}
+
 function initSheet() {
   var sh = sheet_();
   if (sh.getLastRow() === 0) sh.appendRow(HEADERS);
@@ -88,7 +201,19 @@ function initSheet() {
   st.setFrozenRows(1);
   st.autoResizeColumns(1, HEADERS_TAMU.length);
 
-  return 'Sheet RSVP dan TAMU siap dipakai.';
+  var sg = sheetGem_();
+  if (sg.getLastRow() === 0) sg.appendRow(HEADERS_GEM);
+  sg.getRange(1, 1, 1, HEADERS_GEM.length).setFontWeight('bold').setBackground('#efe0c2');
+  sg.setFrozenRows(1);
+  sg.autoResizeColumns(1, HEADERS_GEM.length);
+
+  var sb = sheetBuka_();
+  if (sb.getLastRow() === 0) sb.appendRow(HEADERS_BUKA);
+  sb.getRange(1, 1, 1, HEADERS_BUKA.length).setFontWeight('bold').setBackground('#dfe8d0');
+  sb.setFrozenRows(1);
+  sb.autoResizeColumns(1, HEADERS_BUKA.length);
+
+  return 'Sheet RSVP, TAMU, GEM, dan KUNJUNGAN siap dipakai.';
 }
 
 function str_(v) { return v === null || v === undefined ? '' : String(v).trim(); }
@@ -162,6 +287,7 @@ function doGet(e) {
     var semua = bacaTamu_();
     for (var i = 0; i < semua.length; i++) {
       if (semua[i].kode.toLowerCase() === kode) {
+        catatBuka_(semua[i].kode, semua[i].nama);
         return json_({
           ok: true,
           tamu: {
@@ -174,6 +300,109 @@ function doGet(e) {
       }
     }
     return json_({ ok: false, error: 'tidak terdaftar' });
+  }
+
+  /* ---------------- HADIAH POJOKAN RAHASIA ----------------
+     Syaratnya diperiksa DI SINI, bukan di browser: kodenya tamu terdaftar,
+     seluruh titik wajib sudah dikunjungi, belum lewat batas waktu, dan sudah
+     lewat jeda minimal sejak undangan pertama kali dibuka.
+
+     Kode hadiahnya dibuat di sini dan unik per tamu, jadi tidak ada satu kode
+     bersama yang bisa dibocorkan dari berkas js lalu dipakai ramai-ramai. */
+  if (action === 'gem-status' || action === 'gem-klaim') {
+    var kodeTamu = str_(p.u || p.kode).toLowerCase();
+    var batas = GEM_BATAS ? new Date(GEM_BATAS) : null;
+    var tutup = !!(batas && new Date() > batas);
+
+    var tamu = null, semuaTamu = bacaTamu_();
+    for (var t = 0; t < semuaTamu.length; t++) {
+      if (semuaTamu[t].kode.toLowerCase() === kodeTamu) { tamu = semuaTamu[t]; break; }
+    }
+
+    var daftarGem = bacaGem_(), punya = null;
+    if (tamu) {
+      for (var g = 0; g < daftarGem.length; g++) {
+        if (daftarGem[g].kodeTamu.toLowerCase() === tamu.kode.toLowerCase()) { punya = daftarGem[g]; break; }
+      }
+    }
+
+    if (action === 'gem-status') {
+      return json_({
+        ok: true,
+        batas: batas ? batas.toISOString() : null,
+        tutup: tutup,
+        wajib: GEM_TITIK.length,
+        punya: !!punya,
+        kode: punya ? punya.kode : null,
+        hadiah: punya ? GEM_HADIAH : null,
+        ditukar: punya ? (punya.ditukar || null) : null
+      });
+    }
+
+    // ---- klaim ----
+    if (!tamu) return json_({ ok: false, error: 'tanpa-kode' });
+
+    // Sudah pernah klaim: kembalikan kode yang sama, apa pun keadaannya.
+    if (punya) {
+      return json_({ ok: true, baru: false, kode: punya.kode, hadiah: GEM_HADIAH,
+                     ditemukan: punya.ditemukan, ditukar: punya.ditukar || null });
+    }
+    if (tutup) return json_({ ok: false, error: 'lewat-batas', batas: batas.toISOString() });
+
+    var titik = str_(p.titik).toLowerCase().split(',');
+    var kurang = 0;
+    for (var w = 0; w < GEM_TITIK.length; w++) {
+      if (titik.indexOf(GEM_TITIK[w]) < 0) kurang++;
+    }
+    if (kurang > 0) return json_({ ok: false, error: 'belum-lengkap', kurang: kurang });
+
+    // Jeda minimal sejak tamu pertama kali membuka undangan. Baris RSVP belum
+    // tentu ada, jadi patokannya baris kunjungan di tab GEM sendiri: kalau
+    // belum pernah tercatat, catat sekarang dan minta tamu kembali sebentar lagi.
+    var pertama = bukaPertama_(tamu.kode);
+    if (!pertama) return json_({ ok: false, error: 'terlalu-cepat', tunggu_detik: GEM_JEDA_DETIK });
+    var lewat = (new Date().getTime() - pertama.getTime()) / 1000;
+    if (lewat < GEM_JEDA_DETIK) {
+      return json_({ ok: false, error: 'terlalu-cepat',
+                     tunggu_detik: Math.ceil(GEM_JEDA_DETIK - lewat) });
+    }
+
+    var dipakai = [];
+    for (var d = 0; d < daftarGem.length; d++) dipakai.push(daftarGem[d].kode);
+    var kodeBaru = kodeGem_(dipakai);
+    if (!kodeBaru) return json_({ ok: false, error: 'gagal-buat-kode' });
+
+    var saat = new Date();
+    sheetGem_().appendRow([kodeBaru, tamu.kode, tamu.nama, tamu.grup, saat, '', '']);
+    return json_({ ok: true, baru: true, kode: kodeBaru, hadiah: GEM_HADIAH,
+                   ditemukan: saat.toISOString(), ditukar: null });
+  }
+
+  if (action === 'gem-list') {
+    if (p.token !== ADMIN_TOKEN) return json_({ ok: false, error: 'token salah' });
+    var bt = GEM_BATAS ? new Date(GEM_BATAS) : null;
+    return json_({ ok: true, batas: bt ? bt.toISOString() : null,
+                   tutup: !!(bt && new Date() > bt), baris: bacaGem_() });
+  }
+
+  if (action === 'gem-tukar') {
+    if (p.token !== ADMIN_TOKEN) return json_({ ok: false, error: 'token salah' });
+    var cari = str_(p.gem).toUpperCase();
+    var semuaGem = bacaGem_();
+    for (var x = 0; x < semuaGem.length; x++) {
+      if (semuaGem[x].kode.toUpperCase() !== cari) continue;
+      if (semuaGem[x].ditukar) {
+        return json_({ ok: false, error: 'sudah ditukar', nama: semuaGem[x].nama,
+                       ditukar: semuaGem[x].ditukar, ditukarOleh: semuaGem[x].ditukarOleh });
+      }
+      var kini = new Date();
+      var sg = sheetGem_();
+      sg.getRange(semuaGem[x].baris, 6).setValue(kini);
+      sg.getRange(semuaGem[x].baris, 7).setValue(str_(p.oleh).slice(0, 40));
+      return json_({ ok: true, nama: semuaGem[x].nama, grup: semuaGem[x].grup,
+                     ditukar: kini.toISOString() });
+    }
+    return json_({ ok: false, error: 'kode hadiah tidak dikenal' });
   }
 
   // Daftar lengkap, khusus halaman rekap panitia.

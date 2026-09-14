@@ -82,6 +82,35 @@ create table if not exists kunjungan (
   jumlah    integer not null default 1
 );
 
+-- Pengaturan hadiah pojokan rahasia ("hidden gem").
+--
+-- Teks hadiah dan batas waktunya sengaja tinggal DI SINI, bukan di js/config.js,
+-- karena berkas di situs bisa dibaca siapa pun. Yang ada di situs cuma
+-- percakapannya; isi hadiahnya baru dikirim server setelah syaratnya lolos.
+create table if not exists pengaturan (
+  id              smallint primary key default 1 check (id = 1),
+  gem_batas       timestamptz,                 -- klaim ditutup setelah waktu ini
+  gem_hadiah      text not null default '',    -- teks hadiah, tidak ada di berkas situs
+  gem_titik       text[] not null default '{}',-- titik yang wajib dikunjungi dulu
+  gem_jeda_detik  integer not null default 180,-- jeda minimal sejak undangan dibuka
+  diperbarui      timestamptz not null default now()
+);
+
+-- Tamu yang berhasil menemukan pojokan rahasia. Satu tamu satu baris, dengan
+-- satu kode unik yang ditukarkan ke pager ayu di hari H.
+create table if not exists gem (
+  id            uuid primary key default gen_random_uuid(),
+  tamu_id       uuid not null references tamu(id) on delete cascade,
+  kode          text not null,
+  nama          text not null default '',
+  grup          text not null default '',
+  ditemukan     timestamptz not null default now(),
+  ditukar       timestamptz,                   -- null = belum ditukar
+  ditukar_oleh  text not null default ''
+);
+create unique index if not exists gem_tamu_unik on gem (tamu_id);
+create unique index if not exists gem_kode_unik on gem (upper(kode));
+
 -- Token panitia (disimpan sebagai hash bcrypt, bukan teks asli).
 create table if not exists panitia (
   id          smallint primary key default 1 check (id = 1),
@@ -104,13 +133,16 @@ create index if not exists percobaan_saat on percobaan (jenis, saat desc);
 --     ada yang tidak sengaja menambahkan policy, pintunya tetap tertutup.
 -- =============================================================================
 
-alter table tamu      enable row level security;
-alter table rsvp      enable row level security;
-alter table kunjungan enable row level security;
-alter table panitia   enable row level security;
-alter table percobaan enable row level security;
+alter table tamu       enable row level security;
+alter table rsvp       enable row level security;
+alter table kunjungan  enable row level security;
+alter table panitia    enable row level security;
+alter table percobaan  enable row level security;
+alter table pengaturan enable row level security;
+alter table gem        enable row level security;
 
-revoke all on table tamu, rsvp, kunjungan, panitia, percobaan from anon, authenticated;
+revoke all on table tamu, rsvp, kunjungan, panitia, percobaan, pengaturan, gem
+  from anon, authenticated;
 revoke all on sequence percobaan_id_seq from anon, authenticated;
 
 -- =============================================================================
@@ -281,6 +313,152 @@ begin
 end
 $$;
 
+-- Mengklaim hadiah pojokan rahasia.
+--
+-- Tiga syarat, semuanya diperiksa DI SINI, bukan di browser:
+--   1. kodenya tamu terdaftar
+--   2. seluruh titik wajib sudah dikunjungi
+--   3. belum lewat batas waktu (H-1), dan sudah lewat jeda minimal sejak
+--      undangan pertama kali dibuka — supaya tidak bisa diselesaikan dalam
+--      hitungan detik oleh skrip
+--
+-- Kode hadiahnya dibuat di sini, unik per tamu, dan baru ada setelah syaratnya
+-- lolos. Jadi tidak ada satu kode bersama yang bisa dibocorkan dari berkas js
+-- lalu dipakai ramai-ramai: setiap orang punya kodenya sendiri, dan yang
+-- memegang kode selalu tercatat namanya.
+--
+-- Aman dipanggil berkali-kali: tamu yang sudah punya kode menerima kode yang
+-- sama, bukan kode baru.
+create or replace function klaim_gem(p_kode text, p_titik text[])
+returns json
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_kode    text := lower(btrim(coalesce(p_kode, '')));
+  v_tamu    tamu%rowtype;
+  v_set     pengaturan%rowtype;
+  v_ada     gem%rowtype;
+  v_buka    timestamptz;
+  v_kurang  text[];
+  v_baru    text;
+  i         integer;
+begin
+  select * into v_set from pengaturan where id = 1;
+  if v_set.id is null then
+    return json_build_object('ok', false, 'error', 'belum-disetel');
+  end if;
+
+  if v_kode = '' then
+    return json_build_object('ok', false, 'error', 'tanpa-kode');
+  end if;
+  select * into v_tamu from tamu t where lower(t.kode) = v_kode;
+  if v_tamu.id is null then
+    if not terlalu_sering('gem', 60, 5) then perform catat_gagal('gem'); end if;
+    return json_build_object('ok', false, 'error', 'tanpa-kode');
+  end if;
+
+  -- Sudah pernah klaim: kembalikan kode yang sama, apa pun keadaannya.
+  select * into v_ada from gem g where g.tamu_id = v_tamu.id;
+  if v_ada.id is not null then
+    return json_build_object(
+      'ok', true, 'baru', false,
+      'kode', v_ada.kode, 'hadiah', v_set.gem_hadiah,
+      'ditemukan', v_ada.ditemukan, 'ditukar', v_ada.ditukar);
+  end if;
+
+  -- Batas waktu. Dicek sebelum syarat lain supaya pesannya jelas.
+  if v_set.gem_batas is not null and now() > v_set.gem_batas then
+    return json_build_object('ok', false, 'error', 'lewat-batas', 'batas', v_set.gem_batas);
+  end if;
+
+  -- Titik yang wajib dikunjungi.
+  select array_agg(w) into v_kurang
+  from unnest(v_set.gem_titik) w
+  where w <> all (coalesce(p_titik, '{}'::text[]));
+  if v_kurang is not null and array_length(v_kurang, 1) > 0 then
+    return json_build_object('ok', false, 'error', 'belum-lengkap',
+      'kurang', array_length(v_kurang, 1));
+  end if;
+
+  -- Jeda minimal sejak undangan pertama kali dibuka.
+  select k.pertama into v_buka from kunjungan k where k.tamu_id = v_tamu.id;
+  if v_buka is null then
+    v_buka := now();
+    insert into kunjungan (tamu_id) values (v_tamu.id) on conflict do nothing;
+  end if;
+  if now() - v_buka < make_interval(secs => v_set.gem_jeda_detik) then
+    return json_build_object('ok', false, 'error', 'terlalu-cepat',
+      'tunggu_detik', ceil(extract(epoch from
+        (v_buka + make_interval(secs => v_set.gem_jeda_detik)) - now())));
+  end if;
+
+  -- Kode unik. Huruf yang gampang salah baca (0 O 1 I L) sengaja dibuang,
+  -- karena kode ini nanti dibacakan ke pager ayu dari layar HP.
+  for i in 1..20 loop
+    -- upper() harus jalan DULU: base64 punya huruf kecil 'o' dan 'i' yang kalau
+    -- dibesarkan belakangan malah lolos jadi O dan I.
+    v_baru := 'GEM-' || substr(translate(upper(encode(gen_random_bytes(9), 'base64')),
+                                         '0O1IL+/=', 'GHJKMPQR'), 1, 6);
+    begin
+      insert into gem (tamu_id, kode, nama, grup)
+      values (v_tamu.id, v_baru, v_tamu.nama, v_tamu.grup)
+      returning * into v_ada;
+      exit;
+    exception when unique_violation then
+      -- tabrakan kode: coba lagi. Tabrakan tamu: berarti barusan diklaim dari
+      -- tab lain, ambil saja yang sudah ada.
+      select * into v_ada from gem g where g.tamu_id = v_tamu.id;
+      if v_ada.id is not null then exit; end if;
+      v_ada := null;
+    end;
+  end loop;
+
+  if v_ada.id is null then
+    return json_build_object('ok', false, 'error', 'gagal-buat-kode');
+  end if;
+
+  return json_build_object(
+    'ok', true, 'baru', true,
+    'kode', v_ada.kode, 'hadiah', v_set.gem_hadiah,
+    'ditemukan', v_ada.ditemukan, 'ditukar', null);
+end
+$$;
+
+-- Keadaan hadiah untuk satu tamu, tanpa mengklaim apa pun. Dipakai browser
+-- untuk tahu apakah pintunya masih terbuka, dan sisa waktunya berapa.
+create or replace function status_gem(p_kode text)
+returns json
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_tamu tamu%rowtype;
+  v_set  pengaturan%rowtype;
+  v_ada  gem%rowtype;
+begin
+  select * into v_set from pengaturan where id = 1;
+  if v_set.id is null then return json_build_object('ok', false, 'error', 'belum-disetel'); end if;
+
+  select * into v_tamu from tamu t where lower(t.kode) = lower(btrim(coalesce(p_kode, '')));
+  if v_tamu.id is not null then
+    select * into v_ada from gem g where g.tamu_id = v_tamu.id;
+  end if;
+
+  return json_build_object(
+    'ok', true,
+    'batas', v_set.gem_batas,
+    'tutup', (v_set.gem_batas is not null and now() > v_set.gem_batas),
+    'wajib', array_length(v_set.gem_titik, 1),
+    'punya', (v_ada.id is not null),
+    'kode', v_ada.kode,
+    'hadiah', case when v_ada.id is not null then v_set.gem_hadiah else null end,
+    'ditukar', v_ada.ditukar);
+end
+$$;
+
 -- =============================================================================
 --  5. FUNGSI UNTUK PANITIA (dikunci token)
 --
@@ -391,6 +569,67 @@ begin
 end
 $$;
 
+-- Daftar tamu yang berhasil menemukan pojokan rahasia, buat pager ayu.
+create or replace function daftar_gem(p_token text)
+returns json
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  tolak json := tolak_panitia(p_token);
+  v_set pengaturan%rowtype;
+begin
+  if tolak is not null then return tolak; end if;
+  select * into v_set from pengaturan where id = 1;
+
+  return json_build_object(
+    'ok', true,
+    'batas', v_set.gem_batas,
+    'tutup', (v_set.gem_batas is not null and now() > v_set.gem_batas),
+    'baris', coalesce((
+      select json_agg(json_build_object(
+        'kode', g.kode, 'nama', g.nama, 'grup', g.grup,
+        'kodeTamu', t.kode,
+        'ditemukan', g.ditemukan, 'ditukar', g.ditukar, 'ditukarOleh', g.ditukar_oleh
+      ) order by g.ditemukan)
+      from gem g join tamu t on t.id = g.tamu_id
+    ), '[]'::json));
+end
+$$;
+
+-- Menandai satu kode sudah ditukar di meja pager ayu.
+-- Menukar dua kali ditolak, supaya satu hadiah tidak keluar dua kali.
+create or replace function tukar_gem(p_token text, p_kode text, p_oleh text)
+returns json
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  tolak json := tolak_panitia(p_token);
+  v_ada gem%rowtype;
+begin
+  if tolak is not null then return tolak; end if;
+
+  select * into v_ada from gem g where upper(g.kode) = upper(btrim(coalesce(p_kode, '')));
+  if v_ada.id is null then
+    return json_build_object('ok', false, 'error', 'kode hadiah tidak dikenal');
+  end if;
+  if v_ada.ditukar is not null then
+    return json_build_object('ok', false, 'error', 'sudah ditukar',
+      'nama', v_ada.nama, 'ditukar', v_ada.ditukar, 'ditukarOleh', v_ada.ditukar_oleh);
+  end if;
+
+  update gem set ditukar = now(), ditukar_oleh = left(btrim(coalesce(p_oleh, '')), 40)
+  where id = v_ada.id
+  returning * into v_ada;
+
+  return json_build_object('ok', true, 'nama', v_ada.nama, 'grup', v_ada.grup,
+    'ditukar', v_ada.ditukar);
+end
+$$;
+
 -- =============================================================================
 --  6. SIAPA BOLEH MEMANGGIL APA
 -- =============================================================================
@@ -400,6 +639,10 @@ revoke all on function simpan_rsvp(text, text, text, integer, text)     from pub
 revoke all on function rekap_rsvp(text)                                 from public;
 revoke all on function daftar_tamu(text)                                from public;
 revoke all on function statistik(text)                                  from public;
+revoke all on function klaim_gem(text, text[])                          from public;
+revoke all on function status_gem(text)                                 from public;
+revoke all on function daftar_gem(text)                                 from public;
+revoke all on function tukar_gem(text, text, text)                      from public;
 
 grant execute on function cek_tamu(text)                               to anon, authenticated;
 grant execute on function simpan_rsvp(text, text, text, integer, text) to anon, authenticated;
@@ -407,6 +650,10 @@ grant execute on function simpan_rsvp(text, text, text, integer, text) to anon, 
 grant execute on function rekap_rsvp(text)                             to anon, authenticated;
 grant execute on function daftar_tamu(text)                            to anon, authenticated;
 grant execute on function statistik(text)                              to anon, authenticated;
+grant execute on function klaim_gem(text, text[])                      to anon, authenticated;
+grant execute on function status_gem(text)                             to anon, authenticated;
+grant execute on function daftar_gem(text)                             to anon, authenticated;
+grant execute on function tukar_gem(text, text, text)                  to anon, authenticated;
 
 -- =============================================================================
 --  7. TOKEN PANITIA  —  GANTI BARIS DI BAWAH INI
@@ -425,7 +672,35 @@ on conflict (id) do update
   set token_hash = excluded.token_hash, diperbarui = now();
 
 -- =============================================================================
---  8. CONTOH ISI (hapus/ganti dengan daftar tamu kamu sendiri)
+--  8. HADIAH POJOKAN RAHASIA  —  GANTI TIGA BARIS DI BAWAH INI
+--
+--  Teks hadiah dan batas waktunya tinggal di sini, bukan di js/config.js,
+--  supaya tidak bisa dibaca dari situs. Batasnya diisi H-1: tamu yang baru
+--  sadar di hari H tidak perlu repot berburu, dan yang keliling dari jauh-jauh
+--  hari dapat bagian eksklusifnya.
+--
+--  Isi waktunya pakai zona kalian (WIB = +07, WITA = +08, WIT = +09).
+-- =============================================================================
+
+insert into pengaturan (id, gem_batas, gem_hadiah, gem_titik, gem_jeda_detik)
+values (
+  1,
+  '2026-12-11 23:59:00+07',        -- H-1 buat hari H 12 Desember 2026
+  'Tunjukkan kode ini ke meja pager ayu waktu kamu datang. Ada satu bingkisan ' ||
+  'kecil yang kami siapkan khusus buat tamu yang main sampai habis, dan kami ' ||
+  'bakal tahu persis kamu siapa.',
+  array['gate','akad','resepsi','galeri','cerita','couple','kado','rsvp'],
+  180                               -- jeda minimal sejak undangan dibuka (detik)
+)
+on conflict (id) do update set
+  gem_batas      = excluded.gem_batas,
+  gem_hadiah     = excluded.gem_hadiah,
+  gem_titik      = excluded.gem_titik,
+  gem_jeda_detik = excluded.gem_jeda_detik,
+  diperbarui     = now();
+
+-- =============================================================================
+--  9. CONTOH ISI (hapus/ganti dengan daftar tamu kamu sendiri)
 --
 --  Daftar aslinya dibuat lewat undangan.html -> tombol "Salin SQL Tamu",
 --  lalu tinggal ditempel di sini.
