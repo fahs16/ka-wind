@@ -414,7 +414,27 @@ function doGet(e) {
   // Daftar lengkap, khusus halaman rekap panitia.
   if (action === 'tamu-all') {
     if (p.token !== ADMIN_TOKEN) return json_({ ok: false, error: 'token salah' });
-    return json_({ ok: true, tamu: bacaTamu_() });
+    // Digabung dengan tab KUNJUNGAN supaya halaman panitia bisa menunjukkan
+    // tamu mana yang undangannya belum pernah dibuka sama sekali.
+    var semuaTamu = bacaTamu_();
+    var buka = {};
+    var sb = sheetBuka_();
+    var lastB = sb.getLastRow();
+    if (lastB > 1) {
+      var db = sb.getRange(2, 1, lastB - 1, HEADERS_BUKA.length).getValues();
+      for (var i = 0; i < db.length; i++) {
+        var k = str_(db[i][0]).toLowerCase();
+        if (k) buka[k] = { terakhir: db[i][3] ? new Date(db[i][3]).toISOString() : '',
+                           jumlah: Number(db[i][4]) || 0 };
+      }
+    }
+    for (var j = 0; j < semuaTamu.length; j++) {
+      var b = buka[semuaTamu[j].kode.toLowerCase()];
+      semuaTamu[j].sudahBuka = !!b;
+      semuaTamu[j].terakhirBuka = b ? b.terakhir : '';
+      semuaTamu[j].kaliBuka = b ? b.jumlah : 0;
+    }
+    return json_({ ok: true, tamu: semuaTamu });
   }
 
   if (action === 'stats' || action === 'list') {

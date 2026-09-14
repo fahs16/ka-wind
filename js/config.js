@@ -169,9 +169,18 @@ const CONFIG = {
   // private: false -> siapa pun yang punya link bisa membuka (perilaku lama).
   access: {
     private: true,
-    // Kode cadangan buat kalian & panitia, tidak perlu terdaftar di guests.js.
-    // Ganti jadi tebakan yang susah, ini sama saja seperti kata sandi.
-    bypass: ['fitrahnadia-panitia'],
+    // BIARKAN KOSONG.
+    //
+    // Apa pun yang ditaruh di sini adalah kunci master yang MEMBUKA UNDANGAN
+    // TANPA PERLU TERDAFTAR — dan berkas ini ikut ter-upload, jadi siapa pun
+    // bisa membacanya di situskamu.com/js/config.js lalu memakainya. Satu baris
+    // ini saja cukup untuk membatalkan seluruh gerbang aksesnya.
+    //
+    // Kalau kalian atau panitia butuh akses, buat saja baris tamu biasa
+    // bernama "Panitia" di tab TAMU (atau tabel tamu), lalu pakai kodenya.
+    // Bedanya: kodenya tidak tertulis di mana pun yang bisa dibaca publik, dan
+    // bisa kalian cabut kapan saja dengan menghapus barisnya.
+    bypass: [],
     // Gambar yang ditampilkan ke pengunjung tanpa undangan. Tidak memuat teks apa pun.
     image: 'img/closed.png',
     // Kalau server daftar tamu sedang tidak bisa dihubungi (bukan "kode salah",

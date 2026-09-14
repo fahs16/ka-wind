@@ -306,7 +306,12 @@
           .then(r => r.json())
           .then(t => {
             const daftar = (t && t.ok && Array.isArray(t.tamu))
-              ? t.tamu.map(x => ({ code: x.kode, name: x.nama, group: x.grup, seats: x.kursi, wa: x.wa }))
+              ? t.tamu.map(x => ({
+                  code: x.kode, name: x.nama, group: x.grup, seats: x.kursi, wa: x.wa,
+                  // Kolom "sudah buka" cuma muncul kalau Apps Script-nya sudah
+                  // versi yang mengirimkannya; yang lama tetap jalan tanpa kolom itu.
+                  sudahBuka: x.sudahBuka, terakhirBuka: x.terakhirBuka
+                }))
               : null;
             renderBelum(daftar);
           })

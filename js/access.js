@@ -154,6 +154,15 @@ const Access = {
       if (!tamu && this.gagalHubungi && privat && this.saatMati() !== 'tutup') {
         this.granted = true;
         this.darurat = true;
+        // Dicatat terang-terangan supaya kalau kalian menemukan undangan
+        // terbuka padahal seharusnya terkunci, ketahuan sebabnya: bukan
+        // gerbangnya yang jebol, tapi server daftar tamunya tidak terjawab.
+        // Setel access.saatServerMati: 'tutup' kalau mau tetap terkunci.
+        if (window.console && console.warn) {
+          console.warn('[undangan] Server daftar tamu tidak bisa dihubungi. ' +
+            'Tamu diloloskan dengan sapaan umum karena access.saatServerMati = "' +
+            this.saatMati() + '".');
+        }
         return true;
       }
 

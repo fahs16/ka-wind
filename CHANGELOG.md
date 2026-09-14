@@ -15,6 +15,26 @@ git push origin main
 
 ---
 
+## v2.3.0
+
+Menutup kunci master yang selama ini tertulis di berkas publik, dan kolom
+"sudah buka undangan" untuk mode Google Sheet.
+
+- **`access.bypass` dikosongkan.** Isinya dulu `'fitrahnadia-panitia'`, tertulis
+  apa adanya di `js/config.js` — berkas yang ikut ter-upload dan bisa dibuka
+  siapa pun di `situskamu.com/js/config.js`. Siapa pun yang membacanya bisa
+  membuka undangan lewat `?u=fitrahnadia-panitia` tanpa terdaftar di daftar
+  tamu mana pun. Sekarang kosong, dan komentarnya menjelaskan kenapa sebaiknya
+  tetap begitu: kalau panitia butuh akses, buat saja baris tamu biasa bernama
+  "Panitia" yang kodenya tidak tertulis di berkas publik dan bisa dicabut.
+- Saat undangan diloloskan karena server daftar tamu tidak terjawab
+  (`access.saatServerMati`), sebabnya sekarang dicatat di console browser.
+  Jadi kalau menemukan undangan terbuka padahal seharusnya terkunci, ketahuan
+  itu gerbangnya yang jebol atau servernya yang tidak terjawab.
+- **Mode Google Sheet: kolom "sudah buka undangan"** di tabel "belum menjawab"
+  pada `admin.html`, sejajar dengan yang sudah ada di mode basis data.
+  `action=tamu-all` sekarang menggabungkan tab `TAMU` dengan tab `KUNJUNGAN`.
+
 ## v2.2.2 — commit `c4855de`
 
 - `tools/tes-apps-script.js` sekarang ikut menguji `doPost` (kiriman RSVP):
