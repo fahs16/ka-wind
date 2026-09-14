@@ -99,7 +99,21 @@ cek('tamu baru ditolak', get({ action: 'gem-klaim', u: 'telat-1', titik: SEMUA }
 cek('pemegang lama tetap bisa', get({ action: 'gem-klaim', u: 'andi-7k2p', titik: SEMUA }).kode, k1.kode);
 cek('status tutup', get({ action: 'gem-status', u: 'telat-1' }).tutup, true);
 
-console.log('\n=== 12. RSVP lewat doPost masuk ke tab RSVP ===');
+console.log('\n=== 12. tamu-all membawa status "sudah buka" ===');
+// Tamu yang undangannya belum pernah dibuka sama sekali: ada di tab TAMU,
+// tapi tidak punya baris di tab KUNJUNGAN.
+sheetTamu_().appendRow(['sepi-1', 'Tamu Belum Buka', 2, 'Uji', '']);
+const semua = get({ action: 'tamu-all', token: ADMIN_TOKEN }).tamu;
+const andi = semua.filter(x => x.kode === 'andi-7k2p')[0];
+const sepi = semua.filter(x => x.kode === 'sepi-1')[0];
+cek('andi sudah buka', andi.sudahBuka, true);
+cek('andi punya waktu buka', typeof andi.terakhirBuka === 'string' && andi.terakhirBuka.length > 0, true);
+cek('kali buka > 0', andi.kaliBuka > 0, true);
+cek('yang belum pernah buka -> false', sepi.sudahBuka, false);
+cek('yang belum pernah buka -> tanpa waktu', sepi.terakhirBuka, '');
+cek('nomor WA tetap ada buat panitia', andi.wa, '628120000001');
+
+console.log('\n=== 13. RSVP lewat doPost masuk ke tab RSVP ===');
 const post = (obj) => JSON.parse(doPost({ parameter: {}, postData: { contents: JSON.stringify(obj) } }).getContent());
 cek('kiriman pertama', post({ kode: 'andi-7k2p', nama: 'Bapak Andi', hadir: 'Hadir', jumlah: 4, pesan: 'Barakallah' }).ok, true);
 cek('baris RSVP', sheet_().getLastRow(), 2);
@@ -107,7 +121,7 @@ cek('kiriman ulang memperbarui', post({ kode: 'andi-7k2p', nama: 'Bapak Andi', h
 cek('baris tetap 1', sheet_().getLastRow(), 2);
 cek('nama kosong ditolak', post({ kode: 'andi-7k2p', nama: '  ' }).error, 'nama kosong');
 
-console.log('\n=== 13. 300 tamu -> kode semua unik ===');
+console.log('\n=== 14. 300 tamu -> kode semua unik ===');
 GEM_BATAS = '2026-12-11T23:59:00+07:00';
 const kodes = {};
 let gagal = 0;

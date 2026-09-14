@@ -176,6 +176,16 @@ Semua nama ada di `js/guests.js`. Praktis dan tanpa ketergantungan jaringan, tap
 pun bisa membuka `situskamu.com/js/guests.js` dan membaca seluruh daftar tamu. Cuma
 masuk akal kalau undangannya memang tidak dikunci.
 
+### Jangan isi `access.bypass`
+
+`js/config.js` ikut ter-upload dan bisa dibuka siapa pun di `situskamu.com/js/config.js`.
+Apa pun yang ditaruh di `access.bypass` adalah **kunci master yang membuka undangan tanpa
+perlu terdaftar** — satu baris itu saja cukup untuk membatalkan seluruh gerbangnya.
+
+Kalau kalian atau panitia butuh akses, buat baris tamu biasa bernama "Panitia" di tab `TAMU`
+(atau tabel `tamu`) lalu pakai kodenya. Kodenya tidak tertulis di berkas mana pun yang bisa
+dibaca publik, dan bisa dicabut kapan saja dengan menghapus barisnya.
+
 ### Kalau servernya sedang mati
 
 Gangguan di hari H tidak bisa diulang, jadi bawaannya tamu tetap dipersilakan masuk —
