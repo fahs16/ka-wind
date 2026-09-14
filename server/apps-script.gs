@@ -360,7 +360,13 @@ function doGet(e) {
     // tentu ada, jadi patokannya baris kunjungan di tab GEM sendiri: kalau
     // belum pernah tercatat, catat sekarang dan minta tamu kembali sebentar lagi.
     var pertama = bukaPertama_(tamu.kode);
-    if (!pertama) return json_({ ok: false, error: 'terlalu-cepat', tunggu_detik: GEM_JEDA_DETIK });
+    if (!pertama) {
+      // Belum pernah tercatat — bisa terjadi kalau tamu ini sudah membuka
+      // undangannya sebelum tab KUNJUNGAN dibuat. Catat sekarang, lalu minta
+      // dia kembali sebentar lagi. Tanpa ini, tamunya nyangkut selamanya.
+      catatBuka_(tamu.kode, tamu.nama);
+      return json_({ ok: false, error: 'terlalu-cepat', tunggu_detik: GEM_JEDA_DETIK });
+    }
     var lewat = (new Date().getTime() - pertama.getTime()) / 1000;
     if (lewat < GEM_JEDA_DETIK) {
       return json_({ ok: false, error: 'terlalu-cepat',
