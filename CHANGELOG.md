@@ -15,6 +15,34 @@ git push origin main
 
 ---
 
+## v2.2.0
+
+Hadiah pojokan rahasia: terkunci sampai semua titik selesai, kodenya unik per
+tamu, dan tidak ada satu pun berkas di situs yang memuat hadiahnya.
+
+- **Pintunya terkunci sampai 8 titik selesai.** Sebelum lengkap, pohonnya cuma
+  bilang belum kenal kamu — dan browser tamu belum menghubungi server sama
+  sekali, jadi tidak ada yang bisa diintip lebih awal.
+- **Kode hadiahnya hilang dari `js/config.js`.** Dulu satu kode untuk semua dan
+  tertulis di berkas yang bisa dibaca siapa pun. Sekarang kodenya dibuat server
+  saat diklaim, unik per tamu (`GEM-B8CMNH`), dan teks hadiahnya juga tinggal di
+  server. Membaca seluruh berkas js situs tidak memberi tahu apa hadiahnya.
+- **Empat syarat diperiksa di sisi server**: kodenya tamu terdaftar, seluruh
+  titik wajib dikunjungi, belum lewat batas waktu, dan sudah lewat jeda minimal
+  sejak undangan pertama kali dibuka (bawaan 3 menit) supaya tidak bisa
+  diselesaikan skrip dalam hitungan detik.
+- **Batas waktu H-1.** Klaim ditutup sehari sebelum hari H, supaya tamu tidak
+  sibuk berburu hadiah waktu acaranya berlangsung. Yang sudah terlanjur dapat
+  kode tetap bisa membukanya kapan saja.
+- **Penemunya tercatat** di tabel `gem` (basis data) atau tab `GEM` (Google
+  Sheet), sinkron dengan data yang lain. Tab `KUNJUNGAN` baru di Sheet mencatat
+  siapa yang sudah membuka undangannya, seperti tabel `kunjungan` di basis data.
+- **Meja pager ayu di `admin.html`**: daftar penemu (bisa diunduh CSV) plus
+  kotak penukaran. Ketik kode yang ditunjukkan tamu — kalau asli, namanya muncul
+  dan kodenya langsung ditandai ditukar, jadi satu hadiah tidak keluar dua kali.
+- Klaim ulang mengembalikan kode yang sama, bukan kode baru, jadi tamu bisa
+  membuka hadiahnya berkali-kali tanpa takut berubah.
+
 ## v2.1.0 — commit `acc2972`
 
 Sumber daftar tamu jadi berurutan, dan bawaannya kembali ke Google Sheet.

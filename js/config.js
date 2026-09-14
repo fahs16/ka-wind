@@ -224,18 +224,34 @@ const CONFIG = {
   },
 
   // ---------- POJOKAN RAHASIA ----------
-  // Tersembunyi di sudut peta, tidak ditandai. Hadiah buat tamu yang benar-benar keliling.
+  // Tersembunyi di sudut peta, tidak ditandai, dan baru bisa dibuka setelah
+  // tamu mengunjungi seluruh 8 titik misi.
+  //
+  // PERHATIKAN: kode hadiah dan teks hadiahnya TIDAK ADA di berkas ini, dan
+  // memang tidak boleh ada — berkas ini bisa dibaca siapa pun lewat
+  // situskamu.com/js/config.js. Keduanya tinggal di server, dan baru dikirim
+  // setelah server memastikan syaratnya lolos:
+  //   basis data     -> bagian 8 di server/schema.sql
+  //   Google Sheet   -> GEM_BATAS & GEM_HADIAH di server/apps-script.gs
+  // Termasuk batas waktunya (H-1). Yang di bawah ini cuma percakapannya.
   secret: {
     name: 'Pohon Harapan',
-    // Kode yang ditunjukkan tamu ke kalian di hari H. Ganti sesuka hati.
-    code: 'KOPI-BEBEK-2026',
     lines: [
       'Eh... kamu nemu tempat ini? Serius? Nggak banyak yang jalan sampai pojokan sini.',
       'Ini tempat duduk-duduk kami waktu semuanya lagi berat: tabungan mepet, gedung penuh, keluarga banyak maunya.',
       'Setiap kali bingung, kami ke sini, diem-dieman sebentar, terus pulang dengan keputusan yang sama: lanjut.',
       'Karena kamu mau repot-repot keliling sampai ketemu, ini ada sesuatu buat kamu.'
     ],
-    reward: 'Tunjukkan kode ini ke kami waktu salaman di hari H. Ada kejutan kecil, dan kami bakal tahu kamu benar-benar main sampai habis.'
+    // Ditampilkan kalau tamu menemukan pojokannya tapi belum keliling semua.
+    belumLengkap: 'Pohonnya diam saja. Sepertinya dia belum kenal kamu — ' +
+      'coba keliling dulu sampai semua titik di peta kamu datangi, baru balik ke sini.'
+  },
+
+  // ---------- HADIAH POJOKAN RAHASIA ----------
+  gem: {
+    // Kosongkan untuk mengikuti guests.source. Isi 'sheet' / 'db' / ['sheet','db']
+    // kalau hadiahnya mau disimpan di tempat yang berbeda dari daftar tamu.
+    provider: ''
   },
 
   // ---------- TAMPILAN ----------
