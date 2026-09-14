@@ -200,6 +200,60 @@ bisa memanfaatkannya.
 
 ---
 
+## Isi yang tidak boleh ter-publish
+
+`js/config.js` adalah berkas statis: siapa pun bisa mengunduhnya langsung, dan gerbang di
+browser tidak ikut campur. Jadi nomor rekening, alamat rumah, nomor WA, dan nama lengkap orang
+tua sebaiknya tidak tinggal di sana.
+
+Tempatnya: tab **`ISI`** di Google Sheet (kolom `Kunci | Nilai | Keterangan`), atau tabel `isi`
+di basis data. Kuncinya berupa jalur ke dalam CONFIG:
+
+| Kunci | Nilai |
+|---|---|
+| `gifts.address` | Perum Griya Asri Blok C2 No. 7, Bandung |
+| `gifts.banks.0.number` | 0098765432 |
+| `rsvp.whatsapp` | 628998877665 |
+| `events.0.place` | Masjid Nurul Iman |
+
+Daftar lengkapnya, sudah terisi nilai yang sekarang, tinggal disalin dari **`undangan.html`**
+&mdash; panel *"Isi yang tidak boleh ter-publish"*.
+
+Cara pakainya:
+
+1. Salin daftarnya dari `undangan.html`, tempel ke tab `ISI` mulai baris ke-2.
+2. Di `js/config.js`, **kosongkan** nilainya &mdash; ganti jadi `''`.
+   **Jangan dihapus barisnya:** server cuma boleh mengisi tempat yang memang sudah ada di
+   berkas itu, jadi kunci yang barisnya hilang akan diabaikan.
+3. Unggah ulang situsnya.
+
+Nilainya dikirim hanya setelah kode tamunya terbukti terdaftar &mdash; pintunya sama dengan
+`action=tamu`. Yang tidak diisi di server tetap memakai isi `js/config.js`, jadi memindahkannya
+bisa sedikit demi sedikit.
+
+> **Konsekuensinya:** kalau nilainya sudah dikosongkan di `config.js` dan servernya sedang tidak
+> terjawab, tamu melihat undangan dengan bagian itu kosong &mdash; alamat dan rekening tidak
+> muncul. Halamannya tetap jalan, tidak error. Ini harga dari tidak menaruhnya di berkas publik.
+
+---
+
+## Satu daftar tamu, di server
+
+Daftar di `undangan.html` dan daftar di Sheet dulu hidup terpisah, jadi gampang beda isi.
+Sekarang servernya yang dianggap benar:
+
+- **Muat dari Server** menarik daftar yang ada di Sheet (atau basis data) ke dalam halaman,
+  lengkap dengan kodenya. Kolom ke-5 pada daftar berisi kode itu, jadi kode yang sudah terlanjur
+  dikirim ke tamu **tidak berubah** waktu daftarnya disusun ulang.
+- **Simpan ke Server** menuliskan balik: kode yang sudah ada diperbarui di barisnya sendiri, yang
+  baru ditambahkan di bawah. Tidak ada baris yang dihapus &mdash; menghapus tamu tetap dilakukan
+  manual di Sheet, supaya tidak ada yang hilang karena salah tempel.
+
+Keduanya butuh token panitia. Di mode basis data, penulisannya tetap lewat tombol
+**Salin SQL Tamu** → Run di SQL Editor.
+
+---
+
 ## Memasang basis data (opsional, sekali, ~5 menit)
 
 1. Buka proyek Supabase kamu &rsaquo; **SQL Editor** &rsaquo; **New query**.
@@ -564,13 +618,38 @@ kode di berkas mana pun:
 | **Teks hadiah** | `server/schema.sql` bagian 8, atau `GEM_HADIAH` di `server/apps-script.gs` |
 | **Batas waktu** | sama, `gem_batas` / `GEM_BATAS` |
 
-Server memeriksa empat hal sebelum mengeluarkan kode, dan semuanya di sisi server:
+Server memeriksa lima hal sebelum mengeluarkan kode, dan semuanya di sisi server:
 
 1. kodenya tamu terdaftar di daftar undangan
 2. seluruh titik wajib sudah dikunjungi
 3. belum lewat batas waktu
-4. sudah lewat jeda minimal sejak undangan pertama kali dibuka (bawaan 3 menit), supaya
-   tidak bisa diselesaikan dalam hitungan detik oleh skrip
+4. **ini kunjungan pertamanya** &mdash; lihat di bawah
+5. sudah lewat jeda minimal sejak undangan dibuka (bawaan 3 menit), supaya tidak bisa
+   diselesaikan dalam hitungan detik oleh skrip
+
+### Hanya di kunjungan pertama
+
+Ini yang menutup jalur bocoran. Tamu yang baru berburu **setelah** diberi tahu tamu lain
+undangannya sudah pernah dibuka sebelum itu, jadi dia sudah terlambat: yang keluar bukan
+hadiah, tapi pesan "kurang beruntung kali ini".
+
+```js
+var GEM_MAKS_KUNJUNGAN = 1;   // server/apps-script.gs
+```
+```sql
+gem_maks_kunjungan = 1        -- server/schema.sql bagian 8
+```
+
+Jumlah kunjungan diambil dari tab `KUNJUNGAN` (atau tabel `kunjungan`), yang naik setiap kali
+undangan dibuka di sesi baru. Membuka ulang di tab yang sama tidak menambah hitungan, jadi tamu
+yang diminta "coba lagi beberapa menit lagi" tetap aman selama tabnya tidak ditutup.
+
+> **Harganya:** tamu yang sekadar mengintip sebentar lalu menutup undangan, dan baru main serius
+> keesokan harinya, ikut kehilangan kesempatan &mdash; padahal dia tidak curang. Isi `2` atau `3`
+> kalau menurut kalian itu terlalu galak, atau `0` untuk tanpa batas.
+
+Yang **sudah** terlanjur dapat kode tetap bisa membukanya berkali-kali; batas ini cuma berlaku
+saat mengklaim.
 
 Satu hal yang jujur perlu diketahui: progres "8 titik" itu sendiri disimpan di perangkat tamu,
 jadi orang yang niat masih bisa mengaku sudah keliling. Yang **tidak** bisa dipalsukan adalah

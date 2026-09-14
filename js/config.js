@@ -141,6 +141,22 @@ const CONFIG = {
     key: ''
   },
 
+  // ---------- ISI YANG DISIMPAN DI SERVER ----------
+  // Berkas ini statis dan bisa diunduh siapa pun tanpa melewati gerbang mana
+  // pun. Jadi yang tidak boleh bocor — nomor rekening, alamat rumah, nomor WA,
+  // nama lengkap orang tua — sebaiknya TIDAK diisi di sini, melainkan di:
+  //   Google Sheet -> tab ISI (kolom Kunci | Nilai)
+  //   basis data   -> tabel isi
+  // Kuncinya berupa jalur ke dalam CONFIG, misalnya 'gifts.address' atau
+  // 'events.0.place'. Nilainya ditimpakan setelah tamunya lolos gerbang.
+  //
+  // Daftar kunci yang perlu diisi bisa disalin dari undangan.html.
+  // Yang tidak diisi di server tetap memakai isi berkas ini.
+  isi: {
+    aktif: true,
+    provider: ''      // kosong = ikut guests.source
+  },
+
   // ---------- SUMBER DAFTAR TAMU ----------
   // Boleh satu nama, boleh urutan. Dicoba dari kiri; yang pertama mengenali
   // kodenya dipakai. Sumber yang belum kamu pasang tinggal dilewati, jadi

@@ -28,6 +28,7 @@ var SHEET_NAME  = 'RSVP';
 var SHEET_TAMU  = 'TAMU';
 var SHEET_GEM   = 'GEM';
 var SHEET_BUKA  = 'KUNJUNGAN';
+var SHEET_ISI   = 'ISI';
 var ADMIN_TOKEN = 'ganti-dengan-kata-sandi-panjang-punyamu';
 
 /* ---------------- HADIAH POJOKAN RAHASIA ("hidden gem") ----------------
@@ -45,10 +46,21 @@ var GEM_HADIAH = 'Tunjukkan kode ini ke meja pager ayu waktu kamu datang. ' +
 var GEM_TITIK  = ['gate', 'akad', 'resepsi', 'galeri', 'cerita', 'couple', 'kado', 'rsvp'];
 var GEM_JEDA_DETIK = 180;   // jeda minimal sejak tamu pertama kali membuka undangan
 
+/* Batas jumlah kunjungan saat hadiah diklaim.
+   1 = hadiah HANYA bisa diambil pada kunjungan pertama tamu itu. Gunanya
+   menutup jalur bocoran: yang baru berburu setelah diberi tahu tamu lain,
+   undangannya sudah pernah dibuka sebelum itu, jadi sudah terlambat.
+
+   Perlu disadari: tamu yang sekadar mengintip sebentar lalu menutup undangan,
+   dan baru main serius keesokan harinya, ikut kehilangan kesempatan. Isi 2 atau
+   3 kalau menurut kalian itu terlalu galak, atau 0 untuk tanpa batas.        */
+var GEM_MAKS_KUNJUNGAN = 1;
+
 var HEADERS = ['Waktu', 'Kode', 'Nama', 'Grup', 'Kehadiran', 'Jumlah', 'Ucapan', 'Revisi'];
 var HEADERS_TAMU = ['Kode', 'Nama', 'Kursi', 'Grup', 'WA'];
 var HEADERS_GEM = ['Kode Hadiah', 'Kode Tamu', 'Nama', 'Grup', 'Ditemukan', 'Ditukar', 'Oleh'];
 var HEADERS_BUKA = ['Kode Tamu', 'Nama', 'Pertama Buka', 'Terakhir Buka', 'Jumlah'];
+var HEADERS_ISI = ['Kunci', 'Nilai', 'Keterangan'];
 
 /* ------------------------------------------------------------------ utils */
 function json_(obj) {
@@ -176,6 +188,41 @@ function bukaPertama_(kode) {
   return ada ? ada.pertama : null;
 }
 
+/* ------------------------------------------------------------- isi rahasia
+   Isi undangan yang tidak boleh ikut ter-publish. js/config.js adalah berkas
+   statis yang bisa diunduh siapa pun, jadi nomor rekening, alamat rumah, nomor
+   WA, dan nama lengkap orang tua disimpan di sini dan baru dikirim setelah
+   tamunya terbukti terdaftar.
+
+   Kolom Kunci berisi jalur ke dalam CONFIG, misalnya 'gifts.address' atau
+   'events.0.place'. Daftar kuncinya bisa disalin dari undangan.html.        */
+function sheetIsi_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(SHEET_ISI);
+  if (!sh) {
+    sh = ss.insertSheet(SHEET_ISI);
+    sh.appendRow(HEADERS_ISI);
+  }
+  return sh;
+}
+
+function bacaIsi_() {
+  var sh = sheetIsi_();
+  var last = sh.getLastRow();
+  var out = {};
+  if (last < 2) return out;
+  var data = sh.getRange(2, 1, last - 1, HEADERS_ISI.length).getValues();
+  for (var i = 0; i < data.length; i++) {
+    var kunci = str_(data[i][0]);
+    if (!kunci) continue;
+    var nilai = data[i][1];
+    // Angka dari Sheet sering datang sebagai number; nomor rekening harus
+    // tetap utuh sebagai teks, termasuk angka nol di depannya.
+    out[kunci] = (nilai === null || nilai === undefined) ? '' : String(nilai).trim();
+  }
+  return out;
+}
+
 // Kode hadiah unik. Huruf yang gampang salah baca (0 O 1 I L) sengaja dibuang,
 // karena kode ini nanti dibacakan ke pager ayu dari layar HP.
 function kodeGem_(dipakai) {
@@ -186,6 +233,41 @@ function kodeGem_(dipakai) {
     if (dipakai.indexOf(k) < 0) return k;
   }
   return '';
+}
+
+/* Menyimpan / memperbarui daftar tamu. Kode yang sudah ada diperbarui di
+   barisnya sendiri, yang baru ditambahkan di bawah. Tidak ada baris yang
+   dihapus: menghapus tamu tetap dilakukan manual di Sheet, supaya tidak ada
+   yang hilang karena salah tempel. */
+function simpanTamu_(masuk) {
+  var sh = sheetTamu_();
+  var lama = bacaTamu_();
+  var indeks = {};
+  for (var i = 0; i < lama.length; i++) indeks[lama[i].kode.toLowerCase()] = i + 2;
+
+  var baru = 0, perbarui = 0, tambahan = [];
+  for (var j = 0; j < masuk.length; j++) {
+    var t = masuk[j];
+    var kode = str_(t.kode || t.code);
+    var nama = str_(t.nama || t.name);
+    if (!kode || !nama) continue;
+    var baris = [kode, nama, Number(t.kursi || t.seats) || 2,
+                 str_(t.grup || t.group), str_(t.wa)];
+    var adaDi = indeks[kode.toLowerCase()];
+    if (adaDi) {
+      sh.getRange(adaDi, 1, 1, HEADERS_TAMU.length).setValues([baris]);
+      perbarui++;
+    } else {
+      tambahan.push(baris);
+      indeks[kode.toLowerCase()] = -1;   // cegah kembar dalam satu kiriman
+      baru++;
+    }
+  }
+  if (tambahan.length) {
+    sh.getRange(sh.getLastRow() + 1, 1, tambahan.length, HEADERS_TAMU.length)
+      .setValues(tambahan);
+  }
+  return { ok: true, baru: baru, perbarui: perbarui, total: bacaTamu_().length };
 }
 
 function initSheet() {
@@ -207,13 +289,19 @@ function initSheet() {
   sg.setFrozenRows(1);
   sg.autoResizeColumns(1, HEADERS_GEM.length);
 
+  var si = sheetIsi_();
+  if (si.getLastRow() === 0) si.appendRow(HEADERS_ISI);
+  si.getRange(1, 1, 1, HEADERS_ISI.length).setFontWeight('bold').setBackground('#e0d4e6');
+  si.setFrozenRows(1);
+  si.autoResizeColumns(1, HEADERS_ISI.length);
+
   var sb = sheetBuka_();
   if (sb.getLastRow() === 0) sb.appendRow(HEADERS_BUKA);
   sb.getRange(1, 1, 1, HEADERS_BUKA.length).setFontWeight('bold').setBackground('#dfe8d0');
   sb.setFrozenRows(1);
   sb.autoResizeColumns(1, HEADERS_BUKA.length);
 
-  return 'Sheet RSVP, TAMU, GEM, dan KUNJUNGAN siap dipakai.';
+  return 'Sheet RSVP, TAMU, GEM, KUNJUNGAN, dan ISI siap dipakai.';
 }
 
 function str_(v) { return v === null || v === undefined ? '' : String(v).trim(); }
@@ -225,6 +313,14 @@ function doPost(e) {
     lock.waitLock(15000);
 
     var d = JSON.parse(e.postData.contents || '{}');
+
+    // Menyimpan daftar tamu dari undangan.html. Dikunci token, dan sengaja
+    // lewat POST supaya daftar panjang tidak mentok batas panjang URL.
+    if (d.jenis === 'tamu') {
+      if (d.token !== ADMIN_TOKEN) return json_({ ok: false, error: 'token salah' });
+      return json_(simpanTamu_(d.tamu || []));
+    }
+
     var nama = str_(d.nama).slice(0, 80);
     if (!nama) return json_({ ok: false, error: 'nama kosong' });
 
@@ -302,6 +398,20 @@ function doGet(e) {
     return json_({ ok: false, error: 'tidak terdaftar' });
   }
 
+  // Isi undangan yang tidak ikut ter-publish. Dikirim HANYA kalau kodenya milik
+  // tamu yang benar-benar terdaftar — sama pintunya dengan action=tamu.
+  if (action === 'isi') {
+    var kodeIsi = str_(p.u || p.kode).toLowerCase();
+    if (!kodeIsi) return json_({ ok: false, error: 'tanpa-kode' });
+    var daftarT = bacaTamu_();
+    var kenal = false;
+    for (var q = 0; q < daftarT.length; q++) {
+      if (daftarT[q].kode.toLowerCase() === kodeIsi) { kenal = true; break; }
+    }
+    if (!kenal) return json_({ ok: false, error: 'tanpa-kode' });
+    return json_({ ok: true, isi: bacaIsi_() });
+  }
+
   /* ---------------- HADIAH POJOKAN RAHASIA ----------------
      Syaratnya diperiksa DI SINI, bukan di browser: kodenya tamu terdaftar,
      seluruh titik wajib sudah dikunjungi, belum lewat batas waktu, dan sudah
@@ -332,6 +442,7 @@ function doGet(e) {
         batas: batas ? batas.toISOString() : null,
         tutup: tutup,
         wajib: GEM_TITIK.length,
+        maksKunjungan: GEM_MAKS_KUNJUNGAN,
         punya: !!punya,
         kode: punya ? punya.kode : null,
         hadiah: punya ? GEM_HADIAH : null,
@@ -359,7 +470,14 @@ function doGet(e) {
     // Jeda minimal sejak tamu pertama kali membuka undangan. Baris RSVP belum
     // tentu ada, jadi patokannya baris kunjungan di tab GEM sendiri: kalau
     // belum pernah tercatat, catat sekarang dan minta tamu kembali sebentar lagi.
-    var pertama = bukaPertama_(tamu.kode);
+    // Hanya kunjungan pertama.
+    var jejak = barisBuka_(tamu.kode);
+    if (GEM_MAKS_KUNJUNGAN > 0 && jejak && jejak.jumlah > GEM_MAKS_KUNJUNGAN) {
+      return json_({ ok: false, error: 'kurang-beruntung',
+                     kunjungan: jejak.jumlah, maks: GEM_MAKS_KUNJUNGAN });
+    }
+
+    var pertama = jejak ? jejak.pertama : null;
     if (!pertama) {
       // Belum pernah tercatat — bisa terjadi kalau tamu ini sudah membuka
       // undangannya sebelum tab KUNJUNGAN dibuat. Catat sekarang, lalu minta

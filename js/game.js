@@ -848,6 +848,10 @@ const Actions = {
         'nanti balik ke sini lagi.',
       'terlalu-cepat': 'Sebentar ya, pohonnya belum selesai mengenali kamu. ' +
         'Coba lagi beberapa menit lagi.',
+      'kurang-beruntung': 'Pohonnya cuma menyimpan hadiah untuk yang menemukannya ' +
+        'di kunjungan pertama, dan undangan ini sudah pernah kamu buka sebelum hari ini. ' +
+        'Kurang beruntung kali ini &mdash; tapi kamu tetap sampai di pojokan yang tidak ' +
+        'banyak orang temukan, dan itu yang kami ingat.',
       'tanpa-kode': 'Undangan ini dibuka tanpa link personal, jadi kami belum tahu ' +
         'hadiahnya buat siapa. Buka lewat link yang kami kirim ya.',
       'belum-disetel': 'Hadiahnya belum kami siapkan. Simpan dulu penemuanmu ini, ' +
@@ -990,7 +994,13 @@ window.addEventListener('DOMContentLoaded', () => {
   // Selama diperiksa, halaman sengaja kosong: tidak ada nama, tanggal, atau
   // lokasi yang sempat dirender untuk pengunjung tanpa undangan.
   Access.mulai()
-    .then(boleh => { boleh ? mulaiUndangan() : Access.tutup(); })
+    .then(boleh => {
+      if (!boleh) { Access.tutup(); return; }
+      // Isi yang tidak boleh ter-publish diambil dulu, baru halaman digambar.
+      // Kalau servernya diam, CONFIG dibiarkan apa adanya dan undangan tetap
+      // tampil — hanya isinya yang seadanya.
+      return Isi.muat().then(() => mulaiUndangan());
+    })
     .catch(() => Access.tutup());
 });
 
