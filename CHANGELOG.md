@@ -15,7 +15,7 @@ git push origin main
 
 ---
 
-## v2.3.0
+## v2.3.0 — commit `8060fb0`
 
 Menutup kunci master yang selama ini tertulis di berkas publik, dan kolom
 "sudah buka undangan" untuk mode Google Sheet.
