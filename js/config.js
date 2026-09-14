@@ -289,7 +289,7 @@ const CONFIG = {
   },
 
   // ---------- SAPAAN VERSI SEDERHANA ----------
-  // Kalimat pembuka & penutup di simple.html. Kosongkan ('') kalau tidak mau
+  // Kalimat pembuka & penutup di undangan utama. Kosongkan ('') kalau tidak mau
   // dipakai, atau ganti sesuai keluarga kalian.
   salam: {
     pembuka: 'Assalamu\'alaikum Warahmatullahi Wabarakatuh',

@@ -267,7 +267,8 @@ Jangan lewati bagian ini. Urutannya:
 
 - [ ] Buka di **HP beneran**, bukan cuma laptop. Coba Android dan iPhone kalau ada.
 - [ ] Stik dan tombol A muncul di HP, karakternya bisa jalan.
-- [ ] Ke-8 titik bisa dibuka sampai muncul layar penutup + kembang api.
+- [ ] Ke-8 titik bisa **diselesaikan** sampai muncul layar penutup + kembang api.
+      Ingat: tiap titik baru tercentang setelah tombolnya ditekan, bukan sekadar didekati.
 - [ ] Link Google Maps membuka lokasi yang benar (klik beneran, jangan cuma dilihat).
 - [ ] Nomor rekening benar sampai digit terakhir. Tombol salin berfungsi.
 - [ ] Buka satu **link personal** (`?u=kode`) — nama tamu muncul di layar pembuka.
@@ -351,7 +352,7 @@ ditempel manual.
 |---|---|---|
 | Undangan | tamu | `situskamu.com/` |
 | Undangan personal | tamu | `situskamu.com/?u=and1` |
-| Undangan versi sederhana | tamu | `situskamu.com/?u=and1&simple=1` |
+| Undangan versi game | tamu | `situskamu.com/?u=and1&game=1` |
 | Generator link | kamu | `situskamu.com/undangan.html` |
 | Kartu preview WA | kamu | `situskamu.com/preview.html` |
 | Rekap RSVP | kamu | `situskamu.com/admin.html` |

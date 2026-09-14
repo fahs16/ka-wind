@@ -529,9 +529,9 @@ atau connect repo dengan build command kosong dan output directory `.`
 
 ---
 
-## Versi sederhana untuk tamu yang tidak main game
+## Dua versi undangan
 
-Selain versi game, ada **`simple.html`**: undangan biasa yang tinggal digulir. Amplop tertutup
+Yang dibuka tamu secara bawaan adalah **`index.html`**: undangan biasa yang tinggal digulir. Amplop tertutup
 dulu dengan monogram dan bingkai emas, lalu isinya terbuka: salam pembuka, mempelai beserta
 orang tua, ayat, rangkaian acara, cerita, galeri, RSVP, tanda kasih, dan salam penutup. Huruf
 besar, tombol besar, tidak ada yang perlu dipelajari.
@@ -540,20 +540,24 @@ Isinya diambil dari `js/config.js` yang sama persis, jadi kamu tetap cuma mengub
 kedua versi ikut berubah. Kalimat salamnya diatur di `config.salam` &mdash; ganti atau kosongkan
 (`''`) kalau tidak cocok dengan keluarga kalian.
 
-Tiga cara tamu sampai ke sana:
+Versi game-nya ada di **`game.html`** &mdash; taman pixel-art dengan 8 titik misi. Tamu sampai
+ke sana lewat:
 
 | Cara | Kapan dipakai |
 |---|---|
-| Tautan **"Buka versi sederhana"** di layar pembuka | tamu sudah terlanjur buka versi game |
-| Link `?u=KODE&simple=1` | kamu tahu dari awal tamunya kurang nyaman main game |
-| Tombol **"Coba Versi Game"** di bawah halaman sederhana | tamu berubah pikiran |
+| Tombol **"Coba Versi Game"** di bawah undangan | tamu penasaran |
+| Link `?u=KODE&game=1` | kamu tahu dari awal tamunya suka main |
+| Tautan **"Kembali ke undangan biasa"** di layar pembuka game | tamu berubah pikiran |
+
+Link lama yang memakai `&simple=1` atau `&mudah=1` tetap jalan &mdash; keduanya mendarat di
+undangan biasa, yang memang sekarang jadi halaman utama.
 
 Kode tamu ikut terbawa saat pindah versi, jadi gerbang aksesnya tidak menanyakan ulang, dan RSVP
 dari kedua versi masuk ke baris Google Sheet yang sama.
 
-Di `undangan.html` ada kode `{linksimple}` untuk template pesan WhatsApp, plus centangan
-**"Buat semua link langsung ke versi sederhana"** kalau daftar yang sedang kamu tempel memang
-khusus om, tante, dan sepuh.
+Di `undangan.html` ada kode `{linkgame}` untuk template pesan WhatsApp, plus centangan
+**"Buat semua link langsung ke versi game"** kalau daftar yang sedang kamu tempel memang
+teman-teman yang suka main.
 
 ---
 
@@ -718,9 +722,23 @@ klaim ulang, dan meja penukaran. Kalau semuanya `OK`, yang kamu tempel ke Apps S
 
 (Dua baris terakhir hanya muncul kalau mode realtime dinyalakan.)
 
-Tamu harus menemukan **8 titik** (bertanda `!`). Titik yang sudah dikunjungi berubah jadi
-hati, progresnya disimpan di browser, dan setelah lengkap muncul pesan penutup + kembang api.
-Penunjuk arah kecil di tepi layar mengarah ke 3 titik terdekat yang belum dikunjungi.
+Tamu harus **menyelesaikan 8 titik** (bertanda `!`). Mendekat saja tidak cukup: tiap titik baru
+tercentang setelah tamunya benar-benar memakai panelnya.
+
+| Titik | Selesai setelah |
+|---|---|
+| Gerbang | menekan **Mulai Jalan** |
+| Akad & Resepsi | membuka **Google Maps** atau menekan **Simpan ke Kalender** |
+| Pelaminan | menekan **Lihat Profil** |
+| Papan cerita | membaca percakapannya **sampai halaman terakhir** (ditutup di tengah tidak dihitung) |
+| Galeri | menekan **Sudah Lihat Semuanya** |
+| Kotak kado | menyalin salah satu **nomor rekening** atau **alamatnya** |
+| Kotak RSVP | menekan **Kirim RSVP** |
+
+Tiap panel punya satu baris keterangan kecil yang menyebutkan syaratnya, jadi tidak ada yang
+perlu ditebak. Titik yang sudah selesai berubah jadi hati, progresnya disimpan di browser, dan
+setelah lengkap muncul pesan penutup + kembang api. Penunjuk arah kecil di tepi layar mengarah
+ke 3 titik terdekat yang belum selesai.
 
 Objek bisa didekati **dari sisi mana pun** — kanan, kiri, depan, atau belakang. Petak sambutan di
 depan objek (pintu, meja, mulut warung) menjangkau sekitar satu petak; badan objek sendiri cukup
@@ -742,8 +760,8 @@ di `js/world.js` kalau mau lebih longgar.
 ## Struktur file
 
 ```
-index.html            undangan yang dibuka tamu (versi game)
-simple.html           undangan versi sederhana: satu halaman gulir, huruf besar
+index.html            undangan yang dibuka tamu — satu halaman gulir, huruf besar
+game.html             versi game: jalan-jalan di taman, 8 titik misi
 undangan.html         alat panitia: bikin link personal per tamu
 admin.html            alat panitia: rekap RSVP dari Google Sheet
 preview.html          alat panitia: bikin kartu preview WhatsApp
@@ -752,8 +770,8 @@ server/schema.sql      skema basis data — tempel sekali ke SQL Editor Supabase
 server/apps-script.gs  kode yang ditempel ke Google Apps Script (mode 'sheet')
 tools/render-lagu.js  ubah lagu chiptune jadi berkas WAV (opsional)
 tools/tes-apps-script.js  uji server/apps-script.gs di komputer sendiri
-css/style.css         tampilan undangan versi game
-css/simple.css        tampilan undangan versi sederhana
+css/style.css         tampilan versi game
+css/simple.css        tampilan undangan utama
 css/tools.css         tampilan dua halaman alat panitia
 js/config.js          ← SEMUA DATA UNDANGAN ADA DI SINI
 js/guests.js          daftar tamu cadangan — KOSONG di mode basis data
@@ -770,7 +788,7 @@ js/db.js              sambungan ke basis data (cek tamu, simpan RSVP, rekap)
 js/gem.js             hadiah pojokan rahasia (isinya TIDAK memuat hadiahnya)
 js/net.js             realtime: tamu lain, emote, chat, penyaring kata
 js/game.js            loop game, kamera, input, misi, ending
-js/simple.js          penyusun halaman versi sederhana
+js/simple.js          penyusun undangan utama
 ```
 
 ### Menggeser atau menambah titik di peta

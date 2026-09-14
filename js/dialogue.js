@@ -2,7 +2,7 @@
 
 const Dialogue = {
   el: null, nameEl: null, textEl: null, faceEl: null, actEl: null, hintEl: null, closeEl: null,
-  pages: [], idx: 0, typing: false, full: '', shown: 0, timer: null,
+  pages: [], idx: 0, typing: false, full: '', shown: 0, timer: null, tamat: false,
   opts: {}, open: false,
 
   init() {
@@ -28,6 +28,11 @@ const Dialogue = {
     this.pages = Array.isArray(pages) ? pages : [pages];
     this.opts = opts || {};
     this.idx = 0;
+    // Dibedakan dari sekadar ditutup: 'tamat' cuma benar kalau tamunya
+    // benar-benar maju sampai lewat halaman terakhir. Tombol silang tidak
+    // menghitung, supaya percakapan yang ditutup di tengah tidak dianggap
+    // sudah dibaca.
+    this.tamat = false;
     this.open = true;
     this.el.classList.remove('hidden');
     Game.syncControls();
@@ -100,7 +105,7 @@ const Dialogue = {
     if (this.typing) { this.finishTyping(); return; }
     if (this.actEl.classList.contains('hidden') === false) return; // tunggu pilih tombol
     if (this.idx < this.pages.length - 1) { this.idx++; this.render(); Chip.blip(); }
-    else this.close();
+    else { this.tamat = true; this.close(); }
   },
 
   close() {
@@ -109,6 +114,7 @@ const Dialogue = {
     this.open = false;
     this.el.classList.add('hidden');
     Game.syncControls();
+    if (this.tamat && this.opts.onTamat) this.opts.onTamat();
     if (this.opts.onDone) this.opts.onDone();
   }
 };

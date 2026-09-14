@@ -38,9 +38,12 @@ const Content = {
         '<div class="row"><span class="tag">TEMPAT</span><span>' + U.esc(ev.place) + '</span></div>' +
         '<div class="row"><span class="tag">ALAMAT</span><span>' + U.esc(ev.address) + '</span></div>' +
         '<div class="btn-row">' +
-          '<a class="btn btn-primary" href="' + U.esc(ev.maps) + '" target="_blank" rel="noopener">Buka Google Maps</a>' +
-          '<button class="btn" data-ics="' + U.esc(ev.id) + '">Simpan ke Kalender</button>' +
+          '<a class="btn btn-primary" data-quest="' + U.esc(ev.id) + '" href="' + U.esc(ev.maps) +
+            '" target="_blank" rel="noopener">Buka Google Maps</a>' +
+          '<button class="btn" data-quest="' + U.esc(ev.id) + '" data-ics="' + U.esc(ev.id) + '">Simpan ke Kalender</button>' +
         '</div>' +
+        '<p class="hint-text">Titik ini tercentang setelah kamu membuka petanya ' +
+        'atau menyimpannya ke kalender.</p>' +
       '</div>';
   },
 
@@ -55,7 +58,10 @@ const Content = {
         '<figcaption>' + U.esc(g.caption) + '</figcaption></figure>';
     }).join('');
     return '<p class="lead">Sedikit potongan perjalanan kami.</p><div class="grid">' + items + '</div>' +
-      '<p class="hint-text">Foto masih kosong? Taruh file di folder <code>img/</code> lalu isi <code>gallery[].src</code> di <code>js/config.js</code>.</p>';
+      '<div class="btn-row" style="justify-content:center">' +
+        '<button class="btn btn-primary" data-quest="galeri">Sudah Lihat Semuanya</button>' +
+      '</div>' +
+      '<p class="hint-text">Titik ini tercentang setelah kamu menekan tombol di atas.</p>';
   },
 
   /* ---------- Kado ---------- */
@@ -65,12 +71,15 @@ const Content = {
         '<div class="acct-bank">' + U.esc(b.bank) + '</div>' +
         '<div class="acct-no">' + U.esc(b.number) + '</div>' +
         '<div class="acct-name">a.n. ' + U.esc(b.holder) + '</div>' +
-        '<button class="btn btn-small" data-copy="' + U.esc(b.number) + '">Salin Nomor</button>' +
+        '<button class="btn btn-small" data-quest="kado" data-copy="' + U.esc(b.number) + '">Salin Nomor</button>' +
       '</div>').join('');
     return '<p class="lead">Kehadiran kalian sudah lebih dari cukup. Tapi kalau mau kirim tanda kasih, ini pintunya.</p>' +
       '<div class="accts">' + banks + '</div>' +
       '<div class="card"><div class="card-kicker">KIRIM KADO FISIK</div><div>' + U.esc(CONFIG.gifts.address) + '</div>' +
-      '<div class="btn-row"><button class="btn btn-small" data-copy="' + U.esc(CONFIG.gifts.address) + '">Salin Alamat</button></div></div>';
+      '<div class="btn-row"><button class="btn btn-small" data-quest="kado" data-copy="' +
+      U.esc(CONFIG.gifts.address) + '">Salin Alamat</button></div></div>' +
+      '<p class="hint-text">Titik ini tercentang setelah kamu menyalin salah satu nomor rekening ' +
+      'atau alamatnya. Tidak harus dipakai, kok.</p>';
   },
 
   /* ---------- RSVP ---------- */
@@ -96,6 +105,7 @@ const Content = {
         '<label>Ucapan & doa<textarea name="pesan" rows="3" maxlength="400" placeholder="Tulis doa terbaikmu...">' + U.esc(saved ? saved.pesan : '') + '</textarea></label>' +
         '<button class="btn btn-primary" type="submit">Kirim RSVP</button>' +
       '</form>' +
+      '<p class="hint-text">Titik ini tercentang setelah kamu menekan Kirim RSVP.</p>' +
       '<div id="rsvp-result"></div>';
   },
 
@@ -166,7 +176,7 @@ const Content = {
 };
 
 /* Kiriman RSVP dipakai dua tampilan: versi game dan versi sederhana
-   (simple.html). Bentuk datanya, link WhatsApp cadangan, dan cara kirimnya
+   (index.html). Bentuk datanya, link WhatsApp cadangan, dan cara kirimnya
    ditaruh di sini supaya keduanya tidak pernah beda isi. */
 const Rsvp = {
   dari(form) {

@@ -1,4 +1,4 @@
-/* Undangan versi sederhana (simple.html).
+/* Undangan utama — versi sederhana (index.html).
 
    Isinya sama persis dengan versi game — sumbernya js/config.js yang sama —
    tapi disajikan sebagai undangan biasa: amplop tertutup dulu, lalu satu
@@ -6,7 +6,7 @@
    misi, tanpa yang perlu dipelajari.
 
    Gerbang aksesnya tetap sama: link personal ?u=KODE. Kalau kodenya tidak
-   dikenal, halaman ini ikut tertutup seperti index.html. */
+   dikenal, halaman ini ikut tertutup seperti game.html. */
 
 const Simple = {
   el: null, dibuka: false,
@@ -278,7 +278,7 @@ const Simple = {
   // Kode tamu ikut dibawa supaya pindah versi tidak kena gerbang akses lagi.
   linkGame() {
     const kode = (U.query('u') || U.query('kode')).trim();
-    return 'index.html' + (kode ? '?u=' + encodeURIComponent(kode) : '');
+    return 'game.html' + (kode ? '?u=' + encodeURIComponent(kode) : '');
   },
 
   /* ---------- Perilaku ---------- */
@@ -374,6 +374,10 @@ const Simple = {
 };
 
 window.addEventListener('DOMContentLoaded', () => {
+  // ?game=1 langsung dibelokkan ke versi game, supaya satu link undangan tetap
+  // cukup buat tamu yang memang mau main.
+  if (U.query('game') === '1') { location.replace('game.html' + location.search); return; }
+
   Access.mulai()
     .then(boleh => {
       if (!boleh) { Access.tutup(); return; }
