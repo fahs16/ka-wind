@@ -15,7 +15,7 @@ git push origin main
 
 ---
 
-## v2.6.0
+## v2.6.0 — commit `32d9676`
 
 Hadiah pojokan rahasia hanya bisa diambil di kunjungan pertama.
 
