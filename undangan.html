@@ -55,17 +55,18 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
       <label>Template pesan WhatsApp</label>
       <textarea id="tpl" style="min-height:150px" spellcheck="false"></textarea>
       <p class="muted" style="font-size:19px">Kode yang bisa dipakai: <code>{nama}</code>, <code>{link}</code>,
-      <code>{linksimple}</code>, <code>{kursi}</code>, <code>{mempelai}</code>, <code>{tanggal}</code>.</p>
-      <p class="muted" style="font-size:19px"><code>{linksimple}</code> membuka undangan versi sederhana:
-      satu halaman gulir, huruf besar, tanpa game. Cocok diselipkan buat tamu yang kurang terbiasa main game.</p>
+      <code>{linkgame}</code>, <code>{kursi}</code>, <code>{mempelai}</code>, <code>{tanggal}</code>.</p>
+      <p class="muted" style="font-size:19px"><code>{link}</code> membuka undangan biasa: satu halaman
+      gulir, huruf besar. Itu yang dilihat semua tamu.
+      <code>{linkgame}</code> langsung membuka versi game-nya &mdash; cocok diselipkan buat yang suka main.</p>
     </div>
 
     <div class="note">
       <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer">
-        <input type="checkbox" id="modesimple" style="width:22px;height:22px;flex:0 0 auto;margin-top:4px">
-        <span>Buat <b>semua</b> link di daftar ini langsung ke versi sederhana.
-        Pakai kalau daftar yang sedang kamu tempel isinya om, tante, dan sepuh.
-        Tamu tetap bisa pindah ke versi game lewat tombol di bawah halaman.</span>
+        <input type="checkbox" id="modegame" style="width:22px;height:22px;flex:0 0 auto;margin-top:4px">
+        <span>Buat <b>semua</b> link di daftar ini langsung ke versi game.
+        Pakai kalau daftar yang sedang kamu tempel isinya teman-teman yang suka main.
+        Tamu tetap bisa kembali ke undangan biasa lewat tautan di layar pembuka.</span>
       </label>
     </div>
 
@@ -478,15 +479,15 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
     return b;
   }
 
-  function linkOf(g, simple) {
+  function linkOf(g, game) {
     const dasar = baseUrl() + '?u=' + encodeURIComponent(g.code);
-    return (simple === undefined ? $('modesimple').checked : simple) ? dasar + '&simple=1' : dasar;
+    return (game === undefined ? $('modegame').checked : game) ? dasar + '&game=1' : dasar;
   }
 
   function messageOf(g) {
     return $('tpl').value
       .replace(/\{nama\}/g, g.name)
-      .replace(/\{linksimple\}/g, linkOf(g, true))
+      .replace(/\{linkgame\}/g, linkOf(g, true))
       .replace(/\{link\}/g, linkOf(g))
       .replace(/\{kursi\}/g, g.seats)
       .replace(/\{mempelai\}/g, couple)
@@ -590,7 +591,7 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
 
   $('go').onclick = render;
   $('wapub').onchange = render;
-  $('modesimple').onchange = render;
+  $('modegame').onchange = render;
   $('sql-copy').onclick = () => { render(); copy($('sql').value, 'SQL tamu tersalin'); };
   $('copysql').onclick = () => copy($('sql').value, 'SQL tamu tersalin');
   $('env-copy').onclick = () => { render(); copy($('envcodes').value, rows.length + ' kode tersalin'); };
@@ -624,7 +625,7 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
   $('csv').onclick = () => {
     render();
     const q = v => '"' + String(v).replace(/"/g, '""') + '"';
-    const csv = ['kode,nama,grup,kursi,wa,link,link_sederhana'].concat(
+    const csv = ['kode,nama,grup,kursi,wa,link,link_game'].concat(
       rows.map(g => [g.code, g.name, g.group, g.seats, g.wa, linkOf(g, false), linkOf(g, true)].map(q).join(','))
     ).join('\n');
     download('daftar-undangan.csv', '﻿' + csv, 'text/csv;charset=utf-8');

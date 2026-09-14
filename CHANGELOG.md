@@ -15,6 +15,30 @@ git push origin main
 
 ---
 
+## v3.0.0
+
+Undangan biasa jadi halaman utama, dan 8 titik misi harus benar-benar
+diselesaikan.
+
+**Perubahan besar.** `index.html` sekarang berisi undangan biasa (dulu
+`simple.html`), dan versi game pindah ke `game.html`. Link `?u=KODE` yang sudah
+tersebar tetap jalan — sekarang mendarat di undangan biasa. Link lama dengan
+`&simple=1` atau `&mudah=1` juga tetap jalan.
+
+- Tautan **"Coba Versi Game"** di bawah undangan, dan **"Kembali ke undangan
+  biasa"** di layar pembuka game. Link langsung ke game: `?u=KODE&game=1`.
+- `undangan.html` sekarang mengeluarkan `{linkgame}` (dulu `{linksimple}`) dan
+  centangannya jadi "semua link langsung ke versi game".
+- **Titik misi tidak lagi selesai hanya karena didekati.** Tiap titik butuh
+  tindakan yang sebenarnya: menekan Mulai Jalan, membuka Google Maps atau
+  menyimpan kalender, menekan Lihat Profil, membaca papan cerita sampai halaman
+  terakhir, menekan Sudah Lihat Semuanya di galeri, menyalin nomor rekening,
+  dan mengirim RSVP.
+- Papan cerita yang ditutup di tengah jalan **tidak** dihitung sudah dibaca:
+  `Dialogue` sekarang membedakan "maju sampai habis" dari "ditutup".
+- Tiap panel punya satu baris keterangan yang menyebutkan syaratnya, jadi tidak
+  ada yang perlu ditebak.
+
 ## v2.6.0 — commit `32d9676`
 
 Hadiah pojokan rahasia hanya bisa diambil di kunjungan pertama.

@@ -149,11 +149,19 @@ const Game = {
   bindPanels() {
     const body = document.querySelector('#modal .modal-body');
     body.addEventListener('click', e => {
+      // Titik baru dianggap selesai kalau tamunya benar-benar memakai panelnya:
+      // membuka peta, menyimpan kalender, menyalin rekening. Mendekat saja tidak
+      // cukup — itu yang bikin delapan titiknya terasa seperti tugas, bukan
+      // sekadar jalan melewati.
+      const q = e.target.closest('[data-quest]');
+      if (q) this.markVisited(q.getAttribute('data-quest'));
+
       const cp = e.target.closest('[data-copy]');
       if (cp) { copyText(cp.getAttribute('data-copy'), 'Tersalin'); return; }
       const ics = e.target.closest('[data-ics]');
       if (ics) { Content.downloadIcs(ics.getAttribute('data-ics')); }
     });
+
     body.addEventListener('submit', e => {
       if (e.target.id !== 'rsvp-form') return;
       e.preventDefault();
@@ -241,7 +249,7 @@ const Game = {
     this.visited.push(id);
     Store.progress.set(this.visited);
     this.updateHud();
-    Toast.show('Titik ditemukan! (' + this.visited.length + '/' + QUEST_IDS.length + ')', 1600);
+    Toast.show('Titik selesai! (' + this.visited.length + '/' + QUEST_IDS.length + ')', 1600);
     if (this.visited.length >= QUEST_IDS.length && !this.ended) {
       this.ended = true;
       setTimeout(() => this.finale(), 900);
@@ -664,17 +672,18 @@ const Actions = {
   gate() {
     const g = Content.guest();
     const c = CONFIG.couple;
-    Game.markVisited('gate');
     Dialogue.show([
       { name: 'Gerbang', text: 'Assalamualaikum' + (g ? ', ' + g : '') + '! Selamat datang di taman kecil milik ' + c.groom.nick + ' & ' + c.bride.nick + '.' },
       { name: 'Gerbang', text: 'Ini bukan undangan biasa. Jalan-jalan aja dulu, semua info acara disembunyikan di 8 titik bertanda seru (!).' },
       { name: 'Cara main', text: 'Gerak: tombol panah / WASD (atau stik di layar HP). Berdiri dekat objek lalu tekan E / tombol A untuk berinteraksi.' },
       { name: 'Gerbang', text: CONFIG.quote.text + ' (' + CONFIG.quote.source + ')' }
-    ], { actions: [{ label: 'Mulai Jalan', primary: true, fn: () => Dialogue.close() }] });
+    ], { actions: [{ label: 'Mulai Jalan', primary: true, fn: () => {
+      Game.markVisited('gate');
+      Dialogue.close();
+    } }] });
   },
 
   akad() {
-    Game.markVisited('akad');
     const ev = CONFIG.events[0];
     Dialogue.show([{ name: 'Gedung Akad', text: 'Di sinilah janji itu diucapkan. Datang lebih awal ya, biar nggak ketinggalan momennya.' }], {
       onDone: () => Modal.show(ev.name, Content.eventHtml(ev))
@@ -682,7 +691,6 @@ const Actions = {
   },
 
   resepsi() {
-    Game.markVisited('resepsi');
     const ev = CONFIG.events[1];
     Dialogue.show([{ name: 'Balai Resepsi', text: 'Musik, makanan, dan foto bareng. Bagian paling ramai ada di sini.' }], {
       onDone: () => Modal.show(ev.name, Content.eventHtml(ev))
@@ -690,7 +698,6 @@ const Actions = {
   },
 
   couple() {
-    Game.markVisited('couple');
     Game.burst(30);
     const c = CONFIG.couple;
     Dialogue.show([
@@ -700,6 +707,7 @@ const Actions = {
     ], {
       actions: [{
         label: 'Lihat Profil', primary: true, fn: () => {
+          Game.markVisited('couple');
           Dialogue.close();
           Modal.show('Kedua Mempelai',
             '<div class="card center"><div class="card-kicker">MEMPELAI PRIA</div><div class="big">' + U.esc(c.groom.full) + '</div>' +
@@ -714,26 +722,24 @@ const Actions = {
   },
 
   galeri() {
-    Game.markVisited('galeri');
     Modal.show('Galeri Foto', Content.galleryHtml());
   },
 
   cerita() {
-    Game.markVisited('cerita');
     const pages = CONFIG.story.map(s => ({ name: s.year + ' — ' + s.title, text: s.text }));
     pages.unshift({ name: 'Papan Cerita', text: 'Setiap papan menyimpan satu babak. Baca pelan-pelan ya.' });
-    Dialogue.show(pages);
+    // onTamat, bukan onDone: percakapan yang ditutup di tengah jalan belum
+    // dihitung sebagai sudah dibaca.
+    Dialogue.show(pages, { onTamat: () => Game.markVisited('cerita') });
   },
 
   kado() {
-    Game.markVisited('kado');
     Dialogue.show([{ name: 'Kotak Kado', text: 'Kotaknya kelihatan berat... padahal isinya cuma harapan baik. Mau ikut ngisi?' }], {
       onDone: () => Modal.show('Amplop Digital', Content.giftHtml())
     });
   },
 
   rsvp() {
-    Game.markVisited('rsvp');
     Modal.show('Konfirmasi Kehadiran', Content.rsvpHtml());
   },
 
@@ -983,11 +989,10 @@ const Layar = {
 
 /* ---------------- Booting ---------------- */
 window.addEventListener('DOMContentLoaded', () => {
-  // ?simple=1 langsung dibelokkan ke versi sederhana, supaya satu link undangan
-  // tetap cukup buat tamu yang lebih nyaman membaca halaman biasa.
-  // ?mudah=1 tetap dilayani, sebagai nama lama parameter yang sama.
+  // ?simple=1 (dan nama lamanya ?mudah=1) membelokkan ke undangan biasa, yang
+  // sekarang jadi halaman utama. Link lama yang terlanjur tersebar tetap jalan.
   if (U.query('simple') === '1' || U.query('mudah') === '1') {
-    location.replace('simple.html' + location.search); return;
+    location.replace('index.html' + location.search); return;
   }
 
   // Identitas tamu dicari dulu (bisa dari Google Sheet, jadi perlu menunggu).
@@ -1025,7 +1030,7 @@ function mulaiUndangan() {
   // Kode tamu ikut dibawa ke versi sederhana, supaya pindah versi tidak kena
   // gerbang akses lagi.
   const alt = document.getElementById('link-simple');
-  if (alt) alt.href = 'simple.html' + (location.search || '');
+  if (alt) alt.href = 'index.html' + (location.search || '');
 
   Game.init();
   Layar.init();
