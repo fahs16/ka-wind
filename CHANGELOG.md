@@ -15,7 +15,7 @@ git push origin main
 
 ---
 
-## v2.2.0
+## v2.2.0 — commit `e0e75ef`
 
 Hadiah pojokan rahasia: terkunci sampai semua titik selesai, kodenya unik per
 tamu, dan tidak ada satu pun berkas di situs yang memuat hadiahnya.
