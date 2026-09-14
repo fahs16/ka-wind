@@ -93,6 +93,10 @@ create table if not exists pengaturan (
   gem_hadiah      text not null default '',    -- teks hadiah, tidak ada di berkas situs
   gem_titik       text[] not null default '{}',-- titik yang wajib dikunjungi dulu
   gem_jeda_detik  integer not null default 180,-- jeda minimal sejak undangan dibuka
+  -- Batas jumlah kunjungan saat mengklaim. 1 = hanya boleh di kunjungan
+  -- pertama, jadi tamu yang baru berburu setelah dapat bocoran dari tamu lain
+  -- sudah terlambat. 0 = tanpa batas.
+  gem_maks_kunjungan integer not null default 1,
   diperbarui      timestamptz not null default now()
 );
 
@@ -108,6 +112,8 @@ create table if not exists gem (
   ditukar       timestamptz,                   -- null = belum ditukar
   ditukar_oleh  text not null default ''
 );
+alter table pengaturan add column if not exists gem_maks_kunjungan integer not null default 1;
+
 create unique index if not exists gem_tamu_unik on gem (tamu_id);
 create unique index if not exists gem_kode_unik on gem (upper(kode));
 
@@ -358,6 +364,7 @@ declare
   v_set     pengaturan%rowtype;
   v_ada     gem%rowtype;
   v_buka    timestamptz;
+  v_kali    integer;
   v_kurang  text[];
   v_baru    text;
   i         integer;
@@ -399,8 +406,16 @@ begin
       'kurang', array_length(v_kurang, 1));
   end if;
 
+  -- Hanya kunjungan pertama. Tamu yang baru berburu setelah mendengar bocoran
+  -- dari undangan orang lain sudah terlambat: undangannya sendiri sudah pernah
+  -- dibuka sebelum ini.
+  select k.pertama, k.jumlah into v_buka, v_kali from kunjungan k where k.tamu_id = v_tamu.id;
+  if v_set.gem_maks_kunjungan > 0 and coalesce(v_kali, 1) > v_set.gem_maks_kunjungan then
+    return json_build_object('ok', false, 'error', 'kurang-beruntung',
+      'kunjungan', v_kali, 'maks', v_set.gem_maks_kunjungan);
+  end if;
+
   -- Jeda minimal sejak undangan pertama kali dibuka.
-  select k.pertama into v_buka from kunjungan k where k.tamu_id = v_tamu.id;
   if v_buka is null then
     v_buka := now();
     insert into kunjungan (tamu_id) values (v_tamu.id) on conflict do nothing;
@@ -492,6 +507,7 @@ begin
     'batas', v_set.gem_batas,
     'tutup', (v_set.gem_batas is not null and now() > v_set.gem_batas),
     'wajib', array_length(v_set.gem_titik, 1),
+    'maksKunjungan', v_set.gem_maks_kunjungan,
     'punya', (v_ada.id is not null),
     'kode', v_ada.kode,
     'hadiah', case when v_ada.id is not null then v_set.gem_hadiah else null end,
@@ -722,9 +738,18 @@ on conflict (id) do update
 --  hari dapat bagian eksklusifnya.
 --
 --  Isi waktunya pakai zona kalian (WIB = +07, WITA = +08, WIT = +09).
+--
+--  gem_maks_kunjungan = 1 berarti hadiah HANYA bisa diambil pada kunjungan
+--  pertama tamu itu. Gunanya menutup jalur bocoran: yang baru berburu setelah
+--  diberi tahu tamu lain, undangannya sudah pernah dibuka sebelum itu, jadi
+--  sudah terlambat.
+--
+--  Perlu disadari: tamu yang sekadar mengintip sebentar lalu menutup undangan,
+--  dan baru main serius keesokan harinya, ikut kehilangan kesempatan. Isi 2
+--  atau 3 kalau menurut kalian itu terlalu galak, atau 0 untuk tanpa batas.
 -- =============================================================================
 
-insert into pengaturan (id, gem_batas, gem_hadiah, gem_titik, gem_jeda_detik)
+insert into pengaturan (id, gem_batas, gem_hadiah, gem_titik, gem_jeda_detik, gem_maks_kunjungan)
 values (
   1,
   '2026-12-11 23:59:00+07',        -- H-1 buat hari H 12 Desember 2026
@@ -732,14 +757,16 @@ values (
   'kecil yang kami siapkan khusus buat tamu yang main sampai habis, dan kami ' ||
   'bakal tahu persis kamu siapa.',
   array['gate','akad','resepsi','galeri','cerita','couple','kado','rsvp'],
-  180                               -- jeda minimal sejak undangan dibuka (detik)
+  180,                              -- jeda minimal sejak undangan dibuka (detik)
+  1                                 -- hanya boleh diklaim di kunjungan ke-1
 )
 on conflict (id) do update set
-  gem_batas      = excluded.gem_batas,
-  gem_hadiah     = excluded.gem_hadiah,
-  gem_titik      = excluded.gem_titik,
-  gem_jeda_detik = excluded.gem_jeda_detik,
-  diperbarui     = now();
+  gem_batas          = excluded.gem_batas,
+  gem_hadiah         = excluded.gem_hadiah,
+  gem_titik          = excluded.gem_titik,
+  gem_jeda_detik     = excluded.gem_jeda_detik,
+  gem_maks_kunjungan = excluded.gem_maks_kunjungan,
+  diperbarui         = now();
 
 -- =============================================================================
 --  9. CONTOH ISI (hapus/ganti dengan daftar tamu kamu sendiri)

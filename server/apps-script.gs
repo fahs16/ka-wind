@@ -46,6 +46,16 @@ var GEM_HADIAH = 'Tunjukkan kode ini ke meja pager ayu waktu kamu datang. ' +
 var GEM_TITIK  = ['gate', 'akad', 'resepsi', 'galeri', 'cerita', 'couple', 'kado', 'rsvp'];
 var GEM_JEDA_DETIK = 180;   // jeda minimal sejak tamu pertama kali membuka undangan
 
+/* Batas jumlah kunjungan saat hadiah diklaim.
+   1 = hadiah HANYA bisa diambil pada kunjungan pertama tamu itu. Gunanya
+   menutup jalur bocoran: yang baru berburu setelah diberi tahu tamu lain,
+   undangannya sudah pernah dibuka sebelum itu, jadi sudah terlambat.
+
+   Perlu disadari: tamu yang sekadar mengintip sebentar lalu menutup undangan,
+   dan baru main serius keesokan harinya, ikut kehilangan kesempatan. Isi 2 atau
+   3 kalau menurut kalian itu terlalu galak, atau 0 untuk tanpa batas.        */
+var GEM_MAKS_KUNJUNGAN = 1;
+
 var HEADERS = ['Waktu', 'Kode', 'Nama', 'Grup', 'Kehadiran', 'Jumlah', 'Ucapan', 'Revisi'];
 var HEADERS_TAMU = ['Kode', 'Nama', 'Kursi', 'Grup', 'WA'];
 var HEADERS_GEM = ['Kode Hadiah', 'Kode Tamu', 'Nama', 'Grup', 'Ditemukan', 'Ditukar', 'Oleh'];
@@ -432,6 +442,7 @@ function doGet(e) {
         batas: batas ? batas.toISOString() : null,
         tutup: tutup,
         wajib: GEM_TITIK.length,
+        maksKunjungan: GEM_MAKS_KUNJUNGAN,
         punya: !!punya,
         kode: punya ? punya.kode : null,
         hadiah: punya ? GEM_HADIAH : null,
@@ -459,7 +470,14 @@ function doGet(e) {
     // Jeda minimal sejak tamu pertama kali membuka undangan. Baris RSVP belum
     // tentu ada, jadi patokannya baris kunjungan di tab GEM sendiri: kalau
     // belum pernah tercatat, catat sekarang dan minta tamu kembali sebentar lagi.
-    var pertama = bukaPertama_(tamu.kode);
+    // Hanya kunjungan pertama.
+    var jejak = barisBuka_(tamu.kode);
+    if (GEM_MAKS_KUNJUNGAN > 0 && jejak && jejak.jumlah > GEM_MAKS_KUNJUNGAN) {
+      return json_({ ok: false, error: 'kurang-beruntung',
+                     kunjungan: jejak.jumlah, maks: GEM_MAKS_KUNJUNGAN });
+    }
+
+    var pertama = jejak ? jejak.pertama : null;
     if (!pertama) {
       // Belum pernah tercatat — bisa terjadi kalau tamu ini sudah membuka
       // undangannya sebelum tab KUNJUNGAN dibuat. Catat sekarang, lalu minta

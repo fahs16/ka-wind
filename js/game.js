@@ -848,6 +848,10 @@ const Actions = {
         'nanti balik ke sini lagi.',
       'terlalu-cepat': 'Sebentar ya, pohonnya belum selesai mengenali kamu. ' +
         'Coba lagi beberapa menit lagi.',
+      'kurang-beruntung': 'Pohonnya cuma menyimpan hadiah untuk yang menemukannya ' +
+        'di kunjungan pertama, dan undangan ini sudah pernah kamu buka sebelum hari ini. ' +
+        'Kurang beruntung kali ini &mdash; tapi kamu tetap sampai di pojokan yang tidak ' +
+        'banyak orang temukan, dan itu yang kami ingat.',
       'tanpa-kode': 'Undangan ini dibuka tanpa link personal, jadi kami belum tahu ' +
         'hadiahnya buat siapa. Buka lewat link yang kami kirim ya.',
       'belum-disetel': 'Hadiahnya belum kami siapkan. Simpan dulu penemuanmu ini, ' +

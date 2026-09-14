@@ -618,13 +618,38 @@ kode di berkas mana pun:
 | **Teks hadiah** | `server/schema.sql` bagian 8, atau `GEM_HADIAH` di `server/apps-script.gs` |
 | **Batas waktu** | sama, `gem_batas` / `GEM_BATAS` |
 
-Server memeriksa empat hal sebelum mengeluarkan kode, dan semuanya di sisi server:
+Server memeriksa lima hal sebelum mengeluarkan kode, dan semuanya di sisi server:
 
 1. kodenya tamu terdaftar di daftar undangan
 2. seluruh titik wajib sudah dikunjungi
 3. belum lewat batas waktu
-4. sudah lewat jeda minimal sejak undangan pertama kali dibuka (bawaan 3 menit), supaya
-   tidak bisa diselesaikan dalam hitungan detik oleh skrip
+4. **ini kunjungan pertamanya** &mdash; lihat di bawah
+5. sudah lewat jeda minimal sejak undangan dibuka (bawaan 3 menit), supaya tidak bisa
+   diselesaikan dalam hitungan detik oleh skrip
+
+### Hanya di kunjungan pertama
+
+Ini yang menutup jalur bocoran. Tamu yang baru berburu **setelah** diberi tahu tamu lain
+undangannya sudah pernah dibuka sebelum itu, jadi dia sudah terlambat: yang keluar bukan
+hadiah, tapi pesan "kurang beruntung kali ini".
+
+```js
+var GEM_MAKS_KUNJUNGAN = 1;   // server/apps-script.gs
+```
+```sql
+gem_maks_kunjungan = 1        -- server/schema.sql bagian 8
+```
+
+Jumlah kunjungan diambil dari tab `KUNJUNGAN` (atau tabel `kunjungan`), yang naik setiap kali
+undangan dibuka di sesi baru. Membuka ulang di tab yang sama tidak menambah hitungan, jadi tamu
+yang diminta "coba lagi beberapa menit lagi" tetap aman selama tabnya tidak ditutup.
+
+> **Harganya:** tamu yang sekadar mengintip sebentar lalu menutup undangan, dan baru main serius
+> keesokan harinya, ikut kehilangan kesempatan &mdash; padahal dia tidak curang. Isi `2` atau `3`
+> kalau menurut kalian itu terlalu galak, atau `0` untuk tanpa batas.
+
+Yang **sudah** terlanjur dapat kode tetap bisa membukanya berkali-kali; batas ini cuma berlaku
+saat mengklaim.
 
 Satu hal yang jujur perlu diketahui: progres "8 titik" itu sendiri disimpan di perangkat tamu,
 jadi orang yang niat masih bisa mengaku sudah keliling. Yang **tidak** bisa dipalsukan adalah

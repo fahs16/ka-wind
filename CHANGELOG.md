@@ -15,6 +15,23 @@ git push origin main
 
 ---
 
+## v2.6.0
+
+Hadiah pojokan rahasia hanya bisa diambil di kunjungan pertama.
+
+- Syarat kelima: jumlah kunjungan tamu itu saat mengklaim harus masih 1.
+  Menutup jalur bocoran — tamu yang baru berburu setelah diberi tahu tamu lain
+  undangannya sudah pernah dibuka sebelum itu, jadi yang keluar pesan "kurang
+  beruntung", bukan hadiah.
+- Angkanya diatur di `GEM_MAKS_KUNJUNGAN` (Apps Script) atau
+  `pengaturan.gem_maks_kunjungan` (basis data). Isi `2`/`3` kalau terlalu galak,
+  `0` untuk tanpa batas.
+- Yang sudah terlanjur dapat kode tetap bisa membukanya berkali-kali; batas ini
+  cuma berlaku saat mengklaim.
+- Catatan jujurnya ikut ditulis di README: tamu yang cuma mengintip sebentar
+  lalu baru main serius keesokan harinya ikut kehilangan kesempatan, padahal
+  dia tidak curang.
+
 ## v2.5.0
 
 Isi sensitif pindah ke server, dan daftar tamu jadi satu sumber.

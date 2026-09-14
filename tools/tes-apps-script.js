@@ -113,6 +113,30 @@ cek('yang belum pernah buka -> false', sepi.sudahBuka, false);
 cek('yang belum pernah buka -> tanpa waktu', sepi.terakhirBuka, '');
 cek('nomor WA tetap ada buat panitia', andi.wa, '628120000001');
 
+console.log('\n=== 12b. hadiah hanya di kunjungan pertama ===');
+GEM_BATAS = '2026-12-11T23:59:00+07:00';   // pengujian 11 sengaja melewatkannya
+sheetTamu_().appendRow(['sekali-1',  'Tamu Sekali',   2, 'Uji', '']);
+sheetTamu_().appendRow(['duakali-1', 'Tamu Dua Kali', 2, 'Uji', '']);
+const lamaTadi = new Date(Date.now() - 30 * 60000);
+sheetBuka_().appendRow(['sekali-1',  'Tamu Sekali',   lamaTadi, new Date(), 1]);
+sheetBuka_().appendRow(['duakali-1', 'Tamu Dua Kali', lamaTadi, new Date(), 3]);
+const k1x = get({ action: 'gem-klaim', u: 'sekali-1', titik: SEMUA });
+cek('kunjungan ke-1 dapat hadiah', k1x.ok, true);
+const k3x = get({ action: 'gem-klaim', u: 'duakali-1', titik: SEMUA });
+cek('kunjungan ke-3 ditolak', k3x.error, 'kurang-beruntung');
+cek('jumlah kunjungan dilaporkan', k3x.kunjungan, 3);
+cek('tidak ada hadiah bocor saat ditolak', k3x.hadiah, undefined);
+// yang sudah punya tetap bisa melihat kodenya walau sudah berkali-kali buka
+const sb2 = sheetBuka_();
+for (let r = 2; r <= sb2.getLastRow(); r++) {
+  if (String(sb2.getRange(r, 1).getValue()) === 'sekali-1') sb2.getRange(r, 5).setValue(9);
+}
+cek('pemegang kode tetap bisa lihat', get({ action: 'gem-klaim', u: 'sekali-1', titik: SEMUA }).kode, k1x.kode);
+// batas dimatikan
+GEM_MAKS_KUNJUNGAN = 0;
+cek('batas 0 -> boleh', get({ action: 'gem-klaim', u: 'duakali-1', titik: SEMUA }).ok, true);
+GEM_MAKS_KUNJUNGAN = 1;
+
 console.log('\n=== 13. isi rahasia: cuma untuk tamu terdaftar ===');
 sheetIsi_().appendRow(['gifts.address', 'Jl. Melati Raya No. 21, Bandung', 'alamat kado']);
 sheetIsi_().appendRow(['rsvp.whatsapp', '6281234567890', 'WA mempelai']);
