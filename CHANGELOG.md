@@ -15,7 +15,7 @@ git push origin main
 
 ---
 
-## v3.0.0
+## v3.0.0 — commit `c219083`
 
 Undangan biasa jadi halaman utama, dan 8 titik misi harus benar-benar
 diselesaikan.
