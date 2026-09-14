@@ -279,7 +279,32 @@ semua situs statis, bukan cuma yang ini.
 Artinya `js/access.js` yang berjalan di browser hanya **menyaring tampilan**, bukan mengunci
 berkas. Untuk mengunci sungguhan, penjaganya harus berada di server, sebelum berkas dikirim.
 
-### Kunci sungguhan di Netlify (disarankan)
+### Kunci sungguhan di Netlify (WAJIB kalau isinya tidak boleh bocor)
+
+Seluruh pemeriksaan di dalam browser cuma **menyaring tampilan**. Siapa pun yang membuka
+devtools bisa melewatinya, dan berkas seperti `js/config.js` tetap bisa diunduh langsung &mdash;
+lengkap dengan nama, tanggal, alamat gedung, dan nomor rekening. Coba sendiri:
+
+```bash
+curl https://situskamu.netlify.app/js/config.js
+```
+
+Gerbang tepi Netlify yang benar-benar menutup itu: pengunjung tanpa kode dijawab **404**
+sebelum berkasnya sempat keluar. Cek gerbangnya sudah hidup atau belum:
+
+```bash
+curl -I https://situskamu.netlify.app/ | grep x-undangan-gate
+# on       -> terkunci
+# disabled -> GUEST_CODES masih kosong, seluruh berkas masih bisa diunduh siapa pun
+```
+
+Nilai `GUEST_CODES` dan `ADMIN_CODE` tinggal disalin dari **`undangan.html`**, di panel
+*"Kunci gerbang Netlify"* &mdash; tidak perlu diketik satu per satu.
+
+> **Ingat:** tiap kali menambah tamu, kode barunya belum ada di Netlify dan tamu itu akan kena
+> 404 walaupun linknya benar. Salin ulang `GUEST_CODES`, tempel, lalu **redeploy**.
+
+#### Rinciannya
 
 `netlify/edge-functions/gate.js` melakukan itu: berjalan di server Netlify pada setiap
 permintaan, sebelum berkas apa pun keluar. Tanpa kode yang sah, `js/`, `css/`, `img/preview.png`,

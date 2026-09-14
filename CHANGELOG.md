@@ -15,6 +15,25 @@ git push origin main
 
 ---
 
+## v2.4.0
+
+Kunci gerbang Netlify tinggal disalin, tidak perlu diketik manual.
+
+- Panel **"Kunci gerbang Netlify"** di `undangan.html` mengeluarkan nilai
+  `GUEST_CODES` siap tempel (seluruh kode tamu, dipisah koma) dan membuatkan
+  `ADMIN_CODE` acak yang panjang. Dua-duanya ada tombol salin.
+- Gerbang tepi itu satu-satunya kunci yang benar-benar mengunci: pemeriksaan di
+  dalam browser cuma menyaring tampilan, dan `js/config.js` tetap bisa diunduh
+  langsung selama gerbangnya belum hidup. Panelnya menjelaskan itu, lengkap
+  dengan perintah `curl -I ... | grep x-undangan-gate` untuk memastikan.
+- Peringatan yang mudah terlewat ikut ditulis di sana: menambah tamu berarti
+  `GUEST_CODES` harus disalin ulang dan Netlify perlu redeploy, kalau tidak
+  tamu baru kena 404 walaupun linknya benar.
+- Jumlah kode dan panjang karakternya ditampilkan, dengan peringatan kalau
+  sudah mendekati batas ukuran satu variabel Netlify.
+- Daftar periksa `DEPLOY.md` menambahkan dua uji: header gerbang harus `on`,
+  dan `js/config.js` harus menjawab 404.
+
 ## v2.3.0 — commit `8060fb0`
 
 Menutup kunci master yang selama ini tertulis di berkas publik, dan kolom
