@@ -15,6 +15,21 @@ git push origin main
 
 ---
 
+## v2.2.1
+
+Perbaikan jalur Google Sheet untuk hadiah pojokan rahasia.
+
+- **Tamu bisa nyangkut "terlalu cepat" selamanya.** Jeda minimal di jalur Sheet
+  berpatokan pada baris di tab `KUNJUNGAN`, tapi kalau barisnya belum pernah ada
+  — persis keadaan tamu yang sudah membuka undangannya sebelum tab itu dibuat —
+  klaimnya ditolak tanpa pernah mencatat apa pun, jadi penolakannya berulang
+  selamanya. Sekarang kunjungannya dicatat saat itu juga, dan tamunya cukup
+  kembali beberapa menit lagi.
+- **`tools/tes-apps-script.js`**: menjalankan `server/apps-script.gs` apa adanya
+  di atas tiruan Google Sheet, jadi seluruh alur hadiah bisa diuji di komputer
+  sendiri sebelum Deploy. 25 pemeriksaan, termasuk 300 klaim untuk memastikan
+  kodenya tidak pernah tabrakan. Bug di atas ketahuan dari sini.
+
 ## v2.2.0 — commit `e0e75ef`
 
 Hadiah pojokan rahasia: terkunci sampai semua titik selesai, kodenya unik per

@@ -576,6 +576,18 @@ Buka `admin.html`, isi token, lalu gulir ke **Pojokan Rahasia**. Ada dua hal di 
 Catatannya tersimpan di tabel `gem` (basis data) atau tab `GEM` (Google Sheet), jadi sinkron
 dengan data yang lain.
 
+### Menguji sebelum Deploy
+
+Setiap kali mengubah `server/apps-script.gs`, jalankan ini dulu di komputer sendiri:
+
+```bash
+node tools/tes-apps-script.js
+```
+
+Kodenya dijalankan apa adanya di atas tiruan Google Sheet, jadi seluruh alur hadiah bisa
+diperiksa tanpa perlu deploy: syarat 8 titik, jeda minimal, batas waktu, kode unik per tamu,
+klaim ulang, dan meja penukaran. Kalau semuanya `OK`, yang kamu tempel ke Apps Script juga benar.
+
 ---
 
 ## Kontrol
@@ -625,6 +637,7 @@ img/preview.png       gambar yang muncul saat link dibagikan
 server/schema.sql      skema basis data — tempel sekali ke SQL Editor Supabase
 server/apps-script.gs  kode yang ditempel ke Google Apps Script (mode 'sheet')
 tools/render-lagu.js  ubah lagu chiptune jadi berkas WAV (opsional)
+tools/tes-apps-script.js  uji server/apps-script.gs di komputer sendiri
 css/style.css         tampilan undangan versi game
 css/simple.css        tampilan undangan versi sederhana
 css/tools.css         tampilan dua halaman alat panitia
