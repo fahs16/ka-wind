@@ -15,7 +15,7 @@ git push origin main
 
 ---
 
-## v2.2.1
+## v2.2.1 — commit `f3abfc6`
 
 Perbaikan jalur Google Sheet untuk hadiah pojokan rahasia.
 
