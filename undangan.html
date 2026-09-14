@@ -76,6 +76,7 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
       <button class="btn btn-gold" id="sheet">Salin untuk Google Sheet</button>
       <button class="btn" id="dl">Unduh js/guests.js</button>
       <button class="btn" id="copyall">Salin Semua Link</button>
+      <button class="btn btn-gold" id="env-copy">Salin GUEST_CODES</button>
       <button class="btn btn-small" id="reset-kode">Buat Ulang Semua Kode</button>
     </div>
   </div>
@@ -90,6 +91,49 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
     <div class="panel"><textarea id="sql" style="min-height:230px" spellcheck="false" readonly></textarea>
       <div class="btn-row"><button class="btn btn-small" id="copysql">Salin Blok SQL</button></div>
     </div>
+  </div>
+
+  <div id="env-panel">
+    <h2>Kunci gerbang Netlify</h2>
+    <p class="muted">Ini <b>satu-satunya kunci yang benar-benar mengunci</b> undangan kalian.
+    Pemeriksaan di dalam browser cuma menyaring tampilan &mdash; siapa pun yang membuka
+    devtools bisa melewatinya, dan berkas seperti <code>js/config.js</code> tetap bisa diunduh
+    langsung. Gerbang Netlify yang menjawab 404 untuk pengunjung tanpa kode, sebelum berkasnya
+    sempat keluar sama sekali.</p>
+
+    <p class="muted">Buka <b>Netlify &rsaquo; Site configuration &rsaquo; Environment variables</b>,
+    lalu isi dua ini:</p>
+
+    <div class="panel">
+      <div class="field">
+        <label><code>GUEST_CODES</code> &mdash; seluruh kode tamu, dipisah koma</label>
+        <textarea id="envcodes" style="min-height:120px" spellcheck="false" readonly></textarea>
+        <p class="muted" style="font-size:19px" id="env-info"></p>
+      </div>
+      <div class="field">
+        <label><code>ADMIN_CODE</code> &mdash; untuk membuka undangan.html, admin.html, preview.html</label>
+        <input id="envadmin" spellcheck="false" readonly>
+        <p class="muted" style="font-size:19px">Kalimat acak yang dibuatkan di sini. Simpan baik-baik:
+        halaman panitia dibuka lewat <code>?admin=KODE</code>, dan kodenya disimpan sebagai cookie
+        supaya cuma perlu sekali. Boleh diganti sesuka hati.</p>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-small" id="copyenv">Salin GUEST_CODES</button>
+        <button class="btn btn-small" id="copyadmin">Salin ADMIN_CODE</button>
+        <button class="btn btn-small" id="admin-baru">Buat ADMIN_CODE Baru</button>
+      </div>
+    </div>
+
+    <div class="note danger">Setiap kali kamu <b>menambah atau mengganti tamu</b>, kode barunya
+    belum ada di Netlify &mdash; tamu itu akan kena 404 walaupun linknya benar. Salin ulang
+    <code>GUEST_CODES</code> dan tempel lagi. Setelah disimpan, Netlify perlu <b>redeploy</b>
+    supaya nilainya terpakai (Deploys &rsaquo; Trigger deploy).</div>
+
+    <p class="muted">Cek gerbangnya sudah hidup atau belum:</p>
+    <div class="panel"><textarea id="envcek" style="min-height:64px" spellcheck="false" readonly></textarea></div>
+    <p class="muted" style="font-size:19px">Jawaban <code>x-undangan-gate: on</code> berarti terkunci.
+    Kalau <code>disabled</code>, <code>GUEST_CODES</code>-nya masih kosong dan seluruh berkas situs
+    masih bisa diunduh siapa pun.</p>
   </div>
 
   <h2>Isi file js/guests.js</h2>
@@ -234,6 +278,48 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
     return hasil;
   }
 
+  /* ---------- kunci gerbang Netlify ----------
+     GUEST_CODES dibaca gerbang tepi (netlify/edge-functions/gate.js) sebagai
+     daftar dipisah koma, lalu di-trim & dikecilkan hurufnya. Jadi yang perlu
+     ditempel cukup deretan kodenya saja. */
+  const ADMIN_INGATAN = 'undangan-admin-code';
+
+  function adminCode() {
+    let a = '';
+    try { a = localStorage.getItem(ADMIN_INGATAN) || ''; } catch (e) {}
+    if (!a) { a = buatAdminCode(); simpanAdminCode(a); }
+    return a;
+  }
+  function buatAdminCode() {
+    // Empat kelompok lima huruf: panjang, tapi masih bisa diketik ulang.
+    const bagian = [];
+    for (let i = 0; i < 4; i++) bagian.push(acak(5));
+    return 'panitia-' + bagian.join('-');
+  }
+  function simpanAdminCode(a) {
+    try { localStorage.setItem(ADMIN_INGATAN, a); } catch (e) {}
+  }
+
+  function renderEnv() {
+    const kode = rows.map(g => g.code);
+    const nilai = kode.join(',');
+    $('envcodes').value = nilai;
+
+    // Netlify membatasi ukuran satu variabel. Jauh sebelum batas itu pun,
+    // daftar yang kepanjangan bikin repot, jadi angkanya ditampilkan apa adanya.
+    const byte = nilai.length;
+    let info = kode.length + ' kode, ' + byte + ' karakter.';
+    if (byte > 3500) {
+      info += ' \u26a0 Sudah cukup panjang untuk satu variabel Netlify (batasnya sekitar 4 KB). ' +
+              'Kalau tamunya makin banyak, gerbang tepi perlu diubah supaya membaca daftar dari ' +
+              'basis data, bukan dari variabel.';
+    }
+    $('env-info').textContent = info;
+
+    $('envadmin').value = adminCode();
+    $('envcek').value = 'curl -I ' + baseUrl() + ' | grep x-undangan-gate';
+  }
+
   // Teks SQL siap tempel ke Supabase. ON CONFLICT membuatnya aman dijalankan
   // berkali-kali: tamu lama diperbarui, bukan digandakan.
   function sqlTamu(list) {
@@ -270,7 +356,14 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
 
   function render() {
     rows = parse();
-    if (!rows.length) { $('out').innerHTML = '<div class="panel empty">Daftar tamunya masih kosong.</div>'; $('gen').value = ''; return; }
+    if (!rows.length) {
+      $('out').innerHTML = '<div class="panel empty">Daftar tamunya masih kosong.</div>';
+      $('gen').value = '';
+      $('envcodes').value = '';
+      $('env-info').textContent = '';
+      return;
+    }
+    renderEnv();
 
     const body = rows.map((g, i) => {
       const link = linkOf(g);
@@ -361,6 +454,15 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
   $('modesimple').onchange = render;
   $('sql-copy').onclick = () => { render(); copy($('sql').value, 'SQL tamu tersalin'); };
   $('copysql').onclick = () => copy($('sql').value, 'SQL tamu tersalin');
+  $('env-copy').onclick = () => { render(); copy($('envcodes').value, rows.length + ' kode tersalin'); };
+  $('copyenv').onclick = () => copy($('envcodes').value, rows.length + ' kode tersalin');
+  $('copyadmin').onclick = () => copy($('envadmin').value, 'ADMIN_CODE tersalin');
+  $('admin-baru').onclick = () => {
+    if (!confirm('ADMIN_CODE lama langsung tidak berlaku setelah kamu tempel yang baru ke Netlify. Lanjut?')) return;
+    simpanAdminCode(buatAdminCode());
+    renderEnv();
+    toast('ADMIN_CODE baru dibuat');
+  };
   $('reset-kode').onclick = () => {
     if (!confirm('Semua kode dibuat ulang. Link yang sudah terlanjur dikirim ke tamu jadi tidak berlaku. Lanjut?')) return;
     try { localStorage.removeItem(INGATAN); } catch (e) {}

@@ -277,6 +277,9 @@ Jangan lewati bagian ini. Urutannya:
       lalu tukar kodenya di `admin.html` &mdash; setelah itu hapus baris ujinya.
 - [ ] Pastikan `GEM_BATAS` (atau `gem_batas`) sudah diisi H-1, bukan hari H.
 - [ ] Jalankan `curl` cek pintu terkunci di Tahap 2 &mdash; harus *permission denied*.
+- [ ] `curl -I https://situskamu.netlify.app/ | grep x-undangan-gate` &mdash; harus `on`,
+      bukan `disabled`. Kalau `disabled`, seluruh berkas situs masih bisa diunduh siapa pun.
+- [ ] `curl https://situskamu.netlify.app/js/config.js` &mdash; harus 404, bukan isi berkasnya.
 - [ ] Buka satu link dengan kode ngawur (`?u=ngasal123`) &mdash; harus cuma gambar polos.
 - [ ] Buka versi sederhana (`?u=kode&simple=1`), pastikan hurufnya besar, tombol peta jalan,
       dan RSVP dari sana juga masuk ke Sheet.
