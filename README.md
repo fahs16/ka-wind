@@ -200,6 +200,60 @@ bisa memanfaatkannya.
 
 ---
 
+## Isi yang tidak boleh ter-publish
+
+`js/config.js` adalah berkas statis: siapa pun bisa mengunduhnya langsung, dan gerbang di
+browser tidak ikut campur. Jadi nomor rekening, alamat rumah, nomor WA, dan nama lengkap orang
+tua sebaiknya tidak tinggal di sana.
+
+Tempatnya: tab **`ISI`** di Google Sheet (kolom `Kunci | Nilai | Keterangan`), atau tabel `isi`
+di basis data. Kuncinya berupa jalur ke dalam CONFIG:
+
+| Kunci | Nilai |
+|---|---|
+| `gifts.address` | Perum Griya Asri Blok C2 No. 7, Bandung |
+| `gifts.banks.0.number` | 0098765432 |
+| `rsvp.whatsapp` | 628998877665 |
+| `events.0.place` | Masjid Nurul Iman |
+
+Daftar lengkapnya, sudah terisi nilai yang sekarang, tinggal disalin dari **`undangan.html`**
+&mdash; panel *"Isi yang tidak boleh ter-publish"*.
+
+Cara pakainya:
+
+1. Salin daftarnya dari `undangan.html`, tempel ke tab `ISI` mulai baris ke-2.
+2. Di `js/config.js`, **kosongkan** nilainya &mdash; ganti jadi `''`.
+   **Jangan dihapus barisnya:** server cuma boleh mengisi tempat yang memang sudah ada di
+   berkas itu, jadi kunci yang barisnya hilang akan diabaikan.
+3. Unggah ulang situsnya.
+
+Nilainya dikirim hanya setelah kode tamunya terbukti terdaftar &mdash; pintunya sama dengan
+`action=tamu`. Yang tidak diisi di server tetap memakai isi `js/config.js`, jadi memindahkannya
+bisa sedikit demi sedikit.
+
+> **Konsekuensinya:** kalau nilainya sudah dikosongkan di `config.js` dan servernya sedang tidak
+> terjawab, tamu melihat undangan dengan bagian itu kosong &mdash; alamat dan rekening tidak
+> muncul. Halamannya tetap jalan, tidak error. Ini harga dari tidak menaruhnya di berkas publik.
+
+---
+
+## Satu daftar tamu, di server
+
+Daftar di `undangan.html` dan daftar di Sheet dulu hidup terpisah, jadi gampang beda isi.
+Sekarang servernya yang dianggap benar:
+
+- **Muat dari Server** menarik daftar yang ada di Sheet (atau basis data) ke dalam halaman,
+  lengkap dengan kodenya. Kolom ke-5 pada daftar berisi kode itu, jadi kode yang sudah terlanjur
+  dikirim ke tamu **tidak berubah** waktu daftarnya disusun ulang.
+- **Simpan ke Server** menuliskan balik: kode yang sudah ada diperbarui di barisnya sendiri, yang
+  baru ditambahkan di bawah. Tidak ada baris yang dihapus &mdash; menghapus tamu tetap dilakukan
+  manual di Sheet, supaya tidak ada yang hilang karena salah tempel.
+
+Keduanya butuh token panitia. Di mode basis data, penulisannya tetap lewat tombol
+**Salin SQL Tamu** → Run di SQL Editor.
+
+---
+
 ## Memasang basis data (opsional, sekali, ~5 menit)
 
 1. Buka proyek Supabase kamu &rsaquo; **SQL Editor** &rsaquo; **New query**.

@@ -375,6 +375,12 @@ const Simple = {
 
 window.addEventListener('DOMContentLoaded', () => {
   Access.mulai()
-    .then(boleh => { boleh ? Simple.mulai() : Access.tutup(); })
+    .then(boleh => {
+      if (!boleh) { Access.tutup(); return; }
+      // Isi yang tidak boleh ter-publish diambil dulu, baru halaman digambar.
+      // Kalau servernya diam, CONFIG dibiarkan apa adanya dan undangan tetap
+      // tampil — hanya isinya yang seadanya.
+      return Isi.muat().then(() => Simple.mulai());
+    })
     .catch(() => Access.tutup());
 });

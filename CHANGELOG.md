@@ -15,6 +15,25 @@ git push origin main
 
 ---
 
+## v2.5.0
+
+Isi sensitif pindah ke server, dan daftar tamu jadi satu sumber.
+
+- **Tab `ISI` / tabel `isi`**: nomor rekening, alamat rumah, nomor WA, dan nama
+  lengkap orang tua bisa disimpan di server, bukan di `js/config.js` yang bisa
+  diunduh siapa pun. Kuncinya jalur ke dalam CONFIG (`gifts.address`,
+  `events.0.place`), nilainya ditimpakan setelah kode tamunya terbukti
+  terdaftar. Yang tidak diisi di server tetap memakai isi `config.js`, jadi
+  memindahkannya bisa sedikit demi sedikit.
+- `undangan.html` mengeluarkan daftar kunci itu lengkap dengan nilai yang
+  sekarang, siap tempel ke tab `ISI`.
+- **Satu daftar tamu.** Daftar di `undangan.html` dan di Sheet dulu terpisah.
+  Sekarang ada **Muat dari Server** dan **Simpan ke Server**: yang dianggap
+  benar cuma yang di server. Kode tamu ikut termuat di kolom ke-5 sehingga
+  link yang sudah terlanjur dikirim tidak pernah berubah.
+- `js/isi.js` sengaja tidak memuat satu pun data itu, dan menolak membuat cabang
+  baru di CONFIG — server cuma boleh mengisi tempat yang sudah disediakan.
+
 ## v2.4.0 — commit `cf6723f`
 
 Kunci gerbang Netlify tinggal disalin, tidak perlu diketik manual.

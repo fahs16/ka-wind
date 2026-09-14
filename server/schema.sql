@@ -111,6 +111,22 @@ create table if not exists gem (
 create unique index if not exists gem_tamu_unik on gem (tamu_id);
 create unique index if not exists gem_kode_unik on gem (upper(kode));
 
+-- Isi undangan yang tidak boleh ikut ter-publish.
+--
+-- js/config.js adalah berkas statis yang bisa diunduh siapa pun tanpa melewati
+-- gerbang mana pun. Jadi nomor rekening, alamat rumah, nomor WA, dan nama
+-- lengkap orang tua disimpan di sini, dan baru dikirim setelah tamunya terbukti
+-- terdaftar.
+--
+-- 'kunci' berisi jalur ke dalam CONFIG, misalnya 'gifts.address' atau
+-- 'events.0.place'. Daftar kuncinya bisa disalin dari undangan.html.
+create table if not exists isi (
+  kunci       text primary key,
+  nilai       text not null default '',
+  keterangan  text not null default '',
+  diperbarui  timestamptz not null default now()
+);
+
 -- Token panitia (disimpan sebagai hash bcrypt, bukan teks asli).
 create table if not exists panitia (
   id          smallint primary key default 1 check (id = 1),
@@ -140,8 +156,9 @@ alter table panitia    enable row level security;
 alter table percobaan  enable row level security;
 alter table pengaturan enable row level security;
 alter table gem        enable row level security;
+alter table isi        enable row level security;
 
-revoke all on table tamu, rsvp, kunjungan, panitia, percobaan, pengaturan, gem
+revoke all on table tamu, rsvp, kunjungan, panitia, percobaan, pengaturan, gem, isi
   from anon, authenticated;
 revoke all on sequence percobaan_id_seq from anon, authenticated;
 
@@ -426,6 +443,29 @@ begin
 end
 $$;
 
+-- Isi undangan yang tidak ikut ter-publish. Dikirim HANYA kalau kodenya milik
+-- tamu yang benar-benar terdaftar — sama pintunya dengan cek_tamu.
+create or replace function isi_undangan(p_kode text)
+returns json
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_id uuid;
+begin
+  select t.id into v_id from tamu t
+  where lower(t.kode) = lower(btrim(coalesce(p_kode, '')));
+  if v_id is null then
+    return json_build_object('ok', false, 'error', 'tanpa-kode');
+  end if;
+
+  return json_build_object('ok', true, 'isi', coalesce((
+    select json_object_agg(i.kunci, i.nilai) from isi i where i.nilai <> ''
+  ), '{}'::json));
+end
+$$;
+
 -- Keadaan hadiah untuk satu tamu, tanpa mengklaim apa pun. Dipakai browser
 -- untuk tahu apakah pintunya masih terbuka, dan sisa waktunya berapa.
 create or replace function status_gem(p_kode text)
@@ -641,6 +681,7 @@ revoke all on function daftar_tamu(text)                                from pub
 revoke all on function statistik(text)                                  from public;
 revoke all on function klaim_gem(text, text[])                          from public;
 revoke all on function status_gem(text)                                 from public;
+revoke all on function isi_undangan(text)                               from public;
 revoke all on function daftar_gem(text)                                 from public;
 revoke all on function tukar_gem(text, text, text)                      from public;
 
@@ -652,6 +693,7 @@ grant execute on function daftar_tamu(text)                            to anon, 
 grant execute on function statistik(text)                              to anon, authenticated;
 grant execute on function klaim_gem(text, text[])                      to anon, authenticated;
 grant execute on function status_gem(text)                             to anon, authenticated;
+grant execute on function isi_undangan(text)                           to anon, authenticated;
 grant execute on function daftar_gem(text)                             to anon, authenticated;
 grant execute on function tukar_gem(text, text, text)                  to anon, authenticated;
 

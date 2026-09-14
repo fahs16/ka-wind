@@ -990,7 +990,13 @@ window.addEventListener('DOMContentLoaded', () => {
   // Selama diperiksa, halaman sengaja kosong: tidak ada nama, tanggal, atau
   // lokasi yang sempat dirender untuk pengunjung tanpa undangan.
   Access.mulai()
-    .then(boleh => { boleh ? mulaiUndangan() : Access.tutup(); })
+    .then(boleh => {
+      if (!boleh) { Access.tutup(); return; }
+      // Isi yang tidak boleh ter-publish diambil dulu, baru halaman digambar.
+      // Kalau servernya diam, CONFIG dibiarkan apa adanya dan undangan tetap
+      // tampil — hanya isinya yang seadanya.
+      return Isi.muat().then(() => mulaiUndangan());
+    })
     .catch(() => Access.tutup());
 });
 

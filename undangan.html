@@ -31,12 +31,22 @@
     </div>
 
     <div class="field">
+      <label>Token panitia <span class="muted">(buat Muat / Simpan ke server)</span></label>
+      <input id="tok" type="password" placeholder="ADMIN_TOKEN dari apps-script.gs">
+      <p class="muted" style="font-size:19px">Disimpan di browser ini saja. Kosongkan kalau
+      cuma mau menyusun daftar tanpa menyentuh server.</p>
+    </div>
+
+    <div class="field">
       <label>Daftar tamu — satu baris satu tamu</label>
       <textarea id="src" spellcheck="false">Bapak Andi &amp; Keluarga | 4 | Keluarga | 6281200000001
 Rina Kartika | 2 | Kantor | 6281200000002
 Dewi &amp; Partner | 2 | Teman
 Keluarga Besar Wijaya | 6 | Keluarga</textarea>
-      <p class="muted" style="font-size:19px">Format: <code>Nama | jumlah kursi | grup | nomor WA</code>.
+      <p class="muted" style="font-size:19px">Format: <code>Nama | jumlah kursi | grup | nomor WA | kode</code>.
+      Kolom <b>kode</b> diisi otomatis waktu kamu menekan <b>Muat dari Server</b>, dan berguna supaya
+      kode yang sudah terlanjur dikirim ke tamu tidak berubah. Untuk tamu baru, biarkan kosong.</p>
+      <p class="muted" style="font-size:19px">
       Kolom setelah nama boleh dikosongkan, contoh: <code>Pak Budi</code> atau <code>Pak Budi | 2</code>.
       Nomor WA pakai format <code>628xxx</code>.</p>
     </div>
@@ -71,12 +81,15 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
 
     <div class="btn-row">
       <button class="btn btn-primary" id="go">Buat Link</button>
+      <button class="btn btn-primary" id="muat">Muat dari Server</button>
+      <button class="btn btn-primary" id="simpan">Simpan ke Server</button>
       <button class="btn" id="csv">Unduh CSV</button>
       <button class="btn btn-gold" id="sql-copy">Salin SQL Tamu</button>
       <button class="btn btn-gold" id="sheet">Salin untuk Google Sheet</button>
       <button class="btn" id="dl">Unduh js/guests.js</button>
       <button class="btn" id="copyall">Salin Semua Link</button>
       <button class="btn btn-gold" id="env-copy">Salin GUEST_CODES</button>
+      <button class="btn btn-gold" id="isi-copy">Salin Kunci ISI</button>
       <button class="btn btn-small" id="reset-kode">Buat Ulang Semua Kode</button>
     </div>
   </div>
@@ -91,6 +104,22 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
     <div class="panel"><textarea id="sql" style="min-height:230px" spellcheck="false" readonly></textarea>
       <div class="btn-row"><button class="btn btn-small" id="copysql">Salin Blok SQL</button></div>
     </div>
+  </div>
+
+  <div id="isi-panel">
+    <h2>Isi yang tidak boleh ter-publish</h2>
+    <p class="muted"><code>js/config.js</code> adalah berkas statis: siapa pun bisa mengunduhnya
+    langsung. Jadi nomor rekening, alamat rumah, nomor WA, dan nama lengkap orang tua sebaiknya
+    tidak tinggal di sana. Salin daftar di bawah ke tab <b>ISI</b> di Google Sheet (atau tabel
+    <code>isi</code> di basis data) mulai baris ke-2 &mdash; isinya baru dikirim ke tamu setelah
+    kodenya terbukti terdaftar.</p>
+    <div class="panel"><textarea id="isi" style="min-height:230px" spellcheck="false" readonly></textarea>
+      <div class="btn-row"><button class="btn btn-small" id="copyisi">Salin Daftar ISI</button></div>
+    </div>
+    <div class="note danger">Setelah ditempel ke server, <b>kosongkan</b> nilainya di
+    <code>js/config.js</code> &mdash; ganti jadi <code>''</code>. <b>Jangan dihapus barisnya</b>:
+    server cuma boleh mengisi tempat yang memang sudah ada di berkas itu, jadi kunci yang barisnya
+    hilang akan diabaikan.</div>
   </div>
 
   <div id="env-panel">
@@ -147,6 +176,7 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
 <div id="toast"></div>
 
 <script src="js/config.js"></script>
+<script src="js/db.js"></script>
 <script>
 (function () {
   const $ = id => document.getElementById(id);
@@ -212,6 +242,9 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
       'sisa nama atau kode yang bisa dibaca dari <code>situskamu.com/js/guests.js</code>.';
   }
 
+  renderIsi();
+  try { $('tok').value = localStorage.getItem('undangan-admin') ? (JSON.parse(localStorage.getItem('undangan-admin')).tok || '') : ''; } catch (e) {}
+
   $('tpl').value = DEFAULT_TPL;
   $('base').value = location.href.replace(/undangan\.html.*$/, '');
 
@@ -276,6 +309,112 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
 
     if (berubah) simpanIngatan(ingat);
     return hasil;
+  }
+
+  /* ---------- daftar tamu: satu sumber, di server ----------
+     Sebelumnya daftar di halaman ini dan daftar di Sheet hidup terpisah, jadi
+     gampang beda isi. Sekarang halaman ini bisa menarik daftar yang ada di
+     server lalu menuliskannya balik, supaya yang dianggap benar cuma satu. */
+  function endpointServer() {
+    return String((CONFIG.guests && CONFIG.guests.endpoint) || CONFIG.rsvp.endpoint || '').trim();
+  }
+  function simpanToken() {
+    try {
+      const lama = JSON.parse(localStorage.getItem('undangan-admin') || '{}');
+      lama.tok = $('tok').value.trim();
+      localStorage.setItem('undangan-admin', JSON.stringify(lama));
+    } catch (e) {}
+  }
+  function keBaris(t) {
+    return [t.nama || t.name, t.kursi || t.seats || 2, t.grup || t.group || '',
+            t.wa || '', t.kode || t.code].join(' | ');
+  }
+
+  function muatDariServer() {
+    const tok = $('tok').value.trim();
+    if (!tok) { toast('Token panitia belum diisi'); return; }
+    simpanToken();
+    const pakaiDb = modeDb && typeof Db !== 'undefined' && Db.aktif();
+    const janji = pakaiDb
+      ? Db.daftarTamu(tok).then(j => (j && j.ok) ? { ok: true, tamu: j.baris } : j)
+      : fetch(endpointServer() + (endpointServer().indexOf('?') >= 0 ? '&' : '?') +
+              'action=tamu-all&token=' + encodeURIComponent(tok)).then(r => r.json());
+
+    toast('Mengambil daftar tamu...');
+    janji.then(j => {
+      if (!j || !j.ok) throw new Error((j && j.error) || 'gagal');
+      const daftar = j.tamu || [];
+      if (!daftar.length) { toast('Daftar di server masih kosong'); return; }
+      // Kolom ke-5 berisi kodenya, jadi kode yang sudah terlanjur dikirim ke
+      // tamu tidak berubah waktu daftarnya dibuat ulang di sini.
+      $('src').value = daftar.map(keBaris).join('\n');
+      render();
+      toast(daftar.length + ' tamu dimuat dari server');
+    }).catch(e => {
+      toast('Gagal memuat: ' + (e.message || e));
+    });
+  }
+
+  function simpanKeServer() {
+    const tok = $('tok').value.trim();
+    if (!tok) { toast('Token panitia belum diisi'); return; }
+    render();
+    if (!rows.length) { toast('Daftar tamunya masih kosong'); return; }
+    simpanToken();
+
+    if (modeDb && !modeSheet) {
+      toast('Mode basis data: pakai tombol Salin SQL Tamu, lalu Run di SQL Editor');
+      return;
+    }
+    const muatan = rows.map(g => ({ kode: g.code, nama: g.name, kursi: g.seats, grup: g.group, wa: g.wa }));
+    toast('Menyimpan ' + muatan.length + ' tamu...');
+    fetch(endpointServer(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ jenis: 'tamu', token: tok, tamu: muatan })
+    })
+      .then(r => r.json())
+      .then(j => {
+        if (!j || !j.ok) throw new Error((j && j.error) || 'gagal');
+        toast('Tersimpan: ' + j.baru + ' baru, ' + j.perbarui + ' diperbarui (total ' + j.total + ')');
+      })
+      .catch(e => toast('Gagal menyimpan: ' + (e.message || e)));
+  }
+
+  /* ---------- isi yang tidak boleh ter-publish ----------
+     Kunci berupa jalur ke dalam CONFIG. Daftarnya disusun dari isi config.js
+     yang sekarang, jadi tinggal tempel ke tab ISI tanpa mengetik ulang. */
+  function ambilJalur(obj, jalur) {
+    return jalur.split('.').reduce((o, k) => (o === undefined || o === null) ? undefined : o[k], obj);
+  }
+
+  function kunciIsi() {
+    const daftar = [
+      ['couple.groom.full', 'nama lengkap mempelai pria'],
+      ['couple.groom.role', 'nama orang tua mempelai pria'],
+      ['couple.bride.full', 'nama lengkap mempelai wanita'],
+      ['couple.bride.role', 'nama orang tua mempelai wanita'],
+      ['gifts.address',     'alamat kirim kado']
+    ];
+    (CONFIG.events || []).forEach((e, i) => {
+      daftar.push(['events.' + i + '.place',   'nama gedung ' + (e.name || i)]);
+      daftar.push(['events.' + i + '.address', 'alamat ' + (e.name || i)]);
+      daftar.push(['events.' + i + '.maps',    'link peta ' + (e.name || i)]);
+    });
+    ((CONFIG.gifts && CONFIG.gifts.banks) || []).forEach((b, i) => {
+      daftar.push(['gifts.banks.' + i + '.number', 'nomor rekening ' + (b.bank || i)]);
+      daftar.push(['gifts.banks.' + i + '.holder', 'atas nama rekening ' + (b.bank || i)]);
+    });
+    daftar.push(['rsvp.whatsapp', 'nomor WA penerima konfirmasi']);
+    return daftar;
+  }
+
+  function renderIsi() {
+    // TSV: Kunci | Nilai | Keterangan — kolomnya langsung pas dengan tab ISI.
+    $('isi').value = kunciIsi().map(([k, ket]) => {
+      const v = ambilJalur(CONFIG, k);
+      return [k, v === undefined || v === null ? '' : String(v), ket].join('\t');
+    }).join('\n');
   }
 
   /* ---------- kunci gerbang Netlify ----------
@@ -457,6 +596,10 @@ Keluarga Besar Wijaya | 6 | Keluarga</textarea>
   $('env-copy').onclick = () => { render(); copy($('envcodes').value, rows.length + ' kode tersalin'); };
   $('copyenv').onclick = () => copy($('envcodes').value, rows.length + ' kode tersalin');
   $('copyadmin').onclick = () => copy($('envadmin').value, 'ADMIN_CODE tersalin');
+  $('muat').onclick = muatDariServer;
+  $('simpan').onclick = simpanKeServer;
+  $('isi-copy').onclick = () => { renderIsi(); copy($('isi').value, 'Daftar ISI tersalin'); };
+  $('copyisi').onclick = () => copy($('isi').value, 'Daftar ISI tersalin');
   $('admin-baru').onclick = () => {
     if (!confirm('ADMIN_CODE lama langsung tidak berlaku setelah kamu tempel yang baru ke Netlify. Lanjut?')) return;
     simpanAdminCode(buatAdminCode());

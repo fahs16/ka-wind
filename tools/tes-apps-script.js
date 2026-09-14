@@ -113,7 +113,36 @@ cek('yang belum pernah buka -> false', sepi.sudahBuka, false);
 cek('yang belum pernah buka -> tanpa waktu', sepi.terakhirBuka, '');
 cek('nomor WA tetap ada buat panitia', andi.wa, '628120000001');
 
-console.log('\n=== 13. RSVP lewat doPost masuk ke tab RSVP ===');
+console.log('\n=== 13. isi rahasia: cuma untuk tamu terdaftar ===');
+sheetIsi_().appendRow(['gifts.address', 'Jl. Melati Raya No. 21, Bandung', 'alamat kado']);
+sheetIsi_().appendRow(['rsvp.whatsapp', '6281234567890', 'WA mempelai']);
+sheetIsi_().appendRow(['gifts.banks.0.number', '0012345678', 'nol di depan harus utuh']);
+const isiOk = get({ action: 'isi', u: 'andi-7k2p' });
+cek('tamu terdaftar -> ok', isiOk.ok, true);
+cek('alamat terkirim', isiOk.isi['gifts.address'], 'Jl. Melati Raya No. 21, Bandung');
+cek('nol di depan utuh', isiOk.isi['gifts.banks.0.number'], '0012345678');
+cek('kode ngawur ditolak', get({ action: 'isi', u: 'bukan-tamu' }).error, 'tanpa-kode');
+cek('tanpa kode ditolak', get({ action: 'isi' }).error, 'tanpa-kode');
+cek('tidak ada isi bocor saat ditolak', get({ action: 'isi', u: 'bukan-tamu' }).isi, undefined);
+
+console.log('\n=== 14. simpan daftar tamu dari undangan.html ===');
+const postT = (obj) => JSON.parse(doPost({ parameter: {}, postData: { contents: JSON.stringify(obj) } }).getContent());
+cek('tanpa token ditolak', postT({ jenis: 'tamu', tamu: [] }).error, 'token salah');
+const sebelumT = bacaTamu_().length;
+const simpan1 = postT({ jenis: 'tamu', token: ADMIN_TOKEN, tamu: [
+  { kode: 'baru-aa111', nama: 'Tamu Baru Satu', kursi: 3, grup: 'Kantor', wa: '628111' },
+  { kode: 'andi-7k2p', nama: 'Bapak Andi & Keluarga (diperbarui)', kursi: 5, grup: 'Keluarga', wa: '628120000001' }
+]});
+cek('baru', simpan1.baru, 1);
+cek('diperbarui', simpan1.perbarui, 1);
+cek('total bertambah 1', simpan1.total, sebelumT + 1);
+const setelah = bacaTamu_();
+cek('nama lama tertimpa', setelah.filter(x => x.kode === 'andi-7k2p')[0].nama, 'Bapak Andi & Keluarga (diperbarui)');
+cek('kursi ikut diperbarui', setelah.filter(x => x.kode === 'andi-7k2p')[0].kursi, 5);
+const ulang = postT({ jenis: 'tamu', token: ADMIN_TOKEN, tamu: [{ kode: 'baru-aa111', nama: 'Tamu Baru Satu', kursi: 3 }] });
+cek('kirim ulang tidak menggandakan', ulang.total, simpan1.total);
+
+console.log('\n=== 15. RSVP lewat doPost masuk ke tab RSVP ===');
 const post = (obj) => JSON.parse(doPost({ parameter: {}, postData: { contents: JSON.stringify(obj) } }).getContent());
 cek('kiriman pertama', post({ kode: 'andi-7k2p', nama: 'Bapak Andi', hadir: 'Hadir', jumlah: 4, pesan: 'Barakallah' }).ok, true);
 cek('baris RSVP', sheet_().getLastRow(), 2);
@@ -121,7 +150,7 @@ cek('kiriman ulang memperbarui', post({ kode: 'andi-7k2p', nama: 'Bapak Andi', h
 cek('baris tetap 1', sheet_().getLastRow(), 2);
 cek('nama kosong ditolak', post({ kode: 'andi-7k2p', nama: '  ' }).error, 'nama kosong');
 
-console.log('\n=== 14. 300 tamu -> kode semua unik ===');
+console.log('\n=== 16. 300 tamu -> kode semua unik ===');
 GEM_BATAS = '2026-12-11T23:59:00+07:00';
 const kodes = {};
 let gagal = 0;
