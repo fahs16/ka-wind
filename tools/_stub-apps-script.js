@@ -34,6 +34,16 @@ function bikinLingkungan() {
     createTextOutput: t => ({ _t: t, setMimeType() { return this; }, getContent() { return this._t; } })
   };
   global.Utilities = { sleep: () => {} };
+  // doPost memakai LockService untuk mencegah dua kiriman menimpa baris yang
+  // sama. Di sini cuma satu proses, jadi kuncinya tidak perlu benar-benar
+  // mengunci — yang penting fungsinya ada supaya doPost bisa dijalankan.
+  global.LockService = {
+    getScriptLock: () => ({
+      waitLock: () => true,
+      tryLock: () => true,
+      releaseLock: () => {}
+    })
+  };
   return { sheets, ss };
 }
 module.exports = { bikinLingkungan };
