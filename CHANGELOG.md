@@ -15,7 +15,9 @@ git push origin main
 
 ---
 
-## v3.2.0 — buku tamu + elemen dari undangan pembanding
+## v3.2.0 — commit `bf217cf`
+
+Buku tamu + elemen dari undangan pembanding.
 
 Undangan biasa dibikin lebih hidup, dengan elemen yang diambil dari undangan
 digital komersil yang dijadikan acuan. Yang ditiru idenya, bukan berkasnya —
