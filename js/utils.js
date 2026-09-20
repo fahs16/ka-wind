@@ -98,3 +98,47 @@ const U = {
     return { d, h, m, s, past };
   }
 };
+
+/* Penyaring kata kasar. Ditaruh di sini, bukan di js/net.js, karena dipakai
+   dua tempat: obrolan antar tamu di versi game, dan buku tamu di undangan
+   biasa. Satu daftar kata terlarang untuk keduanya. */
+const Moderate = {
+  base: ['anjing', 'anjay', 'bangsat', 'kontol', 'memek', 'ngentot', 'ngentod', 'jancok', 'jancuk',
+         'kampret', 'bajingan', 'brengsek', 'tolol', 'goblok', 'idiot', 'bego',
+         'fuck', 'fucking', 'shit', 'bitch', 'asshole', 'bastard', 'dick', 'pussy'],
+
+  norm(text) {
+    return String(text).toLowerCase()
+      .replace(/[0@]/g, 'o').replace(/1|!/g, 'i').replace(/3/g, 'e')
+      .replace(/4/g, 'a').replace(/5|\$/g, 's').replace(/7/g, 't')
+      .replace(/(.)\1{2,}/g, '$1$1')
+      .replace(/[^a-z ]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  },
+
+  blocked(text) {
+    const extra = (CONFIG.net && CONFIG.net.chat && CONFIG.net.chat.blocklist) || [];
+    const list = this.base.concat(extra);
+    const n = ' ' + this.norm(text) + ' ';
+    return list.some(w => {
+      w = String(w).toLowerCase().trim();
+      if (!w) return false;
+      return w.length <= 4 ? n.indexOf(' ' + w + ' ') >= 0 : n.indexOf(w) >= 0;
+    });
+  },
+
+  // Rapikan jadi teks yang aman & bisa digambar font bitmap.
+  clean(text, maxLen) {
+    let t = String(text || '')
+      .replace(/https?:\/\/\S+/gi, ' ')
+      .replace(/[\x00-\x1f\x7f]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9 .,!?'\-&:\/+]/g, '');
+    if (/\d{8,}/.test(t)) t = t.replace(/\d{6,}/g, '');
+    return t.replace(/\s+/g, ' ').slice(0, maxLen || 60).trim();
+  }
+};
+

@@ -686,6 +686,50 @@ begin
 end
 $$;
 
+-- Buku tamu yang tampil di undangan: ucapan tamu lain, apa adanya.
+-- Pintunya sama dengan isi_undangan — harus kode tamu yang terdaftar. Yang
+-- keluar cuma nama, ucapan, kehadiran, dan waktunya; kode undangan, grup,
+-- jumlah kursi, dan nomor WA tamu lain tidak pernah ikut.
+create or replace function daftar_ucapan(p_kode text)
+returns json
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_ada  boolean;
+  v_hit  json;
+  v_isi  json;
+begin
+  select exists(select 1 from tamu t where lower(t.kode) = lower(btrim(coalesce(p_kode, ''))))
+  into v_ada;
+  if not v_ada then
+    return json_build_object('ok', false, 'error', 'tanpa-kode');
+  end if;
+
+  select json_build_object(
+    'total',  count(*),
+    'ucapan', count(*) filter (where btrim(coalesce(r.pesan, '')) <> ''),
+    'hadir',  count(*) filter (where lower(r.hadir) not like 'tidak%' and lower(r.hadir) not like '%ragu%'),
+    'ragu',   count(*) filter (where lower(r.hadir) like '%ragu%'),
+    'tidak',  count(*) filter (where lower(r.hadir) like 'tidak%')
+  ) into v_hit from rsvp r;
+
+  select coalesce(json_agg(json_build_object(
+    'nama', d.nama, 'pesan', d.pesan, 'hadir', d.hadir, 'waktu', d.waktu
+  ) order by d.waktu desc), '[]'::json) into v_isi
+  from (
+    select r.nama, r.pesan, r.hadir, r.waktu
+    from rsvp r
+    where btrim(coalesce(r.pesan, '')) <> ''
+    order by r.waktu desc
+    limit 300
+  ) d;
+
+  return json_build_object('ok', true, 'jumlah', v_hit, 'daftar', v_isi);
+end
+$$;
+
 -- =============================================================================
 --  6. SIAPA BOLEH MEMANGGIL APA
 -- =============================================================================
@@ -700,6 +744,7 @@ revoke all on function status_gem(text)                                 from pub
 revoke all on function isi_undangan(text)                               from public;
 revoke all on function daftar_gem(text)                                 from public;
 revoke all on function tukar_gem(text, text, text)                      from public;
+revoke all on function daftar_ucapan(text)                              from public;
 
 grant execute on function cek_tamu(text)                               to anon, authenticated;
 grant execute on function simpan_rsvp(text, text, text, integer, text) to anon, authenticated;
@@ -712,6 +757,7 @@ grant execute on function status_gem(text)                             to anon, 
 grant execute on function isi_undangan(text)                           to anon, authenticated;
 grant execute on function daftar_gem(text)                             to anon, authenticated;
 grant execute on function tukar_gem(text, text, text)                  to anon, authenticated;
+grant execute on function daftar_ucapan(text)                           to anon, authenticated;
 
 -- =============================================================================
 --  7. TOKEN PANITIA  —  GANTI BARIS DI BAWAH INI

@@ -15,6 +15,73 @@ git push origin main
 
 ---
 
+## v3.2.0 — buku tamu + elemen dari undangan pembanding
+
+Undangan biasa dibikin lebih hidup, dengan elemen yang diambil dari undangan
+digital komersil yang dijadikan acuan. Yang ditiru idenya, bukan berkasnya —
+semua ornamen di sini tetap digambar sendiri pakai SVG.
+
+**PERLU LANGKAH TAMBAHAN SETELAH TARIK PERUBAHAN INI.** Buku tamu butuh satu
+pintu baru di server, jadi:
+
+- Mode Google Sheet: buka editor Apps Script, tempel ulang seluruh isi
+  `server/apps-script.gs`, lalu **Deploy → Manage deployments → Edit → New
+  version → Deploy**. Tanpa ini buku tamunya diam (dan bagiannya otomatis
+  disembunyikan, undangan tetap jalan normal).
+- Mode Supabase: jalankan ulang `server/schema.sql` di SQL Editor, atau minimal
+  bagian `daftar_ucapan` beserta baris `revoke`/`grant`-nya.
+
+### Buku tamu yang tampil di undangan
+
+- Bagian **Ucapan & Doa** baru: ucapan yang ditulis tamu di formulir RSVP
+  ditampilkan balik di halaman, lengkap dengan tiga angka ringkas (berapa yang
+  menulis, berapa yang hadir, berapa yang berhalangan) dan lencana kehadiran
+  per ucapan.
+- Ditampilkan 5 dulu, sisanya lewat tombol **Lihat Lebih Banyak**.
+- Ucapan yang barusan dikirim langsung muncul, tanpa perlu muat ulang halaman.
+- Yang dibaca dari server cuma **nama, ucapan, kehadiran, dan waktunya**. Kode
+  undangan, grup, jumlah kursi, dan nomor WA tamu lain tidak pernah ikut —
+  itu dijaga di server, bukan disembunyikan di browser.
+- Tetap perlu disadari: **nama tamu jadi terlihat oleh tamu lain**. Kalau itu
+  tidak diinginkan, isi `ucapan.aktif: false` di `js/config.js`.
+- Ucapan kasar disaring memakai daftar kata yang sama dengan obrolan di versi
+  game. Penyaring `Moderate` dipindah dari `js/net.js` ke `js/utils.js` supaya
+  dipakai bersama — sebelumnya undangan biasa tidak memuat `net.js`, jadi
+  saringannya tidak pernah jalan di sana.
+- Kalau buku tamunya tidak bisa dibaca, bagiannya disembunyikan diam-diam;
+  sisa undangan tetap utuh.
+
+### Elemen visual
+
+- **Bingkai lengkung** (seperti gapura) dipakai di bagian teratas, potret
+  mempelai, dan kartu acara.
+- **Pita gelap merah tua** untuk Rangkaian Acara, selebar layar — halaman
+  panjang jadi punya titik berhenti.
+- **Sulur merambat** di tepi kiri dan kanan layar.
+- **Kartu rekening digambar seperti kartu bank**: cip, nomor besar, nama
+  pemilik. Lebih cepat dikenali daripada tiga baris teks.
+- **Potret mempelai** berbingkai lengkung; isi `couple.groom.foto` /
+  `couple.bride.foto` di `js/config.js` kalau fotonya sudah ada. Dikosongkan =
+  diisi huruf awal nama panggilan.
+- Instagram jadi tombol bundar, bukan tautan teks.
+- Tanggal ditulis besar sebagai angka (`12 . 12 . 2026`) di bawah nama.
+
+### Perbaikan
+
+- `[hidden]` sekarang selalu menang atas `display` dari kelas. Sebelumnya
+  tombol yang disembunyikan lewat atribut `hidden` tetap terlihat karena
+  `.tombol{display:inline-flex}` mengalahkan aturan bawaan browser.
+- Teks di dalam kartu acara sempat nyaris tidak terbaca di atas pita gelap
+  karena mewarisi warna terang dari pitanya.
+- Pita selebar layar dikasih pengaman `overflow-x: clip`, supaya batang gulir
+  desktop tidak bikin halaman bisa digeser ke samping.
+
+Seluruh rangkaian tes lama diulang dan lolos, ditambah rangkaian baru untuk
+buku tamu (17 pemeriksaan: tampilan, paginasi, saringan kata kasar, kebocoran
+data, dan perilaku saat servernya mati).
+
+---
+
 ## v3.1.0 — commit `0c9659f`
 
 Undangan biasa dirombak tampilannya.

@@ -10,13 +10,17 @@ const CONFIG = {
       nick: 'Fitrah',
       full: 'Muhammad Fitrah Ramadhan',
       role: 'Putra pertama dari Bapak Suryana & Ibu Halimah',
-      ig: 'fitrah'
+      ig: 'fitrah',
+      // Foto potret, contoh: 'img/fitrah.jpg'. Dikosongkan = bingkainya diisi
+      // huruf awal nama panggilan, jadi undangan tetap rapi sebelum fotonya ada.
+      foto: ''
     },
     bride: {
       nick: 'Nadia',
       full: 'Nadia Ayu Kirana',
       role: 'Putri kedua dari Bapak Hendra & Ibu Sri Wahyuni',
-      ig: 'nadia'
+      ig: 'nadia',
+      foto: ''
     },
     hashtag: '#FitrahNadiaForever'
   },
@@ -99,6 +103,20 @@ const CONFIG = {
     // Cara bikinnya ada di server/apps-script.gs + README.
     endpoint: 'https://script.google.com/macros/s/AKfycbxxnXUIT5gtBCc8_hV3ETudINzl7Az5ha9Vbf2VHDYnQOh33GZOeNgJ9PFdebzaKtm23w/exec',
     deadline: '1 Desember 2026'
+  },
+
+  // ---------- BUKU TAMU YANG TAMPIL DI UNDANGAN ----------
+  // Ucapan yang ditulis tamu di formulir RSVP ditampilkan balik di halaman,
+  // beserta hitungan berapa yang hadir dan berapa yang berhalangan.
+  //
+  // Yang dibaca dari server cuma nama, ucapan, kehadiran, dan waktunya —
+  // tidak ada kode undangan dan tidak ada nomor WA. Tapi tetap perlu disadari:
+  // NAMA tamu jadi terlihat oleh tamu lain yang membuka undangan. Kalau kalian
+  // tidak mau itu, isi aktif: false dan bagiannya tidak akan digambar.
+  ucapan: {
+    aktif: true,
+    provider: '',     // kosong = ikut rsvp.provider
+    perHalaman: 5     // berapa ucapan tampil sebelum tombol "Lihat lebih banyak"
   },
 
   // ---------- REALTIME / MULTIPLAYER (opsional) ----------
