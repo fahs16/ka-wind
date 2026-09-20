@@ -15,7 +15,9 @@ git push origin main
 
 ---
 
-## v3.1.0 — undangan biasa dirombak tampilannya
+## v3.1.0 — commit `0c9659f`
+
+Undangan biasa dirombak tampilannya.
 
 Isinya tidak berubah sama sekali; yang berubah cara menyajikannya. Undangan
 biasa dulu terlalu polos — lebih mirip formulir daripada undangan pernikahan.
