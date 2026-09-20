@@ -1,66 +1,156 @@
 /* Undangan utama — versi sederhana (index.html).
 
    Isinya sama persis dengan versi game — sumbernya js/config.js yang sama —
-   tapi disajikan sebagai undangan biasa: amplop tertutup dulu, lalu satu
-   halaman gulir dengan huruf besar dan tombol besar. Tanpa kontrol, tanpa
-   misi, tanpa yang perlu dipelajari.
+   tapi disajikan sebagai undangan pernikahan biasa: amplop tertutup dulu,
+   lalu satu halaman gulir. Tanpa kontrol, tanpa misi, tanpa yang perlu
+   dipelajari.
+
+   Semua ornamen di sini digambar sendiri pakai SVG, bukan foto, karena
+   undangan ini harus tetap terlihat layak walaupun galerinya masih kosong.
 
    Gerbang aksesnya tetap sama: link personal ?u=KODE. Kalau kodenya tidak
    dikenal, halaman ini ikut tertutup seperti game.html. */
 
 const Simple = {
-  el: null, dibuka: false,
+  el: null, dibuka: false, fotoAktif: -1,
 
-  /* ---------- Ornamen ---------- */
-  // Monogram: dua inisial mempelai di dalam lingkaran berdaun.
+  /* =====================================================================
+     Ornamen — satu bahasa gambar untuk seluruh halaman: garis tipis emas,
+     daun zaitun, mawar kecil, dan belah ketupat sebagai titik.
+     ===================================================================== */
+
+  // Sehelai daun zaitun. Selalu dipakai lewat pembungkus <g transform>.
+  daun: '<path d="M0 0C4-6 13-6 17 0 13 6 4 6 0 0Z" fill="#e7eddf" stroke="#7d8f6a" ' +
+        'stroke-width="1.1"/><path d="M1 0h15" stroke="#7d8f6a" stroke-width=".9"/>',
+
+  // Setangkai mawar: lingkaran dengan dua pusaran di dalamnya.
+  mawar(x, y, besar) {
+    return '<g transform="translate(' + x + ',' + y + ') scale(' + besar + ')">' +
+      '<circle r="7" fill="#f3dde3" stroke="#a8365a" stroke-width="1.2"/>' +
+      '<path d="M-3.6 1.4a3.9 3.9 0 1 1 4.6 3.5" fill="none" stroke="#a8365a" stroke-width="1.2"/>' +
+      '<path d="M-1.5-2.2a2 2 0 1 1 2.6 1.8" fill="none" stroke="#a8365a" stroke-width="1"/>' +
+    '</g>';
+  },
+
+  // Monogram: dua inisial mempelai di tengah karangan daun.
   monogram() {
     const c = CONFIG.couple;
     const a = (c.groom.nick || '?').charAt(0).toUpperCase();
     const b = (c.bride.nick || '?').charAt(0).toUpperCase();
+    // Daun disusun menyusuri lingkaran, kiri dan kanan simetris, dan sengaja
+    // dibiarkan renggang di puncak supaya belah ketupatnya kelihatan.
+    let karangan = '';
+    for (const sisi of [1, -1]) {
+      for (let i = 0; i < 8; i++) {
+        const derajat = 32 + i * 16;
+        const rad = derajat * Math.PI / 180;
+        const x = (50 + sisi * Math.sin(rad) * 43).toFixed(1);
+        const y = (50 - Math.cos(rad) * 43).toFixed(1);
+        karangan += '<g transform="translate(' + x + ',' + y + ') rotate(' +
+          (sisi * derajat + 90).toFixed(0) + ') scale(.46)">' + this.daun + '</g>';
+      }
+    }
     return '<svg class="monogram" viewBox="0 0 100 100" role="img" aria-label="Monogram ' + a + ' dan ' + b + '">' +
-      '<circle cx="50" cy="50" r="43" fill="none" stroke="#a8823c" stroke-width="1"/>' +
-      '<circle cx="50" cy="50" r="38" fill="none" stroke="#e6d3ae" stroke-width="2.5"/>' +
-      // Belah ketupat kecil di atas & bawah, motif yang sama dengan pemisah
-      // antar bagian, biar satu bahasa.
-      '<path d="M50 22l4 6-4 6-4-6z" fill="#a8365a"/>' +
-      '<path d="M50 66l4 6-4 6-4-6z" fill="#a8365a"/>' +
-      '<text x="50" y="60" text-anchor="middle" font-family="Cormorant Garamond, Georgia, serif" fill="#39262f">' +
-        '<tspan font-size="32" font-weight="600">' + U.esc(a) + '</tspan>' +
-        '<tspan font-size="19" fill="#a8365a" dx="3" dy="-2">&amp;</tspan>' +
-        '<tspan font-size="32" font-weight="600" dx="3" dy="2">' + U.esc(b) + '</tspan>' +
+      '<circle cx="50" cy="50" r="36" fill="none" stroke="#e6d3ae" stroke-width="2.5"/>' +
+      '<circle cx="50" cy="50" r="31" fill="none" stroke="#a8823c" stroke-width=".8"/>' +
+      karangan +
+      '<path d="M50 4l4.5 7-4.5 7-4.5-7z" fill="#a8365a"/>' +
+      '<text x="50" y="61" text-anchor="middle" font-family="Cormorant Garamond, Georgia, serif" fill="#39262f">' +
+        '<tspan font-size="30" font-weight="600">' + U.esc(a) + '</tspan>' +
+        '<tspan font-size="18" fill="#a8365a" dx="2" dy="-2">&amp;</tspan>' +
+        '<tspan font-size="30" font-weight="600" dx="2" dy="2">' + U.esc(b) + '</tspan>' +
       '</text>' +
     '</svg>';
   },
 
-  // Pemisah antar bagian: setangkai daun kecil dengan berlian di tengah.
-  pemisah() {
-    return '<svg class="pemisah" viewBox="0 0 150 22" aria-hidden="true">' +
-      '<g fill="none" stroke="#c9b189" stroke-width="1.3" stroke-linecap="round">' +
-        '<path d="M6 11h50"/><path d="M94 11h50"/>' +
-        '<path d="M58 11q6-7 12 0"/><path d="M92 11q-6 7-12 0"/>' +
-      '</g>' +
-      '<path d="M75 4l5 7-5 7-5-7z" fill="#a8365a"/>' +
+  // Rangkaian bunga untuk sudut bingkai sampul. Digambar sekali menghadap
+  // sudut kiri-atas; tiga sudut sisanya tinggal dicerminkan lewat CSS.
+  sudutBunga() {
+    let daun = '';
+    // Daun ditempel di sepanjang tangkai, berselang-seling kiri-kanan.
+    const titik = [[22, 74, 150], [30, 58, 205], [44, 44, 160], [58, 32, 215], [70, 24, 165]];
+    for (let i = 0; i < titik.length; i++) {
+      daun += '<g transform="translate(' + titik[i][0] + ',' + titik[i][1] + ') rotate(' +
+        titik[i][2] + ') scale(.62)">' + this.daun + '</g>';
+    }
+    return '<svg class="sudut" viewBox="0 0 110 110" aria-hidden="true">' +
+      '<path d="M8 104C14 72 34 40 82 18" fill="none" stroke="#7d8f6a" stroke-width="1.5" stroke-linecap="round"/>' +
+      '<path d="M8 104C26 86 40 58 46 22" fill="none" stroke="#c9b189" stroke-width="1.1" stroke-linecap="round"/>' +
+      daun +
+      this.mawar(16, 88, 1.15) + this.mawar(37, 64, .85) + this.mawar(62, 33, .7) +
     '</svg>';
   },
 
-  /* ---------- Sampul ---------- */
+  // Pemisah antar bagian. Tiga corak supaya halaman panjang tidak terasa
+  // mengulang gambar yang sama terus-menerus.
+  pemisah(jenis) {
+    const garis = '<g fill="none" stroke="#c9b189" stroke-width="1.2" stroke-linecap="round">' +
+      '<path d="M6 12h46"/><path d="M118 12h46"/></g>';
+    if (jenis === 'mawar') {
+      return '<svg class="pemisah" viewBox="0 0 170 24" aria-hidden="true">' + garis +
+        '<g transform="translate(70,12) rotate(200) scale(.75)">' + this.daun + '</g>' +
+        '<g transform="translate(100,12) rotate(20) scale(.75)">' + this.daun + '</g>' +
+        this.mawar(85, 12, 1.05) +
+      '</svg>';
+    }
+    if (jenis === 'daun') {
+      return '<svg class="pemisah" viewBox="0 0 170 24" aria-hidden="true">' + garis +
+        '<g transform="translate(60,12) rotate(196) scale(.8)">' + this.daun + '</g>' +
+        '<g transform="translate(110,12) rotate(16) scale(.8)">' + this.daun + '</g>' +
+        '<path d="M85 4l4.5 8-4.5 8-4.5-8z" fill="#a8365a"/>' +
+      '</svg>';
+    }
+    return '<svg class="pemisah" viewBox="0 0 170 24" aria-hidden="true">' + garis +
+      '<path d="M85 3l5 9-5 9-5-9z" fill="none" stroke="#a8823c" stroke-width="1.2"/>' +
+      '<path d="M85 7.5l2.5 4.5-2.5 4.5-2.5-4.5z" fill="#a8365a"/>' +
+      '<circle cx="64" cy="12" r="2" fill="#e6d3ae"/><circle cx="106" cy="12" r="2" fill="#e6d3ae"/>' +
+    '</svg>';
+  },
+
+  // Lambang kecil di kepala kartu acara: kubah untuk akad, cincin untuk
+  // resepsi. Dipilih dari nama acaranya sendiri supaya tidak perlu setelan
+  // tambahan di config.js.
+  ikonAcara(ev) {
+    const nama = ((ev.id || '') + ' ' + (ev.name || '')).toLowerCase();
+    const akad = nama.indexOf('akad') >= 0 || nama.indexOf('nikah') >= 0 ||
+                 nama.indexOf('ijab') >= 0 || nama.indexOf('pemberkatan') >= 0;
+    const isi = akad
+      ? '<path d="M13 26a11 11 0 0 1 22 0"/><path d="M13 26v15M35 26v15"/>' +
+        '<path d="M20 41v-7a4 4 0 0 1 8 0v7"/><path d="M24 15v-5"/>' +
+        '<path d="M7 41V27h4v14M37 41V27h4v14"/><path d="M5 41h38"/>'
+      : '<circle cx="19" cy="28" r="9"/><circle cx="31" cy="28" r="9"/>' +
+        '<path d="M31 19l3-5 3 5-3 4z"/><path d="M12 14l1.5 3 3 1.5-3 1.5L12 23l-1.5-3L7.5 18.5 10.5 17z"/>';
+    return '<svg class="ikon" viewBox="0 0 48 48" aria-hidden="true">' +
+      '<g fill="none" stroke="#a8823c" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' +
+      isi + '</g></svg>';
+  },
+
+  /* =====================================================================
+     Sampul — amplop tertutup
+     ===================================================================== */
   gambarSampul() {
     const c = CONFIG.couple;
     const tamu = Content.guest();
     const d = new Date(CONFIG.bigDay);
     const tgl = isNaN(d) ? '' : d.toLocaleDateString('id-ID',
       { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const sudut = this.sudutBunga();
     document.getElementById('sampul').innerHTML =
       '<div class="sampul-isi"><div class="bingkai">' +
+        '<div class="sudut-bunga">' + sudut + sudut + sudut + sudut + '</div>' +
         this.monogram() +
         '<p class="kicker">The Wedding Of</p>' +
-        '<h1 class="nama">' + U.esc(c.groom.nick) + '</h1>' +
+        '<h1 class="nama tulis">' + U.esc(c.groom.nick) + '</h1>' +
         '<p class="dan">&amp;</p>' +
-        '<h1 class="nama">' + U.esc(c.bride.nick) + '</h1>' +
+        '<h1 class="nama tulis">' + U.esc(c.bride.nick) + '</h1>' +
         '<p class="tanggal">' + U.esc(tgl) + '</p>' +
-        '<div class="sapaan">Kepada Yth.<b data-nama-tamu>' +
+        '<div class="sapaan"><span>Kepada Yth.</span><b data-nama-tamu>' +
           U.esc(tamu || 'Bapak / Ibu / Saudara/i') + '</b></div>' +
-        '<button class="tombol utama besar" type="button" id="buka">Buka Undangan</button>' +
+        '<button class="tombol utama besar" type="button" id="buka">' +
+          '<svg class="ikon-tombol" viewBox="0 0 24 24" aria-hidden="true">' +
+            '<g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">' +
+            '<rect x="2.5" y="5.5" width="19" height="13" rx="1.5"/><path d="M2.5 7l9.5 7 9.5-7"/></g>' +
+          '</svg>Buka Undangan</button>' +
         '<p class="sampul-catatan">Ada musik lembut di dalamnya. ' +
           'Bisa dimatikan lewat tombol &#9834; di pojok kanan bawah.</p>' +
       '</div></div>';
@@ -75,9 +165,12 @@ const Simple = {
     // Sentuhan tamu barusan yang bikin browser mengizinkan suara.
     if (CONFIG.music !== false) this.setelMusik(true);
     window.scrollTo(0, 0);
+    this.amatiBagian();
   },
 
-  /* ---------- Halaman isi ---------- */
+  /* =====================================================================
+     Halaman isi
+     ===================================================================== */
   mulai() {
     this.el = document.getElementById('halaman');
     Toast.init();
@@ -89,8 +182,10 @@ const Simple = {
 
     this.gambarSampul();
     this.tebarKelopak();
+    this.gambarHiasan();
 
     this.el.innerHTML =
+      this.sorot() +
       this.pembuka() +
       this.mempelai() +
       this.kutipan() +
@@ -105,15 +200,29 @@ const Simple = {
     this.pasangTombol();
   },
 
-  pembuka() {
-    const s = CONFIG.salam || {};
+  // Kerangka satu bagian, supaya jarak dan susunan judulnya seragam.
+  bungkus(o) {
+    return '<section class="bagian' + (o.kelas ? ' ' + o.kelas : '') + '">' +
+      (o.pemisah === false ? '' : this.pemisah(o.pemisah)) +
+      (o.kicker ? '<p class="tulisan-tangan">' + U.esc(o.kicker) + '</p>' : '') +
+      (o.judul ? '<h2>' + U.esc(o.judul) + '</h2>' : '') +
+      (o.sub ? '<p class="sub">' + U.esc(o.sub) + '</p>' : '') +
+      o.isi +
+    '</section>';
+  },
+
+  // Bagian teratas: nama besar, tanggal, dan hitung mundur.
+  sorot() {
+    const c = CONFIG.couple;
     const d = new Date(CONFIG.bigDay);
     const tgl = isNaN(d) ? '' : d.toLocaleDateString('id-ID',
       { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-    return '<section class="bagian">' +
-      (s.pembuka ? '<p class="salam">' + U.esc(s.pembuka) + '</p>' : '') +
-      (s.niat ? '<p class="niat">' + U.esc(s.niat) + '</p>' : '') +
-      '<p class="tanggal" style="margin-top:26px">' + U.esc(tgl) + '</p>' +
+    return '<section class="bagian sorot">' +
+      '<p class="kicker">Undangan Pernikahan</p>' +
+      '<h1 class="nama tulis">' + U.esc(c.groom.nick) + '</h1>' +
+      '<div class="amper-garis"><span>&amp;</span></div>' +
+      '<h1 class="nama tulis">' + U.esc(c.bride.nick) + '</h1>' +
+      '<p class="tanggal">' + U.esc(tgl) + '</p>' +
       '<div class="mundur" id="mundur">' +
         '<div><b id="m-h">0</b><span>hari</span></div>' +
         '<div><b id="m-j">0</b><span>jam</span></div>' +
@@ -121,36 +230,59 @@ const Simple = {
         '<div><b id="m-d">0</b><span>detik</span></div>' +
       '</div>' +
       '<p class="lewat" id="lewat" hidden>Terima kasih sudah menjadi bagian dari hari kami.</p>' +
+      '<div class="gulir" aria-hidden="true"><span></span></div>' +
     '</section>';
+  },
+
+  pembuka() {
+    const s = CONFIG.salam || {};
+    if (!s.pembuka && !s.niat) return '';
+    return this.bungkus({
+      kelas: 'pita', pemisah: 'daun',
+      isi: (s.pembuka ? '<p class="salam">' + U.esc(s.pembuka) + '</p>' : '') +
+           (s.niat ? '<p class="niat">' + U.esc(s.niat) + '</p>' : '')
+    });
   },
 
   mempelai() {
     const c = CONFIG.couple;
-    const satu = o =>
-      '<div class="mempelai">' +
-        '<h3 class="nama">' + U.esc(o.nick) + '</h3>' +
+    const satu = o => {
+      const awal = (o.nick || '?').charAt(0).toUpperCase();
+      return '<div class="mempelai">' +
+        '<div class="medali"><span>' + U.esc(awal) + '</span></div>' +
+        '<h3 class="nama tulis">' + U.esc(o.nick) + '</h3>' +
         '<p class="penuh">' + U.esc(o.full) + '</p>' +
         (o.role ? '<p class="ortu">' + U.esc(o.role) + '</p>' : '') +
+        (o.ig ? '<a class="ig" href="https://instagram.com/' + encodeURIComponent(o.ig) +
+          '" target="_blank" rel="noopener">@' + U.esc(o.ig) + '</a>' : '') +
       '</div>';
-    return '<section class="bagian">' + this.pemisah() +
-      '<h2>Mempelai</h2>' +
-      satu(c.groom) + '<p class="amper">&amp;</p>' + satu(c.bride) +
-    '</section>';
+    };
+    return this.bungkus({
+      kelas: 'mempelai-bagian', pemisah: 'mawar',
+      kicker: 'Bismillah', judul: 'Mempelai',
+      sub: 'Dengan memohon rahmat dan ridho Allah, kami bermaksud menyelenggarakan pernikahan:',
+      isi: satu(c.groom) + '<div class="amper-garis"><span>&amp;</span></div>' + satu(c.bride)
+    });
   },
 
   kutipan() {
     const q = CONFIG.quote;
     if (!q || !q.text) return '';
-    return '<section class="bagian">' + this.pemisah() +
-      '<blockquote class="kutipan">' + U.esc(q.text) +
-        (q.source ? '<span>' + U.esc(q.source) + '</span>' : '') +
-      '</blockquote></section>';
+    return this.bungkus({
+      kelas: 'pita', pemisah: 'titik',
+      isi: '<blockquote class="kutipan">' +
+        '<span class="petik" aria-hidden="true">&ldquo;</span>' +
+        U.esc(q.text) +
+        (q.source ? '<span class="asal">' + U.esc(q.source) + '</span>' : '') +
+      '</blockquote>'
+    });
   },
 
   acara() {
     const s = CONFIG.salam || {};
     const kartu = CONFIG.events.map(ev =>
-      '<div class="kartu">' +
+      '<div class="kartu acara">' +
+        this.ikonAcara(ev) +
         '<h3>' + U.esc(ev.name) + '</h3>' +
         '<div class="baris"><span class="label">Hari</span><span class="isi"><b>' + U.esc(ev.day) + '</b></span></div>' +
         '<div class="baris"><span class="label">Jam</span><span class="isi">' + U.esc(ev.time) + '</span></div>' +
@@ -162,15 +294,14 @@ const Simple = {
         '</div>' +
       '</div>').join('');
     const live = CONFIG.liveStream
-      ? '<div class="kartu"><h3>Siaran Langsung</h3>' +
+      ? '<div class="kartu tengah"><h3>Siaran Langsung</h3>' +
         '<div class="tombol-baris"><a class="tombol utama" href="' + U.esc(CONFIG.liveStream) +
         '" target="_blank" rel="noopener">Tonton dari Rumah</a></div></div>'
       : '';
-    return '<section class="bagian">' + this.pemisah() +
-      '<h2>Rangkaian Acara</h2>' +
-      (s.penutup ? '<p class="sub">' + U.esc(s.penutup) + '</p>' : '') +
-      kartu + live +
-    '</section>';
+    return this.bungkus({
+      pemisah: 'daun', kicker: 'Save the Date', judul: 'Rangkaian Acara',
+      sub: s.penutup || '', isi: kartu + live
+    });
   },
 
   cerita() {
@@ -179,11 +310,12 @@ const Simple = {
       '<li><div class="tahun">' + U.esc(s.year) + '</div>' +
       '<h3>' + U.esc(s.title) + '</h3>' +
       '<p>' + U.esc(s.text) + '</p></li>').join('');
-    return '<section class="bagian">' + this.pemisah() +
-      '<h2>Cerita Kami</h2>' +
-      '<p class="sub">Sedikit tentang bagaimana kami sampai di titik ini.</p>' +
-      '<ul class="cerita">' + item + '</ul>' +
-    '</section>';
+    return this.bungkus({
+      kelas: 'pita', pemisah: 'mawar',
+      kicker: 'Our Story', judul: 'Cerita Kami',
+      sub: 'Sedikit tentang bagaimana kami sampai di titik ini.',
+      isi: '<ul class="cerita">' + item + '</ul>'
+    });
   },
 
   galeri() {
@@ -193,14 +325,17 @@ const Simple = {
         ? '<img src="' + U.esc(g.src) + '" alt="' + U.esc(g.caption) + '" loading="lazy"' +
           ' onerror="this.parentNode.classList.add(\'kosong\');this.parentNode.textContent=\'Foto ' + (i + 1) + '\';">'
         : 'Foto ' + (i + 1);
-      return '<figure><div class="bingkai-foto' + (g.src ? '' : ' kosong') + '">' + dalam + '</div>' +
+      // Hanya foto sungguhan yang bisa diperbesar; bingkai kosong dibiarkan diam.
+      const buka = g.src ? ' data-foto="' + i + '" tabindex="0" role="button" aria-label="Perbesar ' +
+        U.esc(g.caption) + '"' : '';
+      return '<figure><div class="bingkai-foto' + (g.src ? '' : ' kosong') + '"' + buka + '>' + dalam + '</div>' +
         '<figcaption>' + U.esc(g.caption) + '</figcaption></figure>';
     }).join('');
-    return '<section class="bagian">' + this.pemisah() +
-      '<h2>Galeri</h2>' +
-      '<p class="sub">Beberapa potongan perjalanan kami.</p>' +
-      '<div class="galeri">' + item + '</div>' +
-    '</section>';
+    return this.bungkus({
+      pemisah: 'titik', kicker: 'Moments', judul: 'Galeri',
+      sub: 'Beberapa potongan perjalanan kami.',
+      isi: '<div class="galeri">' + item + '</div>'
+    });
   },
 
   rsvp() {
@@ -211,29 +346,32 @@ const Simple = {
       '<option value="' + (i + 1) + '"' +
       (simpan && +simpan.jumlah === i + 1 ? ' selected' : '') + '>' + (i + 1) + ' orang</option>').join('');
     const pilih = v => (simpan && simpan.hadir === v ? ' selected' : '');
-    return '<section class="bagian">' + this.pemisah() +
-      '<h2>Konfirmasi Kehadiran</h2>' +
-      '<p class="sub">Mohon diisi supaya kami bisa menyiapkan kursi dan konsumsi yang pas.' +
-        (CONFIG.rsvp.deadline ? ' Ditunggu sebelum <b>' + U.esc(CONFIG.rsvp.deadline) + '</b>.' : '') + '</p>' +
-      '<form id="rsvp-form" class="isian">' +
-        '<label>Nama Anda' +
-          '<input name="nama" required maxlength="60" autocomplete="name" ' +
-          'value="' + U.esc(simpan ? simpan.nama : (info.name || '')) + '" placeholder="Nama lengkap"></label>' +
-        '<label>Bisa hadir?<select name="hadir">' +
-          '<option' + pilih('Hadir') + '>Hadir</option>' +
-          '<option' + pilih('Masih ragu') + '>Masih ragu</option>' +
-          '<option' + pilih('Tidak bisa hadir') + '>Tidak bisa hadir</option>' +
-        '</select></label>' +
-        '<label>Datang berapa orang?' +
-          (info.seats ? ' <span class="jatah">(jatah Anda ' + info.seats + ' kursi)</span>' : '') +
-          '<select name="jumlah">' + opsi + '</select></label>' +
-        '<label>Ucapan &amp; doa' +
-          '<textarea name="pesan" rows="4" maxlength="400" placeholder="Tulis doa terbaik Anda...">' +
-          U.esc(simpan ? simpan.pesan : '') + '</textarea></label>' +
-        '<button class="tombol utama" type="submit">Kirim Konfirmasi</button>' +
-      '</form>' +
-      '<div class="hasil" id="rsvp-result"></div>' +
-    '</section>';
+    return this.bungkus({
+      kelas: 'pita', pemisah: 'mawar',
+      kicker: 'RSVP', judul: 'Konfirmasi Kehadiran',
+      sub: 'Mohon diisi supaya kami bisa menyiapkan kursi dan konsumsi yang pas.' +
+        (CONFIG.rsvp.deadline ? ' Ditunggu sebelum ' + CONFIG.rsvp.deadline + '.' : ''),
+      isi: '<div class="kartu isian-kartu">' +
+        '<form id="rsvp-form" class="isian">' +
+          '<label>Nama Anda' +
+            '<input name="nama" required maxlength="60" autocomplete="name" ' +
+            'value="' + U.esc(simpan ? simpan.nama : (info.name || '')) + '" placeholder="Nama lengkap"></label>' +
+          '<label>Bisa hadir?<select name="hadir">' +
+            '<option' + pilih('Hadir') + '>Hadir</option>' +
+            '<option' + pilih('Masih ragu') + '>Masih ragu</option>' +
+            '<option' + pilih('Tidak bisa hadir') + '>Tidak bisa hadir</option>' +
+          '</select></label>' +
+          '<label>Datang berapa orang?' +
+            (info.seats ? ' <span class="jatah">(jatah Anda ' + info.seats + ' kursi)</span>' : '') +
+            '<select name="jumlah">' + opsi + '</select></label>' +
+          '<label>Ucapan &amp; doa' +
+            '<textarea name="pesan" rows="4" maxlength="400" placeholder="Tulis doa terbaik Anda...">' +
+            U.esc(simpan ? simpan.pesan : '') + '</textarea></label>' +
+          '<button class="tombol utama" type="submit">Kirim Konfirmasi</button>' +
+        '</form>' +
+      '</div>' +
+      '<div class="hasil" id="rsvp-result"></div>'
+    });
   },
 
   kado() {
@@ -251,21 +389,21 @@ const Simple = {
         '<div class="tombol-baris"><button class="tombol kecil" type="button" data-salin="' +
         U.esc(g.address) + '">Salin Alamat</button></div></div>'
       : '';
-    return '<section class="bagian">' + this.pemisah() +
-      '<h2>Tanda Kasih</h2>' +
-      '<p class="sub">Kehadiran Anda sudah lebih dari cukup. ' +
-        'Tapi kalau ingin mengirim tanda kasih, ini pintunya.</p>' +
-      bank + alamat +
-    '</section>';
+    return this.bungkus({
+      pemisah: 'daun', kicker: 'Wedding Gift', judul: 'Tanda Kasih',
+      sub: 'Kehadiran Anda sudah lebih dari cukup. ' +
+        'Tapi kalau ingin mengirim tanda kasih, ini pintunya.',
+      isi: bank + alamat
+    });
   },
 
   penutup() {
     const c = CONFIG.couple;
     const s = CONFIG.salam || {};
-    return '<section class="bagian penutup">' + this.pemisah() +
+    return '<section class="bagian penutup">' + this.pemisah('mawar') +
       '<p class="kicker">Sampai jumpa di hari bahagia</p>' +
       this.monogram() +
-      '<p class="nama">' + U.esc(c.groom.nick) + ' &amp; ' + U.esc(c.bride.nick) + '</p>' +
+      '<p class="nama tulis">' + U.esc(c.groom.nick) + ' &amp; ' + U.esc(c.bride.nick) + '</p>' +
       (c.hashtag ? '<p class="tagar">' + U.esc(c.hashtag) + '</p>' : '') +
       (s.salamPenutup ? '<p class="salam-penutup">' + U.esc(s.salamPenutup) + '</p>' : '') +
       '<div class="tukar">Ada versi lain undangan ini: sebuah game kecil ' +
@@ -281,7 +419,17 @@ const Simple = {
     return 'game.html' + (kode ? '?u=' + encodeURIComponent(kode) : '');
   },
 
-  /* ---------- Perilaku ---------- */
+  /* =====================================================================
+     Perilaku
+     ===================================================================== */
+
+  // Rangkaian bunga samar di dua sudut layar. Dipaku ke layar, bukan ke
+  // halaman, supaya tidak ikut tergulir dan tidak menambah tinggi halaman.
+  gambarHiasan() {
+    const kotak = document.getElementById('hiasan');
+    if (kotak) kotak.innerHTML = this.sudutBunga() + this.sudutBunga();
+  },
+
   tebarKelopak() {
     const kotak = document.getElementById('kelopak');
     if (!kotak) return;
@@ -290,9 +438,29 @@ const Simple = {
       const kiri = Math.round(U.hash(i * 7 + 1, i * 3 + 5) * 100);
       const lama = (11 + U.hash(i, i * 2) * 12).toFixed(1);
       const tunda = (U.hash(i * 5, i + 3) * 14).toFixed(1);
-      html += '<i style="left:' + kiri + '%;animation-duration:' + lama + 's;animation-delay:-' + tunda + 's"></i>';
+      const goyang = (5 + U.hash(i * 3, i + 7) * 3).toFixed(1);
+      html += '<i style="left:' + kiri + '%;animation-duration:' + lama + 's,' + goyang +
+        's;animation-delay:-' + tunda + 's,-' + tunda + 's"></i>';
     }
     kotak.innerHTML = html;
+  },
+
+  // Tiap bagian baru muncul pelan saat tergulir ke layar. Kalau browsernya
+  // tidak punya IntersectionObserver, semua bagian langsung ditampilkan —
+  // isinya tidak boleh hilang cuma karena hiasannya tidak jalan.
+  amatiBagian() {
+    const bagian = this.el.querySelectorAll('.bagian');
+    const langsung = () => bagian.forEach(b => b.classList.add('tampak'));
+    if (!('IntersectionObserver' in window) ||
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches) return langsung();
+    const mata = new IntersectionObserver(masuk => {
+      masuk.forEach(m => {
+        if (!m.isIntersecting) return;
+        m.target.classList.add('tampak');
+        mata.unobserve(m.target);
+      });
+    }, { rootMargin: '0px 0px -12% 0px' });
+    bagian.forEach(b => mata.observe(b));
   },
 
   setelMusik(nyala) {
@@ -322,6 +490,35 @@ const Simple = {
     setInterval(tik, 1000);
   },
 
+  /* ---------- Foto diperbesar ---------- */
+  bukaLampu(i) {
+    const foto = (CONFIG.gallery || [])[i];
+    if (!foto || !foto.src) return;
+    this.fotoAktif = i;
+    const lampu = document.getElementById('lampu');
+    lampu.querySelector('img').src = foto.src;
+    lampu.querySelector('img').alt = foto.caption || '';
+    lampu.querySelector('figcaption').textContent = foto.caption || '';
+    lampu.hidden = false;
+    document.body.classList.add('terkunci');
+    lampu.querySelector('.lampu-tutup').focus();
+  },
+
+  tutupLampu() {
+    document.getElementById('lampu').hidden = true;
+    document.body.classList.remove('terkunci');
+    this.fotoAktif = -1;
+  },
+
+  // Lompat ke foto berikutnya yang benar-benar punya gambar.
+  geserLampu(arah) {
+    const galeri = CONFIG.gallery || [];
+    for (let n = 1; n <= galeri.length; n++) {
+      const i = (this.fotoAktif + arah * n + galeri.length * n) % galeri.length;
+      if (galeri[i] && galeri[i].src) return this.bukaLampu(i);
+    }
+  },
+
   pasangTombol() {
     document.getElementById('musik').addEventListener('click', () => this.setelMusik(!Chip.playing));
 
@@ -329,7 +526,33 @@ const Simple = {
       const salin = e.target.closest('[data-salin]');
       if (salin) { copyText(salin.getAttribute('data-salin'), 'Tersalin'); return; }
       const ics = e.target.closest('[data-ics]');
-      if (ics) Content.downloadIcs(ics.getAttribute('data-ics'));
+      if (ics) { Content.downloadIcs(ics.getAttribute('data-ics')); return; }
+      const foto = e.target.closest('[data-foto]');
+      if (foto) this.bukaLampu(+foto.getAttribute('data-foto'));
+    });
+
+    // Bingkai foto bukan <button>, jadi papan ketik harus dilayani sendiri.
+    this.el.addEventListener('keydown', e => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const foto = e.target.closest('[data-foto]');
+      if (!foto) return;
+      e.preventDefault();
+      this.bukaLampu(+foto.getAttribute('data-foto'));
+    });
+
+    const lampu = document.getElementById('lampu');
+    lampu.addEventListener('click', e => {
+      const geser = e.target.closest('[data-geser]');
+      if (geser) { this.geserLampu(+geser.getAttribute('data-geser')); return; }
+      // Klik di luar fotonya berarti minta ditutup.
+      if (e.target.closest('figure') && !e.target.closest('.lampu-tutup')) return;
+      this.tutupLampu();
+    });
+    document.addEventListener('keydown', e => {
+      if (lampu.hidden) return;
+      if (e.key === 'Escape') this.tutupLampu();
+      if (e.key === 'ArrowRight') this.geserLampu(1);
+      if (e.key === 'ArrowLeft') this.geserLampu(-1);
     });
 
     this.el.addEventListener('submit', e => {
