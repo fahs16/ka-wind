@@ -15,6 +15,42 @@ git push origin main
 
 ---
 
+## v3.1.0 — undangan biasa dirombak tampilannya
+
+Isinya tidak berubah sama sekali; yang berubah cara menyajikannya. Undangan
+biasa dulu terlalu polos — lebih mirip formulir daripada undangan pernikahan.
+
+- **Ornamen digambar sendiri lewat SVG**, bukan foto, supaya undangannya sudah
+  terlihat layak sebelum foto prewedding-nya ada: rangkaian mawar di empat
+  sudut sampul dan dua sudut layar, monogram berkarangan daun, tiga corak
+  pemisah antar bagian yang dipakai bergantian, dan lambang kubah/cincin di
+  kepala tiap kartu acara.
+- **Huruf tulisan tangan** (Great Vibes) untuk nama mempelai dan kata-kata
+  kecil di atas judul. Kalau fontnya gagal dimuat, jatuhnya ke Cormorant
+  Garamond — tetap rapi, tidak berantakan.
+- **Bagian atas baru**: nama besar, tanggal, hitung mundur, dan panah kecil
+  yang mengajak menggulir. Hitung mundurnya sekarang grid empat kolom, jadi
+  tidak pernah patah dua baris walau di layar 320px.
+- **Bagian muncul pelan sambil digulir.** Kalau browsernya tidak mendukung atau
+  tamunya menyalakan "kurangi gerakan", semua bagian langsung ditampilkan —
+  isinya tidak pernah hilang gara-gara hiasannya tidak jalan.
+- **Foto galeri bisa diperbesar**: klik, geser kiri-kanan, tutup pakai Escape,
+  klik latar, atau tombol ×. Bisa juga dengan papan ketik. Bingkai yang masih
+  kosong sengaja tidak bisa diklik.
+- **Medali inisial** untuk tiap mempelai, plus tautan Instagram kalau `ig`
+  diisi di `js/config.js`.
+- Bagian berselang-seling dikasih alas kertas yang sedikit lebih tua, supaya
+  halaman panjang punya irama.
+- Formulir RSVP masuk ke dalam kartu, label jadi huruf kecil berspasi.
+- Sampul dirampingkan otomatis di layar pendek, jadi tombol "Buka Undangan"
+  tidak perlu dicari dengan menggulir.
+
+Semua rangkaian tes lama diulang dan lolos: apps-script, gerbang Netlify,
+gerbang akses, mode Google Sheet ujung-ke-ujung, isi rahasia dari server,
+musik, dan tata letak lima ukuran layar.
+
+---
+
 ## v3.0.0 — commit `c219083`
 
 Undangan biasa jadi halaman utama, dan 8 titik misi harus benar-benar

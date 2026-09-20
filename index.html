@@ -18,12 +18,15 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Great+Vibes&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Crect width='8' height='8' fill='%232b1d2e'/%3E%3Cpath d='M2 2h1v1H2zM5 2h1v1H5zM1 3h2v1H1zM5 3h2v1H5zM2 4h4v1H2zM3 5h2v1H3zM4 6h1v1H4z' fill='%23e2758f'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="css/simple.css">
 </head>
 <body class="memeriksa">
 
+<!-- Dua lapis hiasan yang dipaku ke layar: rangkaian bunga samar di sudut,
+     lalu kelopak yang jatuh pelan di atasnya. -->
+<div id="hiasan" aria-hidden="true"></div>
 <div id="kelopak" aria-hidden="true"></div>
 
 <!-- Sampul tertutup. Tombolnya sekalian jadi izin dari tamu untuk
@@ -33,6 +36,14 @@
 <main id="halaman" aria-live="polite"></main>
 
 <button id="musik" type="button" aria-label="Nyalakan atau matikan musik" title="Musik"><span>&#9834;</span></button>
+
+<!-- Foto galeri yang diperbesar. Dibiarkan kosong sampai ada yang diklik. -->
+<div id="lampu" hidden role="dialog" aria-modal="true" aria-label="Foto galeri">
+  <button class="lampu-tutup" type="button" aria-label="Tutup foto">&times;</button>
+  <button class="lampu-geser kiri" type="button" data-geser="-1" aria-label="Foto sebelumnya">&#8249;</button>
+  <button class="lampu-geser kanan" type="button" data-geser="1" aria-label="Foto berikutnya">&#8250;</button>
+  <figure><img src="" alt=""><figcaption></figcaption></figure>
+</div>
 
 <div id="toast" role="status"></div>
 

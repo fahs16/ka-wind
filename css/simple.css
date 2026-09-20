@@ -1,9 +1,13 @@
 /* =========================================================================
-   Undangan versi sederhana (simple.html).
+   Undangan versi sederhana (index.html).
 
    Tetap gampang dibaca — huruf besar, tombol besar, satu halaman gulir —
-   tapi tampilannya undangan pernikahan, bukan formulir: bingkai berukir,
-   monogram, pemisah dedaunan, dan kelopak yang jatuh pelan.
+   tapi tampilannya undangan pernikahan, bukan formulir: kertas gading,
+   mawar tua dan emas antik, ornamen garis tangan, dan bagian yang muncul
+   pelan sambil digulir.
+
+   Nuansanya dibangun dari ornamen dan huruf, bukan dari foto, karena
+   galerinya boleh saja masih kosong sampai hari H.
 
    Sengaja tidak memakai css/style.css supaya tidak ikut aturan tampilan game
    (font pixel, tombol kecil) yang justru bikin susah dibaca.
@@ -12,7 +16,7 @@
 /* Layar dibiarkan kosong sampai keputusan akses selesai, sama seperti versi
    game: nama dan lokasi tidak boleh sempat terlihat pengunjung tanpa undangan. */
 body.memeriksa{background:#f6ece0}
-body.memeriksa #halaman,body.memeriksa #sampul{visibility:hidden}
+body.memeriksa #halaman,body.memeriksa #sampul,body.memeriksa #hiasan{visibility:hidden}
 
 /* Halaman untuk yang tidak diundang */
 body.gate-closed{
@@ -27,8 +31,9 @@ body.gate-closed img{
 :root{
   --tinta:#39262f;
   --tinta-lembut:#6b5560;
-  --kertas:#f6ece0;
+  --kertas:#f7eee3;
   --kertas2:#fffaf2;
+  --kertas3:#f1e2d2;
   --mawar:#a8365a;
   --mawar-terang:#c4577b;
   --mawar-muda:#f3dde3;
@@ -37,56 +42,72 @@ body.gate-closed img{
   --daun:#7d8f6a;
   --garis:#dfcdb4;
   --judul:'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --tulis:'Great Vibes', 'Cormorant Garamond', Georgia, cursive;
   --badan:'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 *{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
 body{
   margin:0;color:var(--tinta);
   font-family:var(--badan);font-size:20px;line-height:1.65;
   -webkit-tap-highlight-color:rgba(168,54,90,.15);
   /* Rona hangat dijaga tipis dan dipaku ke layar, supaya halaman panjang tidak
-     berubah jadi merah muda pekat di tengah-tengah. */
+     berubah jadi merah muda pekat di tengah-tengah. Serat kertasnya dari dua
+     garis diagonal yang sangat samar. */
   background-color:var(--kertas);
   background-image:
-    radial-gradient(circle at 12% 6%,rgba(196,87,123,.07) 0,transparent 38%),
-    radial-gradient(circle at 88% 16%,rgba(168,130,60,.08) 0,transparent 36%);
+    radial-gradient(circle at 12% 6%,rgba(196,87,123,.08) 0,transparent 38%),
+    radial-gradient(circle at 88% 16%,rgba(168,130,60,.09) 0,transparent 36%),
+    radial-gradient(circle at 50% 96%,rgba(125,143,106,.07) 0,transparent 42%),
+    repeating-linear-gradient(58deg,rgba(168,130,60,.028) 0 2px,transparent 2px 7px);
   background-attachment:fixed;
-  background-repeat:no-repeat;
+  background-repeat:no-repeat,no-repeat,no-repeat,repeat;
 }
 img{max-width:100%}
+body.terkunci{overflow:hidden}
+
+/* ============ Rangkaian bunga samar di sudut layar ============ */
+#hiasan{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;opacity:.32}
+#hiasan .sudut{position:absolute;width:min(34vw,210px);height:auto}
+#hiasan .sudut:first-child{top:-28px;left:-34px}
+#hiasan .sudut:last-child{bottom:-28px;right:-34px;transform:rotate(180deg)}
 
 /* ============ Kelopak berjatuhan ============ */
 #kelopak{position:fixed;inset:0;pointer-events:none;z-index:1;overflow:hidden}
 #kelopak i{
   position:absolute;top:-24px;display:block;
   width:11px;height:14px;border-radius:60% 0 60% 0;
-  background:var(--mawar-muda);opacity:.5;
-  animation:turun linear infinite;
+  background:var(--mawar-muda);opacity:.55;
+  animation:turun linear infinite, oleng ease-in-out infinite alternate;
 }
 #kelopak i:nth-child(even){background:var(--emas-muda);width:9px;height:11px}
+#kelopak i:nth-child(3n){background:#dfe8d4;width:8px;height:13px;border-radius:70% 0 70% 0}
 @keyframes turun{
   0%{transform:translateY(-24px) rotate(0deg)}
   100%{transform:translateY(102vh) rotate(420deg)}
 }
+/* Olengnya dipasang di margin, bukan di transform, supaya tidak menimpa
+   animasi jatuhnya. */
+@keyframes oleng{0%{margin-left:-22px}100%{margin-left:22px}}
 
 /* ============ Sampul: amplop tertutup ============ */
 #sampul{
   position:fixed;inset:0;z-index:10;overflow:auto;
   display:flex;align-items:center;justify-content:center;padding:24px 18px;
   background:
-    radial-gradient(circle at 50% 30%,#fffaf2 0,#f6ece0 58%,#efdfcc 100%);
-  transition:opacity .6s ease, visibility .6s;
+    radial-gradient(circle at 50% 28%,#fffaf2 0,#f6ece0 55%,#eadbc6 100%);
+  transition:opacity .7s ease, visibility .7s, transform .7s ease;
 }
-#sampul.pergi{opacity:0;visibility:hidden;pointer-events:none}
+#sampul.pergi{opacity:0;visibility:hidden;pointer-events:none;transform:scale(1.06)}
 .sampul-isi{width:100%;max-width:520px;text-align:center}
 
-/* bingkai berukir dua garis + sudut emas */
+/* bingkai berukir dua garis + sudut emas + rangkaian bunga di empat pojok */
 .bingkai{
-  position:relative;padding:40px 26px 34px;
+  position:relative;padding:44px 26px 56px;
   border:2px solid var(--emas);
-  box-shadow:inset 0 0 0 7px var(--kertas), inset 0 0 0 8px var(--emas-muda);
-  background:rgba(255,250,242,.72);
+  box-shadow:inset 0 0 0 7px var(--kertas), inset 0 0 0 8px var(--emas-muda),
+             0 18px 40px -22px rgba(57,38,47,.5);
+  background:rgba(255,250,242,.82);
 }
 .bingkai::before,.bingkai::after{
   content:'';position:absolute;width:26px;height:26px;
@@ -95,198 +116,329 @@ img{max-width:100%}
 .bingkai::before{top:8px;left:8px;border-right:0;border-bottom:0}
 .bingkai::after{bottom:8px;right:8px;border-left:0;border-top:0}
 
-.monogram{width:112px;height:112px;margin:0 auto 8px;display:block}
+/* Empat salinan gambar yang sama, tinggal dicerminkan. */
+/* Bunganya dipaku ke lapisan paling belakang; isi bingkai diangkat selapis
+   di atasnya supaya nama dan tombol tidak pernah tertimpa gambar. */
+.sudut-bunga{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+.bingkai>*:not(.sudut-bunga){position:relative;z-index:1}
+.sudut-bunga .sudut{position:absolute;width:96px;height:96px;opacity:.85}
+.sudut-bunga .sudut:nth-child(1){top:2px;left:2px}
+.sudut-bunga .sudut:nth-child(2){top:2px;right:2px;transform:scaleX(-1)}
+.sudut-bunga .sudut:nth-child(3){bottom:2px;left:2px;transform:scaleY(-1)}
+.sudut-bunga .sudut:nth-child(4){bottom:2px;right:2px;transform:scale(-1)}
+
+.monogram{width:116px;height:116px;margin:0 auto 6px;display:block;position:relative}
 .kicker{
-  font-size:14px;letter-spacing:4px;text-transform:uppercase;
-  color:var(--emas);font-weight:700;margin:14px 0 10px;
+  font-size:13px;letter-spacing:5px;text-transform:uppercase;
+  color:var(--emas);font-weight:700;margin:14px 0 6px;
 }
+/* Nama mempelai pakai huruf tulisan tangan. Ukurannya dinaikkan karena
+   huruf sambung selalu terbaca lebih kecil dari tingginya. */
 .nama{
   font-family:var(--judul);font-weight:600;
   font-size:clamp(38px,12vw,58px);line-height:1.1;margin:0;color:var(--tinta);
 }
-.dan{font-family:var(--judul);font-size:28px;color:var(--mawar);margin:2px 0}
-.tanggal{font-size:21px;font-weight:700;margin:16px 0 0;letter-spacing:.5px}
-.sapaan{
-  border-top:1px solid var(--garis);margin:24px 0 0;padding:20px 0 0;font-size:19px;
+.nama.tulis{
+  font-family:var(--tulis);font-weight:400;
+  font-size:clamp(50px,15vw,76px);line-height:1.18;color:var(--mawar);
 }
-.sapaan b{display:block;font-size:25px;margin-top:6px;line-height:1.3;color:var(--mawar)}
-.sampul-catatan{font-size:17px;color:var(--tinta-lembut);margin:18px 0 0}
+.dan{font-family:var(--judul);font-size:26px;color:var(--emas);margin:0}
+.tanggal{
+  font-size:16px;font-weight:700;margin:18px 0 0;
+  letter-spacing:3px;text-transform:uppercase;color:var(--tinta-lembut);
+}
+.sapaan{
+  border-top:1px solid var(--garis);margin:26px 0 0;padding:20px 0 0;font-size:17px;
+}
+.sapaan span{letter-spacing:2px;text-transform:uppercase;font-size:13px;color:var(--tinta-lembut)}
+.sapaan b{
+  display:block;font-family:var(--judul);font-size:29px;
+  margin-top:6px;line-height:1.3;color:var(--tinta);
+}
+.sampul-catatan{font-size:16px;color:var(--tinta-lembut);margin:18px 0 0;line-height:1.5}
+.ikon-tombol{width:22px;height:22px;flex:0 0 auto}
 
 /* ============ Isi undangan ============ */
 #halaman{
   position:relative;z-index:2;
   max-width:640px;margin:0 auto;padding:0 20px 64px;
 }
-.bagian{padding:40px 0;text-align:center}
+.bagian{padding:52px 0;text-align:center;position:relative}
 .bagian.kiri{text-align:left}
 
-/* pemisah dedaunan antar bagian */
-.pemisah{display:block;width:150px;height:22px;margin:0 auto 30px}
+/* Muncul pelan sambil digulir. Kelas .tampak dipasang js/simple.js. */
+.bagian{opacity:0;transform:translateY(26px);transition:opacity .8s ease, transform .8s ease}
+.bagian.tampak{opacity:1;transform:none}
 
+/* Bagian berpita: kertasnya sedikit lebih tua, dengan garis emas tipis di
+   atas dan bawah, supaya halaman panjang punya irama. */
+.bagian.pita{
+  background:linear-gradient(180deg,rgba(241,226,210,0) 0,rgba(241,226,210,.75) 12%,
+             rgba(241,226,210,.75) 88%,rgba(241,226,210,0) 100%);
+  /* Ditarik melebar keluar dari kolom teks biar terasa seperti pita utuh. */
+  margin-left:-20px;margin-right:-20px;padding-left:20px;padding-right:20px;
+}
+
+/* pemisah dedaunan antar bagian */
+.pemisah{display:block;width:170px;height:24px;margin:0 auto 26px}
+
+/* Kata kecil bertulisan tangan di atas judul. */
+.tulisan-tangan{
+  font-family:var(--tulis);font-size:30px;line-height:1;
+  color:var(--emas);margin:0 0 2px;
+}
 h2{
-  font-family:var(--judul);font-weight:600;font-size:35px;line-height:1.2;
-  margin:0 0 26px;color:var(--tinta);
+  font-family:var(--judul);font-weight:600;font-size:36px;line-height:1.2;
+  margin:0 0 26px;color:var(--tinta);letter-spacing:.5px;
 }
 h2::after{
-  content:'';display:block;width:56px;height:1px;background:var(--emas-muda);
-  margin:14px auto 0;
+  content:'';display:block;width:64px;height:1px;background:var(--emas);
+  margin:14px auto 0;opacity:.55;
 }
 .bagian.kiri h2::after{margin-left:0}
-.sub{color:var(--tinta-lembut);font-size:19px;margin:-8px 0 26px;line-height:1.5}
+.sub{color:var(--tinta-lembut);font-size:19px;margin:-8px 0 28px;line-height:1.55}
 .bagian.kiri .sub{margin-bottom:22px}
+
+/* ============ Bagian sorot (paling atas) ============ */
+.sorot{padding-top:34px;padding-bottom:40px}
+.sorot .nama.tulis{margin:2px 0}
+/* Ampersand dengan garis tipis di kiri-kanannya. */
+.amper-garis{display:flex;align-items:center;gap:16px;margin:8px auto;max-width:280px}
+.amper-garis::before,.amper-garis::after{content:'';flex:1 1 auto;height:1px;background:var(--emas-muda)}
+.amper-garis span{font-family:var(--judul);font-size:30px;color:var(--emas);line-height:1}
+/* Panah kecil yang mengajak menggulir. */
+.gulir{margin:34px auto 0;width:22px;height:34px;border:1.5px solid var(--emas-muda);border-radius:12px;position:relative}
+.gulir span{
+  position:absolute;left:50%;top:7px;width:4px;height:4px;margin-left:-2px;
+  border-radius:50%;background:var(--emas);animation:jatuh 1.9s ease-in-out infinite;
+}
+@keyframes jatuh{0%{opacity:0;transform:translateY(0)}30%{opacity:1}100%{opacity:0;transform:translateY(15px)}}
 
 /* ============ Salam & kalimat pengantar ============ */
 .salam{
-  font-family:var(--judul);font-size:27px;line-height:1.4;
-  color:var(--mawar);margin:0 0 16px;
+  font-family:var(--judul);font-size:28px;line-height:1.45;
+  color:var(--mawar);margin:0 0 16px;font-style:italic;
 }
-.niat{font-size:20px;color:var(--tinta-lembut);margin:0}
+.niat{font-size:19px;color:var(--tinta-lembut);margin:0;line-height:1.6}
 
 /* ============ Hitung mundur ============ */
-.mundur{display:flex;gap:10px;justify-content:center;margin:26px 0 0;flex-wrap:wrap}
+/* Empat kotak sejajar. Sengaja grid, bukan flex-wrap: di layar 320px flex
+   lebih memilih mematahkan barisnya daripada menyempitkan kotaknya. */
+.mundur{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;
+  margin:30px auto 0;max-width:400px}
 .mundur div{
   background:var(--kertas2);border:1px solid var(--garis);border-radius:2px;
-  box-shadow:0 2px 0 rgba(168,130,60,.18);
-  padding:12px 6px;min-width:78px;
+  box-shadow:0 2px 0 rgba(168,130,60,.18), inset 0 0 0 3px rgba(255,255,255,.6);
+  padding:14px 4px;
 }
-.mundur b{display:block;font-family:var(--judul);font-size:34px;line-height:1.1;color:var(--mawar)}
-.mundur span{font-size:15px;color:var(--tinta-lembut);letter-spacing:1px}
-.lewat{font-size:21px;margin:22px 0 0;color:var(--mawar)}
+.mundur b{display:block;font-family:var(--judul);font-size:36px;line-height:1.1;color:var(--mawar)}
+.mundur span{font-size:13px;color:var(--tinta-lembut);letter-spacing:2px;text-transform:uppercase}
+.lewat{font-family:var(--judul);font-style:italic;font-size:23px;margin:22px 0 0;color:var(--mawar)}
 
 /* ============ Mempelai ============ */
-.mempelai{margin-bottom:8px}
+.mempelai{margin-bottom:6px}
 .mempelai:last-of-type{margin-bottom:0}
-.mempelai .nama{font-size:clamp(29px,8.5vw,38px);margin-bottom:10px}
-.mempelai .penuh{font-size:21px;font-weight:700;margin:0 0 6px}
-.mempelai .ortu{font-size:19px;color:var(--tinta-lembut);margin:0;line-height:1.45}
-.amper{font-family:var(--judul);font-size:38px;color:var(--emas);margin:22px 0}
+/* Medali inisial: cincin emas ganda dengan huruf tulisan tangan di tengah.
+   Sengaja bukan foto — undangan harus tetap utuh sebelum fotonya ada. */
+.medali{
+  width:108px;height:108px;margin:0 auto 12px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 50% 35%,#fffaf2 0,var(--mawar-muda) 100%);
+  border:1px solid var(--emas);
+  box-shadow:0 0 0 5px var(--kertas), 0 0 0 6px var(--emas-muda);
+}
+.medali span{font-family:var(--tulis);font-size:54px;line-height:1;color:var(--mawar);padding-top:8px}
+.mempelai .nama.tulis{font-size:clamp(40px,12vw,54px);margin-bottom:6px}
+.mempelai .penuh{font-size:21px;font-weight:700;margin:0 0 6px;line-height:1.35}
+.mempelai .ortu{font-size:18px;color:var(--tinta-lembut);margin:0;line-height:1.5}
+.ig{
+  display:inline-block;margin-top:10px;font-size:16px;font-weight:700;
+  letter-spacing:1px;color:var(--emas);text-decoration:none;
+  border-bottom:1px solid var(--emas-muda);padding-bottom:2px;
+}
+.mempelai-bagian .amper-garis{margin:26px auto}
 
 /* ============ Kutipan ============ */
 .kutipan{
-  margin:0;padding:26px 22px;border-radius:2px;
-  background:var(--mawar-muda);
-  border-top:2px solid var(--mawar);border-bottom:2px solid var(--mawar);
-  font-family:var(--judul);font-size:24px;line-height:1.5;
+  position:relative;margin:0;padding:34px 24px 26px;
+  background:rgba(255,250,242,.7);
+  border-top:1px solid var(--emas);border-bottom:1px solid var(--emas);
+  font-family:var(--judul);font-size:25px;line-height:1.55;font-style:italic;
 }
-.kutipan span{
-  display:block;font-family:var(--badan);font-size:16px;font-weight:700;
-  letter-spacing:2px;text-transform:uppercase;color:var(--mawar);margin-top:16px;
+.petik{
+  position:absolute;top:-2px;left:50%;transform:translateX(-50%);
+  font-family:var(--judul);font-size:66px;line-height:1;color:var(--emas-muda);
+  font-style:normal;
+}
+.kutipan .asal{
+  display:block;font-family:var(--badan);font-size:14px;font-weight:700;
+  letter-spacing:3px;text-transform:uppercase;color:var(--mawar);margin-top:18px;
+  font-style:normal;
 }
 
 /* ============ Kartu ============ */
 .kartu{
+  position:relative;
   background:var(--kertas2);border:1px solid var(--garis);border-radius:2px;
-  box-shadow:0 3px 0 rgba(168,130,60,.15);
-  padding:24px 22px;margin-bottom:20px;text-align:left;
+  box-shadow:0 3px 0 rgba(168,130,60,.15), 0 14px 28px -22px rgba(57,38,47,.55);
+  padding:28px 22px 24px;margin-bottom:20px;text-align:left;
 }
 .kartu.tengah{text-align:center}
+/* Garis rangkap tipis di dalam kartu — meniru kartu undangan cetak. */
+.kartu.acara::before{
+  content:'';position:absolute;inset:6px;border:1px solid var(--emas-muda);
+  pointer-events:none;
+}
+.kartu .ikon{display:block;width:46px;height:46px;margin:0 auto 6px}
 .kartu h3{
-  font-size:15px;letter-spacing:3px;text-transform:uppercase;
-  color:var(--mawar);margin:0 0 16px;font-weight:700;text-align:center;
+  font-family:var(--judul);font-size:26px;letter-spacing:2px;
+  color:var(--mawar);margin:0 0 18px;font-weight:600;text-align:center;
 }
 .kartu h3::after{
-  content:'';display:block;width:44px;height:2px;background:var(--emas-muda);
-  margin:10px auto 0;
+  content:'';display:block;width:44px;height:1px;background:var(--emas);
+  margin:12px auto 0;opacity:.6;
 }
 .baris{display:flex;gap:12px;margin-bottom:12px;align-items:flex-start}
 .baris:last-of-type{margin-bottom:0}
 .label{
-  flex:0 0 82px;font-size:15px;font-weight:700;color:var(--emas);
-  text-transform:uppercase;letter-spacing:1px;padding-top:5px;
+  flex:0 0 82px;font-size:13px;font-weight:700;color:var(--emas);
+  text-transform:uppercase;letter-spacing:2px;padding-top:7px;
 }
-.isi{flex:1 1 auto;min-width:0;font-size:21px}
-.isi b{font-size:23px}
+.isi{flex:1 1 auto;min-width:0;font-size:20px}
+.isi b{font-size:22px}
 
 /* ============ Tombol ============ */
 .tombol{
-  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  display:inline-flex;align-items:center;justify-content:center;gap:10px;
   min-height:56px;padding:14px 24px;width:100%;
-  font-family:var(--badan);font-size:19px;font-weight:700;
+  font-family:var(--badan);font-size:18px;font-weight:700;
   letter-spacing:.5px;text-decoration:none;text-align:center;cursor:pointer;
   background:var(--kertas2);color:var(--tinta);
-  border:2px solid var(--mawar);border-radius:2px;
+  border:1px solid var(--mawar);border-radius:2px;
+  box-shadow:inset 0 0 0 3px rgba(255,255,255,.7);
+  transition:background .2s ease,color .2s ease;
 }
 .tombol:active{transform:translateY(2px)}
-.tombol.utama{background:var(--mawar);border-color:var(--mawar);color:#fff}
+.tombol.utama{background:var(--mawar);border-color:var(--mawar);color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35)}
 .tombol.utama:active{background:var(--mawar-terang)}
-.tombol.besar{min-height:62px;font-size:21px;margin-top:26px}
-.tombol.kecil{min-height:48px;font-size:17px;padding:10px 18px}
-.tombol-baris{display:flex;flex-direction:column;gap:12px;margin-top:20px}
+.tombol.besar{min-height:62px;font-size:20px;margin-top:28px;letter-spacing:1px}
+.tombol.kecil{min-height:48px;font-size:16px;padding:10px 18px}
+.tombol-baris{display:flex;flex-direction:column;gap:12px;margin-top:22px}
 
 /* ============ Cerita ============ */
 .cerita{margin:0;padding:0;list-style:none;text-align:left}
-.cerita li{border-left:2px solid var(--emas-muda);padding:0 0 28px 22px;position:relative}
+.cerita li{border-left:1px solid var(--emas-muda);padding:0 0 30px 24px;position:relative}
 .cerita li:last-child{padding-bottom:0}
 .cerita li::before{
-  content:'';position:absolute;left:-7px;top:9px;width:12px;height:12px;
-  border-radius:50%;background:var(--kertas);border:2px solid var(--mawar);
+  content:'';position:absolute;left:-5px;top:11px;width:9px;height:9px;
+  background:var(--mawar);transform:rotate(45deg);
 }
 .tahun{
-  font-size:15px;font-weight:700;letter-spacing:2px;color:var(--emas);
+  font-family:var(--judul);font-size:19px;font-weight:600;
+  letter-spacing:4px;color:var(--emas);
 }
-.cerita h3{font-family:var(--judul);font-size:27px;margin:2px 0 6px;font-weight:600}
-.cerita p{margin:0;font-size:19px;color:var(--tinta-lembut)}
+.cerita h3{font-family:var(--judul);font-size:28px;margin:0 0 6px;font-weight:600}
+.cerita p{margin:0;font-size:18px;color:var(--tinta-lembut);line-height:1.6}
 
 /* ============ Galeri ============ */
 .galeri{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
 .galeri figure{margin:0}
+/* Foto pertama dibiarkan melebar — jadi titik berhenti mata. */
+.galeri figure:first-child{grid-column:1 / -1}
+.galeri figure:first-child .bingkai-foto{aspect-ratio:16/10}
 .bingkai-foto{
   aspect-ratio:1/1;border:1px solid var(--garis);border-radius:2px;
   box-shadow:0 3px 0 rgba(168,130,60,.15);
   overflow:hidden;background:var(--kertas2);
   display:flex;align-items:center;justify-content:center;
 }
-.bingkai-foto img{width:100%;height:100%;object-fit:cover;display:block}
+.bingkai-foto[data-foto]{cursor:zoom-in}
+.bingkai-foto[data-foto]:focus-visible{outline:3px solid var(--mawar);outline-offset:2px}
+.bingkai-foto img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s ease}
+.bingkai-foto[data-foto]:hover img{transform:scale(1.06)}
 .bingkai-foto.kosong{
   background:repeating-linear-gradient(45deg,#efe1cc 0 10px,#fbf3e6 10px 20px);
   color:var(--tinta-lembut);font-size:16px;font-weight:700;
 }
 .galeri figcaption{
-  font-family:var(--judul);font-size:20px;color:var(--tinta-lembut);
-  margin-top:8px;line-height:1.3;
+  font-family:var(--judul);font-style:italic;font-size:19px;color:var(--tinta-lembut);
+  margin-top:8px;line-height:1.35;
 }
 
+/* ============ Foto diperbesar ============ */
+#lampu{
+  position:fixed;inset:0;z-index:30;background:rgba(29,20,32,.97);
+  display:flex;align-items:center;justify-content:center;padding:24px 16px;
+}
+#lampu[hidden]{display:none}
+#lampu figure{margin:0;max-width:960px;text-align:center}
+#lampu img{max-width:100%;max-height:78vh;display:block;margin:0 auto;border:1px solid rgba(230,211,174,.45)}
+#lampu figcaption{
+  font-family:var(--judul);font-style:italic;font-size:21px;color:var(--emas-muda);margin-top:16px;
+}
+.lampu-tutup,.lampu-geser{
+  position:absolute;width:52px;height:52px;border-radius:50%;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;line-height:1;
+  background:rgba(255,250,242,.12);color:var(--kertas2);
+  border:1px solid rgba(230,211,174,.5);font-family:var(--badan);
+}
+.lampu-tutup{top:18px;right:18px;font-size:30px;padding-bottom:4px}
+.lampu-geser{top:50%;margin-top:-26px;font-size:34px;padding-bottom:5px}
+.lampu-geser.kiri{left:14px}
+.lampu-geser.kanan{right:14px}
+
 /* ============ Formulir ============ */
+.isian-kartu{padding:28px 22px 26px}
 .isian{display:flex;flex-direction:column;gap:20px;text-align:left}
-.isian label{display:flex;flex-direction:column;gap:8px;font-size:19px;font-weight:700}
+.isian label{display:flex;flex-direction:column;gap:8px;font-size:15px;font-weight:700;
+  letter-spacing:1.5px;text-transform:uppercase;color:var(--emas)}
 .isian input,.isian select,.isian textarea{
-  font-family:var(--badan);font-size:21px;padding:14px;min-height:56px;
-  background:#fff;color:var(--tinta);
-  border:2px solid var(--garis);border-radius:2px;
+  font-family:var(--badan);font-size:20px;font-weight:400;letter-spacing:normal;
+  text-transform:none;color:var(--tinta);padding:14px;min-height:56px;
+  background:#fff;border:1px solid var(--garis);border-radius:2px;
 }
-.isian textarea{resize:vertical;line-height:1.4}
+.isian textarea{resize:vertical;line-height:1.5}
 .isian input:focus,.isian select:focus,.isian textarea:focus{
-  outline:3px solid var(--mawar);outline-offset:1px;border-color:var(--mawar);
+  outline:2px solid var(--mawar);outline-offset:1px;border-color:var(--mawar);
 }
-.jatah{font-weight:400;color:var(--tinta-lembut);font-size:17px}
+.isian .tombol{margin-top:4px}
+.jatah{font-weight:400;color:var(--tinta-lembut);font-size:14px;text-transform:none;letter-spacing:normal}
 .hasil{margin-top:22px}
 .hasil .kartu{border-color:var(--mawar);background:var(--mawar-muda)}
-.status{font-size:18px;margin:12px 0 0}
+.status{font-size:17px;margin:12px 0 0}
 .status.baik{color:#2f6b39;font-weight:700}
 .status.warn{color:#8d4a1c;font-weight:700}
 
 /* ============ Rekening ============ */
 .rekening{
+  position:relative;
   background:var(--kertas2);border:1px solid var(--garis);border-radius:2px;
-  box-shadow:0 3px 0 rgba(168,130,60,.15);
-  padding:22px;margin-bottom:16px;text-align:center;
+  box-shadow:0 3px 0 rgba(168,130,60,.15), 0 14px 28px -22px rgba(57,38,47,.55);
+  padding:26px 22px;margin-bottom:16px;text-align:center;
 }
-.bank{font-size:15px;font-weight:700;letter-spacing:3px;color:var(--emas);text-transform:uppercase}
+.rekening::before{
+  content:'';position:absolute;inset:6px;border:1px solid var(--emas-muda);pointer-events:none;
+}
+.bank{font-size:13px;font-weight:700;letter-spacing:4px;color:var(--emas);text-transform:uppercase}
 .nomor{
-  font-family:var(--judul);font-size:34px;font-weight:600;letter-spacing:1px;
-  margin:6px 0 2px;word-break:break-all;
+  font-family:var(--judul);font-size:34px;font-weight:600;letter-spacing:2px;
+  margin:8px 0 2px;word-break:break-all;
 }
-.atasnama{font-size:18px;color:var(--tinta-lembut);margin-bottom:16px}
+.atasnama{font-size:17px;font-style:italic;font-family:var(--judul);color:var(--tinta-lembut);margin-bottom:18px}
 
 /* ============ Penutup ============ */
-.penutup .nama{font-size:clamp(32px,10vw,46px)}
+.penutup{padding-bottom:20px}
+.penutup .nama.tulis{font-size:clamp(42px,13vw,62px);margin-top:4px}
 .tagar{
-  font-size:17px;font-weight:700;letter-spacing:2px;color:var(--emas);margin-top:12px;
+  font-size:15px;font-weight:700;letter-spacing:3px;color:var(--emas);margin-top:14px;
 }
-.salam-penutup{font-family:var(--judul);font-size:24px;color:var(--mawar);margin:26px 0 0}
+.salam-penutup{
+  font-family:var(--judul);font-style:italic;font-size:24px;
+  color:var(--mawar);margin:26px 0 0;line-height:1.5;
+}
 .tukar{
-  margin-top:38px;padding-top:28px;border-top:1px solid var(--garis);
-  font-size:18px;color:var(--tinta-lembut);
+  margin-top:40px;padding-top:28px;border-top:1px solid var(--garis);
+  font-size:17px;color:var(--tinta-lembut);line-height:1.6;
 }
 .tukar .tombol{margin-top:16px}
 
@@ -297,7 +449,7 @@ h2::after{
   display:none;align-items:center;justify-content:center;
   font-size:24px;line-height:1;cursor:pointer;
   background:var(--kertas2);color:var(--mawar);
-  border:2px solid var(--mawar);box-shadow:0 3px 0 rgba(168,54,90,.3), 0 0 0 6px var(--kertas);
+  border:1px solid var(--mawar);box-shadow:0 3px 0 rgba(168,54,90,.3), 0 0 0 6px var(--kertas);
   padding-bottom:env(safe-area-inset-bottom);
 }
 body.dibuka #musik{display:flex}
@@ -312,7 +464,7 @@ body.dibuka #musik{display:flex}
   position:fixed;left:50%;bottom:24px;transform:translate(-50%,16px);
   background:var(--tinta);color:#fff;font-size:18px;font-weight:700;
   padding:14px 20px;border-radius:2px;max-width:calc(100% - 120px);
-  text-align:center;opacity:0;pointer-events:none;transition:.25s;z-index:20;
+  text-align:center;opacity:0;pointer-events:none;transition:.25s;z-index:40;
 }
 #toast.show{opacity:1;transform:translate(-50%,0)}
 
@@ -324,6 +476,8 @@ body.dibuka #musik{display:flex}
 @media (max-width:440px){
   .baris{flex-direction:column;gap:2px;margin-bottom:16px}
   .label{flex:0 0 auto;padding-top:0}
+  .lampu-geser{width:44px;height:44px;font-size:28px;margin-top:-22px}
+  #hiasan{opacity:.35}
 }
 
 /* ============ Layar lebar ============ */
@@ -332,11 +486,30 @@ body.dibuka #musik{display:flex}
   .tombol-baris{flex-direction:row;flex-wrap:wrap}
   .tombol-baris .tombol{width:auto;flex:1 1 200px}
   .galeri{grid-template-columns:repeat(3,1fr)}
-  .bingkai{padding:52px 40px 44px}
+  .bingkai{padding:56px 44px 68px}
+  .sudut-bunga .sudut{width:124px;height:124px}
+  .bagian.pita{margin-left:-40px;margin-right:-40px;padding-left:40px;padding-right:40px}
+}
+
+/* ============ Layar pendek ============ */
+/* Di HP kecil dan di HP yang dimiringkan, sampul harus tetap muat utuh —
+   tombol "Buka Undangan" jangan sampai perlu dicari dengan menggulir. */
+@media (max-height:700px){
+  .bingkai{padding:24px 20px 28px}
+  .monogram{width:84px;height:84px}
+  .nama.tulis{font-size:clamp(40px,11vw,56px)}
+  .sapaan{margin-top:16px;padding-top:14px}
+  .tombol.besar{margin-top:18px;min-height:56px}
+  .sampul-catatan{margin-top:12px;font-size:15px}
+  .sudut-bunga .sudut{width:72px;height:72px}
 }
 
 /* ============ Hormati setelan hemat gerak ============ */
+/* Bagian yang muncul sambil digulir ikut dimatikan — tapi lewat opacity 1,
+   bukan lewat transition, supaya isinya tidak ikut menghilang. */
 @media (prefers-reduced-motion:reduce){
   *{animation:none !important;transition:none !important}
+  html{scroll-behavior:auto}
   #kelopak{display:none}
+  .bagian{opacity:1;transform:none}
 }
