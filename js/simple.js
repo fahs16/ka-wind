@@ -107,6 +107,41 @@ const Simple = {
     '</svg>';
   },
 
+  // Sulur merambat untuk tepi kiri dan kanan layar. Digambar sebagai satu
+  // petak yang ujung atas dan bawahnya bertemu di titik yang sama, jadi bisa
+  // diulang ke bawah tanpa kelihatan sambungannya.
+  sulur() {
+    let daun = '';
+    const titik = [[20, 14, 300], [20, 46, 130], [20, 78, 300], [20, 110, 130],
+                   [20, 142, 300], [20, 174, 130]];
+    for (const t of titik) {
+      daun += '<g transform="translate(' + t[0] + ',' + t[1] + ') rotate(' + t[2] +
+        ') scale(.58)">' + this.daun + '</g>';
+    }
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 192" width="40" height="192">' +
+      '<path d="M20 0C8 24 32 40 20 64 8 88 32 104 20 128 8 152 32 168 20 192" ' +
+        'fill="none" stroke="#7d8f6a" stroke-width="1.3" stroke-linecap="round"/>' +
+      daun + this.mawar(20, 32, .62) + this.mawar(20, 96, .62) + this.mawar(20, 160, .62) +
+    '</svg>';
+  },
+
+  ikonIg() {
+    return '<svg class="ikon-ig" viewBox="0 0 24 24" aria-hidden="true">' +
+      '<g fill="none" stroke="currentColor" stroke-width="1.7">' +
+      '<rect x="3.5" y="3.5" width="17" height="17" rx="5"/>' +
+      '<circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor" stroke="none"/>' +
+      '</g></svg>';
+  },
+
+  // Cip kartu, dipakai di kartu rekening supaya bentuknya seperti kartu ATM.
+  ikonCip() {
+    return '<svg class="cip" viewBox="0 0 34 26" aria-hidden="true">' +
+      '<rect x=".9" y=".9" width="32.2" height="24.2" rx="4" fill="#efd9a8" stroke="#a8823c" stroke-width="1.1"/>' +
+      '<g fill="none" stroke="#a8823c" stroke-width="1.1">' +
+      '<path d="M12 1v24M22 1v24M1 9h11M22 9h11M1 17h11M22 17h11"/>' +
+      '<rect x="12" y="8" width="10" height="10" rx="2"/></g></svg>';
+  },
+
   // Lambang kecil di kepala kartu acara: kubah untuk akad, cincin untuk
   // resepsi. Dipilih dari nama acaranya sendiri supaya tidak perlu setelan
   // tambahan di config.js.
@@ -193,11 +228,13 @@ const Simple = {
       this.cerita() +
       this.galeri() +
       this.rsvp() +
+      this.ucapan() +
       this.kado() +
       this.penutup();
 
     this.jalankanHitungMundur();
     this.pasangTombol();
+    this.muatUcapan();
   },
 
   // Kerangka satu bagian, supaya jarak dan susunan judulnya seragam.
@@ -217,12 +254,19 @@ const Simple = {
     const d = new Date(CONFIG.bigDay);
     const tgl = isNaN(d) ? '' : d.toLocaleDateString('id-ID',
       { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    // Tanggal dalam angka, dipisah titik — dipakai sebagai penanda besar di
+    // bawah nama, sementara tanggal panjangnya tetap ada di kartu acara.
+    const angka = isNaN(d) ? '' : [d.getDate(), d.getMonth() + 1, d.getFullYear()]
+      .map(n => String(n).padStart(2, '0')).join(' . ');
     return '<section class="bagian sorot">' +
-      '<p class="kicker">Undangan Pernikahan</p>' +
-      '<h1 class="nama tulis">' + U.esc(c.groom.nick) + '</h1>' +
-      '<div class="amper-garis"><span>&amp;</span></div>' +
-      '<h1 class="nama tulis">' + U.esc(c.bride.nick) + '</h1>' +
-      '<p class="tanggal">' + U.esc(tgl) + '</p>' +
+      '<div class="lengkung sorot-lengkung">' +
+        '<p class="kicker">Undangan Pernikahan</p>' +
+        '<h1 class="nama tulis">' + U.esc(c.groom.nick) + '</h1>' +
+        '<div class="amper-garis"><span>&amp;</span></div>' +
+        '<h1 class="nama tulis">' + U.esc(c.bride.nick) + '</h1>' +
+        '<p class="tanggal-angka">' + U.esc(angka) + '</p>' +
+        '<p class="tanggal">' + U.esc(tgl) + '</p>' +
+      '</div>' +
       '<div class="mundur" id="mundur">' +
         '<div><b id="m-h">0</b><span>hari</span></div>' +
         '<div><b id="m-j">0</b><span>jam</span></div>' +
@@ -248,13 +292,19 @@ const Simple = {
     const c = CONFIG.couple;
     const satu = o => {
       const awal = (o.nick || '?').charAt(0).toUpperCase();
+      // Potretnya berbentuk lengkung seperti pintu — kalau fotonya belum ada,
+      // yang mengisi inisialnya, bukan kotak kosong bertuliskan "foto".
+      const potret = o.foto
+        ? '<img src="' + U.esc(o.foto) + '" alt="' + U.esc(o.nick) + '" loading="lazy">'
+        : '<span>' + U.esc(awal) + '</span>';
       return '<div class="mempelai">' +
-        '<div class="medali"><span>' + U.esc(awal) + '</span></div>' +
+        '<div class="lengkung medali">' + potret + '</div>' +
         '<h3 class="nama tulis">' + U.esc(o.nick) + '</h3>' +
         '<p class="penuh">' + U.esc(o.full) + '</p>' +
         (o.role ? '<p class="ortu">' + U.esc(o.role) + '</p>' : '') +
         (o.ig ? '<a class="ig" href="https://instagram.com/' + encodeURIComponent(o.ig) +
-          '" target="_blank" rel="noopener">@' + U.esc(o.ig) + '</a>' : '') +
+          '" target="_blank" rel="noopener" aria-label="Instagram ' + U.esc(o.nick) + '">' +
+          this.ikonIg() + '</a>' : '') +
       '</div>';
     };
     return this.bungkus({
@@ -281,7 +331,7 @@ const Simple = {
   acara() {
     const s = CONFIG.salam || {};
     const kartu = CONFIG.events.map(ev =>
-      '<div class="kartu acara">' +
+      '<div class="kartu acara lengkung">' +
         this.ikonAcara(ev) +
         '<h3>' + U.esc(ev.name) + '</h3>' +
         '<div class="baris"><span class="label">Hari</span><span class="isi"><b>' + U.esc(ev.day) + '</b></span></div>' +
@@ -299,7 +349,7 @@ const Simple = {
         '" target="_blank" rel="noopener">Tonton dari Rumah</a></div></div>'
       : '';
     return this.bungkus({
-      pemisah: 'daun', kicker: 'Save the Date', judul: 'Rangkaian Acara',
+      kelas: 'gelap', pemisah: 'daun', kicker: 'Save the Date', judul: 'Rangkaian Acara',
       sub: s.penutup || '', isi: kartu + live
     });
   },
@@ -374,15 +424,40 @@ const Simple = {
     });
   },
 
+  // Buku tamu: ucapan yang ditulis tamu lain di formulir RSVP, ditampilkan
+  // balik di halaman. Kerangkanya digambar sekarang dan isinya menyusul dari
+  // server — jadi kalau servernya diam, yang diam cuma bagian ini.
+  ucapan() {
+    if (!Ucapan.aktif()) return '';
+    return this.bungkus({
+      pemisah: 'titik', kicker: 'Wishes', judul: 'Ucapan & Doa',
+      sub: 'Doa yang dikirim tamu-tamu lain untuk kami.',
+      isi:
+        '<div class="hitungan" id="ucapan-hitung">' +
+          '<div><b>&mdash;</b><span>ucapan</span></div>' +
+          '<div><b>&mdash;</b><span>hadir</span></div>' +
+          '<div><b>&mdash;</b><span>berhalangan</span></div>' +
+        '</div>' +
+        '<div class="ucapan-daftar" id="ucapan-daftar">' +
+          '<p class="ucapan-kabar">Sedang memuat buku tamu&hellip;</p>' +
+        '</div>' +
+        '<button class="tombol" type="button" id="ucapan-lagi" hidden>Lihat Lebih Banyak</button>'
+    });
+  },
+
   kado() {
     const g = CONFIG.gifts;
     if (!g) return '';
     const bank = (g.banks || []).map(b =>
       '<div class="rekening">' +
-        '<div class="bank">' + U.esc(b.bank) + '</div>' +
+        '<div class="atm-atas">' +
+          '<span class="bank">' + U.esc(b.bank) + '</span>' + this.ikonCip() +
+        '</div>' +
         '<div class="nomor">' + U.esc(b.number) + '</div>' +
-        '<div class="atasnama">atas nama ' + U.esc(b.holder) + '</div>' +
-        '<button class="tombol kecil" type="button" data-salin="' + U.esc(b.number) + '">Salin Nomor</button>' +
+        '<div class="atm-bawah">' +
+          '<span class="atasnama">' + U.esc(b.holder) + '</span>' +
+          '<button class="tombol kecil" type="button" data-salin="' + U.esc(b.number) + '">Salin</button>' +
+        '</div>' +
       '</div>').join('');
     const alamat = g.address
       ? '<div class="kartu tengah"><h3>Kirim Kado</h3><div class="isi">' + U.esc(g.address) + '</div>' +
@@ -427,7 +502,13 @@ const Simple = {
   // halaman, supaya tidak ikut tergulir dan tidak menambah tinggi halaman.
   gambarHiasan() {
     const kotak = document.getElementById('hiasan');
-    if (kotak) kotak.innerHTML = this.sudutBunga() + this.sudutBunga();
+    if (!kotak) return;
+    kotak.innerHTML = this.sudutBunga() + this.sudutBunga() +
+      '<span class="tepi kiri"></span><span class="tepi kanan"></span>';
+    // Sulurnya dipasang sebagai latar yang berulang ke bawah, bukan sebagai
+    // ratusan elemen, supaya halaman panjang tidak jadi berat.
+    const gambar = 'url("data:image/svg+xml,' + encodeURIComponent(this.sulur()) + '")';
+    kotak.querySelectorAll('.tepi').forEach(t => { t.style.backgroundImage = gambar; });
   },
 
   tebarKelopak() {
@@ -490,6 +571,77 @@ const Simple = {
     setInterval(tik, 1000);
   },
 
+  /* ---------- Buku tamu ---------- */
+  bukuTamu: { daftar: [], tampil: 0 },
+
+  muatUcapan() {
+    if (!Ucapan.aktif()) return Promise.resolve();
+    return Ucapan.muat().then(h => {
+      const daftarEl = document.getElementById('ucapan-daftar');
+      if (!daftarEl) return;
+      if (!h.ok) {
+        // Buku tamunya tidak bisa dibaca sekarang. Bagian ini dipadamkan
+        // diam-diam; tamu tidak perlu dibebani pesan kesalahan teknis.
+        const bagian = daftarEl.closest('.bagian');
+        if (bagian) bagian.hidden = true;
+        return;
+      }
+      const j = h.jumlah || {};
+      const kotak = document.getElementById('ucapan-hitung');
+      if (kotak) {
+        const angka = kotak.querySelectorAll('b');
+        angka[0].textContent = j.ucapan || 0;
+        angka[1].textContent = j.hadir || 0;
+        angka[2].textContent = (j.tidak || 0) + (j.ragu || 0);
+      }
+      this.bukuTamu.daftar = (h.daftar || []).filter(u => Ucapan.layak(u.pesan));
+      this.bukuTamu.tampil = 0;
+      this.tambahUcapan();
+    });
+  },
+
+  // Ditampilkan sepotong-sepotong supaya bagiannya tidak jadi gulungan
+  // sepanjang halaman kalau ucapannya sudah ratusan.
+  tambahUcapan() {
+    const daftarEl = document.getElementById('ucapan-daftar');
+    const lagi = document.getElementById('ucapan-lagi');
+    if (!daftarEl) return;
+    const semua = this.bukuTamu.daftar;
+    if (!semua.length) {
+      daftarEl.innerHTML = '<p class="ucapan-kabar">Belum ada ucapan. ' +
+        'Jadilah yang pertama lewat formulir di atas.</p>';
+      if (lagi) lagi.hidden = true;
+      return;
+    }
+    const per = U.clamp((CONFIG.ucapan && CONFIG.ucapan.perHalaman) || 5, 1, 50);
+    const sampai = Math.min(semua.length, this.bukuTamu.tampil + per);
+    const potong = semua.slice(0, sampai);
+    daftarEl.innerHTML = potong.map(u => {
+      const hadir = String(u.hadir || '').toLowerCase();
+      const label = hadir.indexOf('tidak') === 0 ? 'Berhalangan'
+                  : hadir.indexOf('ragu') >= 0 ? 'Masih ragu' : 'Hadir';
+      const kelas = hadir.indexOf('tidak') === 0 ? ' tidak'
+                  : hadir.indexOf('ragu') >= 0 ? ' ragu' : '';
+      const awal = (String(u.nama || '?').trim().charAt(0) || '?').toUpperCase();
+      return '<article class="ucapan">' +
+        '<div class="ucapan-kepala">' +
+          '<span class="ucapan-awal">' + U.esc(awal) + '</span>' +
+          '<div class="ucapan-siapa">' +
+            '<b>' + U.esc(u.nama || 'Tamu') + '</b>' +
+            '<span class="ucapan-kapan">' + U.esc(Ucapan.kapan(u.waktu)) + '</span>' +
+          '</div>' +
+          '<span class="lencana' + kelas + '">' + label + '</span>' +
+        '</div>' +
+        '<p class="ucapan-isi">' + U.esc(u.pesan) + '</p>' +
+      '</article>';
+    }).join('');
+    this.bukuTamu.tampil = sampai;
+    if (lagi) {
+      lagi.hidden = sampai >= semua.length;
+      lagi.textContent = 'Lihat Lebih Banyak (' + (semua.length - sampai) + ' lagi)';
+    }
+  },
+
   /* ---------- Foto diperbesar ---------- */
   bukaLampu(i) {
     const foto = (CONFIG.gallery || [])[i];
@@ -528,7 +680,8 @@ const Simple = {
       const ics = e.target.closest('[data-ics]');
       if (ics) { Content.downloadIcs(ics.getAttribute('data-ics')); return; }
       const foto = e.target.closest('[data-foto]');
-      if (foto) this.bukaLampu(+foto.getAttribute('data-foto'));
+      if (foto) { this.bukaLampu(+foto.getAttribute('data-foto')); return; }
+      if (e.target.closest('#ucapan-lagi')) this.tambahUcapan();
     });
 
     // Bingkai foto bukan <button>, jadi papan ketik harus dilayani sendiri.
@@ -588,6 +741,9 @@ const Simple = {
           : '<p class="status warn">Koneksi ke buku tamu gagal. Jawaban Anda tersimpan di HP ini &mdash; ' +
             'mohon kirim juga lewat tombol WhatsApp di bawah ya.</p>');
         kotak.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        // Buku tamu dimuat ulang supaya ucapan yang barusan dikirim langsung
+        // kelihatan di bawah, bukan baru muncul kalau halamannya dibuka lagi.
+        if (hasil.ok) this.muatUcapan();
       });
     } else {
       gambar('');

@@ -412,6 +412,51 @@ function doGet(e) {
     return json_({ ok: true, isi: bacaIsi_() });
   }
 
+  /* ---------------- BUKU TAMU: UCAPAN YANG TAMPIL DI UNDANGAN ----------------
+     Pintu masuknya sama dengan action=isi: harus kode tamu yang terdaftar.
+     Yang dikirim balik cuma nama, ucapan, kehadiran, dan waktunya — kode
+     undangan, grup, jumlah kursi, dan nomor WA tamu lain TIDAK pernah ikut.  */
+  if (action === 'ucapan') {
+    var kodeU = str_(p.u || p.kode).toLowerCase();
+    if (!kodeU) return json_({ ok: false, error: 'tanpa-kode' });
+    var daftarU = bacaTamu_();
+    var kenalU = false;
+    for (var x = 0; x < daftarU.length; x++) {
+      if (daftarU[x].kode.toLowerCase() === kodeU) { kenalU = true; break; }
+    }
+    if (!kenalU) return json_({ ok: false, error: 'tanpa-kode' });
+
+    var shU = sheet_();
+    var akhirU = shU.getLastRow();
+    var jumlahU = { ucapan: 0, hadir: 0, ragu: 0, tidak: 0, total: 0 };
+    var pesanU = [];
+    if (akhirU > 1) {
+      var isiU = shU.getRange(2, 1, akhirU - 1, HEADERS.length).getValues();
+      for (var y = 0; y < isiU.length; y++) {
+        var hadirU = str_(isiU[y][4]);
+        var kecilU = hadirU.toLowerCase();
+        jumlahU.total++;
+        if (kecilU.indexOf('tidak') === 0) jumlahU.tidak++;
+        else if (kecilU.indexOf('ragu') >= 0) jumlahU.ragu++;
+        else jumlahU.hadir++;
+
+        var tulisU = str_(isiU[y][6]);
+        if (!tulisU) continue;
+        jumlahU.ucapan++;
+        pesanU.push({
+          nama: str_(isiU[y][2]),
+          pesan: tulisU,
+          hadir: hadirU,
+          waktu: isiU[y][0] ? new Date(isiU[y][0]).toISOString() : ''
+        });
+      }
+    }
+    // Yang terbaru di atas, dan dibatasi supaya balasannya tidak membengkak
+    // kalau tamunya ratusan.
+    pesanU.reverse();
+    return json_({ ok: true, jumlah: jumlahU, daftar: pesanU.slice(0, 300) });
+  }
+
   /* ---------------- HADIAH POJOKAN RAHASIA ----------------
      Syaratnya diperiksa DI SINI, bukan di browser: kodenya tamu terdaftar,
      seluruh titik wajib sudah dikunjungi, belum lewat batas waktu, dan sudah

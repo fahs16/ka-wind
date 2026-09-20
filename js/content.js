@@ -255,6 +255,93 @@ const Rsvp = {
   }
 };
 
+/* Buku tamu yang tampil di undangan: ucapan tamu lain, apa adanya.
+
+   Sumbernya mengikuti rantai yang sama dengan Rsvp — satu nama ('sheet') atau
+   urutan (['sheet','db']) — jadi kalau satu pintu ngadat, yang lain dicoba.
+
+   Yang diminta dari server cuma nama, ucapan, kehadiran, dan waktunya. Kode
+   undangan dan nomor WA tamu lain tidak pernah ikut keluar; itu dijaga di
+   server (action=ucapan di apps-script.gs, daftar_ucapan() di schema.sql),
+   bukan disembunyikan di sini. */
+const Ucapan = {
+  BATAS_MS: 8000,
+
+  setelan() { return (CONFIG && CONFIG.ucapan) || {}; },
+
+  // Boleh dimatikan lewat config kalau kalian tidak mau nama tamu saling
+  // terlihat. Kalau dimatikan, bagiannya tidak digambar sama sekali.
+  nyala() { return this.setelan().aktif !== false; },
+
+  rantai() {
+    const v = this.setelan().provider;
+    const daftar = (Array.isArray(v) ? v : [v])
+      .map(x => String(x || '').trim().toLowerCase())
+      .filter(x => x === 'db' || x === 'sheet');
+    // Tidak diisi = ikut ke mana RSVP dikirim. Buku tamu memang membaca
+    // tumpukan yang sama, jadi menyetel dua kali cuma bikin bisa beda.
+    return daftar.length ? daftar : Rsvp.rantai();
+  },
+
+  siap() {
+    return this.rantai().filter(ke => ke === 'db'
+      ? (typeof Db !== 'undefined' && Db.aktif())
+      : !!CONFIG.rsvp.endpoint);
+  },
+
+  aktif() { return this.nyala() && this.siap().length > 0; },
+
+  keSatu(ke, kode) {
+    if (ke === 'db') return Db.daftarUcapan(kode, this.BATAS_MS);
+    const url = CONFIG.rsvp.endpoint +
+      (CONFIG.rsvp.endpoint.indexOf('?') >= 0 ? '&' : '?') +
+      'action=ucapan&u=' + encodeURIComponent(kode || '');
+    return fetch(url).then(r => r.json()).then(j => ({
+      ok: !!(j && j.ok),
+      jumlah: (j && j.jumlah) || {},
+      daftar: (j && j.daftar) || []
+    }));
+  },
+
+  // Selalu berhasil sebagai Promise. { ok: false } = buku tamunya tidak bisa
+  // dibaca sekarang; undangannya tetap utuh, bagian itu saja yang diam.
+  muat() {
+    const daftar = this.siap();
+    if (!this.nyala() || !daftar.length) return Promise.resolve({ ok: false, mati: true });
+    const kode = Content.guestInfo().code || '';
+    const coba = i => {
+      if (i >= daftar.length) return Promise.resolve({ ok: false });
+      return this.keSatu(daftar[i], kode)
+        .then(h => (h && h.ok) ? h : coba(i + 1))
+        .catch(() => coba(i + 1));
+    };
+    return coba(0);
+  },
+
+  // Ucapan kasar disembunyikan dari halaman. Penyaringnya dipakai bersama
+  // dengan obrolan di versi game supaya daftar kata terlarangnya cuma satu.
+  layak(teks) {
+    const t = String(teks || '').trim();
+    if (!t) return false;
+    return !(typeof Moderate !== 'undefined' && Moderate.blocked(t));
+  },
+
+  // "3 hari lalu" lebih enak dibaca daripada tanggal penuh di daftar panjang.
+  kapan(iso) {
+    const d = new Date(iso);
+    if (isNaN(d)) return '';
+    const detik = Math.max(0, (Date.now() - d.getTime()) / 1000);
+    if (detik < 90) return 'baru saja';
+    const menit = detik / 60;
+    if (menit < 60) return Math.round(menit) + ' menit lalu';
+    const jam = menit / 60;
+    if (jam < 24) return Math.round(jam) + ' jam lalu';
+    const hari = jam / 24;
+    if (hari < 30) return Math.round(hari) + ' hari lalu';
+    return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+};
+
 /* Penyimpanan RSVP di perangkat tamu. */
 const Store = {
   KEY: 'undangan-rsvp',

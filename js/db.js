@@ -4,8 +4,9 @@
    fungsi yang sudah disiapkan di server (lihat server/schema.sql), dan tiap
    fungsi hanya menjawab sepotong data yang memang perlu:
 
-     cek_tamu(kode)  -> satu baris tamu pemilik kode itu, tanpa nomor WA
-     simpan_rsvp(..) -> menyimpan jawaban kehadiran satu tamu
+     cek_tamu(kode)     -> satu baris tamu pemilik kode itu, tanpa nomor WA
+     simpan_rsvp(..)    -> menyimpan jawaban kehadiran satu tamu
+     daftar_ucapan(kode)-> ucapan tamu lain untuk buku tamu, tanpa kode/WA
 
    Dua fungsi panitia (rekap_rsvp, daftar_tamu, statistik) juga lewat sini,
    tapi isinya dijaga token yang cuma dipegang kalian, tidak pernah ditulis
@@ -78,6 +79,16 @@ const Db = {
         group: String(t.grup || '')
       };
     });
+  },
+
+  // Buku tamu yang tampil di undangan. Jawabannya cuma nama + ucapan +
+  // kehadiran; kode undangan dan nomor WA tamu lain tidak pernah ikut keluar.
+  daftarUcapan(kode, batasMs) {
+    return this.panggil('daftar_ucapan', { p_kode: kode || '' }, batasMs).then(j => ({
+      ok: !!(j && j.ok),
+      jumlah: (j && j.jumlah) || {},
+      daftar: (j && j.daftar) || []
+    }));
   },
 
   simpanRsvp(data) {
