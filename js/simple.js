@@ -32,6 +32,131 @@ const Simple = {
     '</g>';
   },
 
+  /* --------- Untaian bunga gantung ---------
+     Ini yang bikin halamannya terasa undangan, bukan ornamen garis tipis:
+     rangkaian bunga yang menjuntai dari sudut atas, seperti wisteria.
+
+     Digambar prosedural, bukan foto — jadi tidak ada berkas gambar yang perlu
+     diunduh, ukurannya bebas diperbesar tanpa pecah, dan warnanya tetap satu
+     keluarga dengan sisa halaman. Acaknya memakai U.hash yang hasilnya sama
+     setiap kali, supaya rangkaiannya tidak berubah-ubah tiap halaman dibuka. */
+
+  KELOPAK: ['#fbe7ee', '#f3d3df', '#e9b9cd', '#dda3bc', '#ffffff'],
+  DEDAUNAN: ['#cfdcbe', '#b6cba0', '#9db98a', '#e4ecd8'],
+
+  // Titik di sepanjang kurva Bezier kubik. Dipakai untuk menempelkan bunga
+  // mengikuti lengkung tangkainya, bukan sekadar berjajar lurus ke bawah.
+  bezier(p, t) {
+    const u = 1 - t;
+    return {
+      x: u * u * u * p[0] + 3 * u * u * t * p[2] + 3 * u * t * t * p[4] + t * t * t * p[6],
+      y: u * u * u * p[1] + 3 * u * u * t * p[3] + 3 * u * t * t * p[5] + t * t * t * p[7]
+    };
+  },
+
+  // Satu untai yang menjuntai: tangkai melengkung, bunga menggerombol di
+  // pangkal lalu mengecil ke ujung, dan beberapa helai daun di atasnya.
+  untai(x, panjang, benih) {
+    const ac = (a, b) => U.hash(benih * 31 + a, benih * 17 + b);
+    const goyang = 14 + ac(1, 2) * 20;
+    const p = [x, -6,
+               x + goyang, panjang * 0.32,
+               x - goyang * 1.3, panjang * 0.68,
+               x + goyang * 0.35, panjang];
+
+    let keluar = '<path d="M' + p[0] + ' ' + p[1] + 'C' + p[2] + ' ' + p[3] + ' ' +
+      p[4] + ' ' + p[5] + ' ' + p[6] + ' ' + p[7] + '" fill="none" stroke="#9a7c66" ' +
+      'stroke-width="' + (1.6 + ac(3, 4) * 1.4).toFixed(1) + '" stroke-linecap="round" opacity=".75"/>';
+
+    // Daun besar di pangkal untaian.
+    for (let i = 0; i < 5; i++) {
+      const t = 0.03 + i * 0.075;
+      const q = this.bezier(p, t);
+      const besar = (0.75 + ac(i, 9) * 0.55).toFixed(2);
+      const putar = Math.round(ac(i, 11) * 360);
+      keluar += '<g transform="translate(' + q.x.toFixed(1) + ',' + q.y.toFixed(1) +
+        ') rotate(' + putar + ') scale(' + besar + ')" opacity=".85">' + this.daun + '</g>';
+    }
+
+    // Gerombolan bunga. Makin ke ujung makin kecil dan makin rapat, persis
+    // seperti untaian wisteria sungguhan.
+    // Rapat dan bertumpuk di pangkal, menipis ke ujung. Tumpukannya yang
+    // bikin untaiannya terbaca sebagai rumpun bunga, bukan manik di tali.
+    const jumlah = 13 + Math.round(ac(5, 6) * 5);
+    for (let i = 0; i < jumlah; i++) {
+      const t = 0.1 + (i / jumlah) * 0.9;
+      const q = this.bezier(p, t);
+      const dasar = 15 * (1 - t * 0.76);
+      for (let k = 0; k < 5; k++) {
+        const r = dasar * (0.5 + ac(i * 3 + k, 13) * 0.6);
+        const dx = (ac(i * 5 + k, 15) - 0.5) * dasar * 1.7;
+        const dy = (ac(i * 7 + k, 19) - 0.5) * dasar * 1.2;
+        const warna = this.KELOPAK[Math.floor(ac(i + k, 23) * this.KELOPAK.length) % this.KELOPAK.length];
+        keluar += '<ellipse cx="' + (q.x + dx).toFixed(1) + '" cy="' + (q.y + dy).toFixed(1) +
+          '" rx="' + r.toFixed(1) + '" ry="' + (r * 0.82).toFixed(1) + '" fill="' + warna +
+          '" opacity="' + (0.55 + ac(i * 2 + k, 27) * 0.4).toFixed(2) + '"/>';
+      }
+    }
+    return keluar;
+  },
+
+  // Satu rangkaian sudut: dahan melintang di atas, lalu untaian-untaian yang
+  // menjuntai dengan panjang berbeda-beda.
+  rangkaian(lebar, tinggi, benih) {
+    const ac = (a, b) => U.hash(benih * 41 + a, benih * 23 + b);
+    // Dahan utama membentang dari pojok, sedikit melengkung ke bawah.
+    let keluar = '<path d="M-10 16Q' + (lebar * 0.45) + ' ' + (tinggi * 0.1) + ' ' +
+      (lebar + 10) + ' ' + (tinggi * 0.32) + '" fill="none" stroke="#8a6f5c" ' +
+      'stroke-width="4" stroke-linecap="round" opacity=".8"/>';
+
+    // Kanopi daun yang rapat menempel di dahannya — dua baris supaya pangkal
+    // rangkaiannya terasa padat, bukan cuma satu garis daun.
+    for (let i = 0; i < 34; i++) {
+      const u = (i % 17) / 16;
+      const baris = Math.floor(i / 17);
+      const x = -12 + u * (lebar + 24) + (ac(i, 2) - 0.5) * 22;
+      const y = 14 + u * (tinggi * 0.22) - Math.sin(u * Math.PI) * tinggi * 0.06 +
+        baris * 16 + (ac(i, 4) - 0.5) * 18;
+      const besar = (1 + ac(i, 3) * 1.1).toFixed(2);
+      const warna = this.DEDAUNAN[Math.floor(ac(i, 5) * this.DEDAUNAN.length) % this.DEDAUNAN.length];
+      keluar += '<g transform="translate(' + x.toFixed(1) + ',' + y.toFixed(1) + ') rotate(' +
+        Math.round(ac(i, 7) * 360) + ') scale(' + besar + ')">' +
+        '<path d="M0 0C4-6 13-6 17 0 13 6 4 6 0 0Z" fill="' + warna +
+        '" stroke="#7d8f6a" stroke-width="1"/></g>';
+    }
+
+    const untaian = 10;
+    for (let i = 0; i < untaian; i++) {
+      const x = lebar * (0.04 + (i / (untaian - 1)) * 0.92) + (ac(i, 12) - 0.5) * 18;
+      // Panjangnya dibikin beragam: kebanyakan pendek, beberapa menjuntai jauh.
+      // Lalu diruncingkan ke arah tengah halaman — paling panjang menggantung
+      // di pojok, makin pendek menjauh darinya. Tanpa ini dua rangkaian sudut
+      // bertemu di tengah dan menutupi monogramnya.
+      const runcing = 1 - 0.72 * Math.pow(x / lebar, 1.3);
+      const panjang = tinggi * (0.3 + Math.pow(ac(i, 9), 1.8) * 0.72) * runcing;
+      keluar += '<g transform="translate(0,' + (14 + (x / lebar) * tinggi * 0.2).toFixed(1) + ')">' +
+        this.untai(x, panjang, benih * 7 + i) + '</g>';
+    }
+    return keluar;
+  },
+
+  // Dibungkus jadi alamat data: gambar ini dipakai sebagai latar lewat CSS,
+  // bukan ditanam sebagai ratusan elemen di dalam halaman. Satu rangkaian
+  // isinya ~250 bentuk — kalau jadi elemen sungguhan, halamannya jadi berat.
+  rangkaianUrl(lebar, tinggi, benih) {
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + lebar + '" height="' + tinggi +
+      '" viewBox="0 0 ' + lebar + ' ' + tinggi + '">' +
+      '<defs><filter id="l" x="-20%" y="-20%" width="140%" height="140%">' +
+        '<feGaussianBlur stdDeviation=".45"/></filter>' +
+      '<filter id="k" x="-30%" y="-30%" width="160%" height="160%">' +
+        '<feGaussianBlur stdDeviation="3.2"/></filter></defs>' +
+      // Lapis belakang yang kabur memberi kesan cat air, bukan stiker.
+      '<g filter="url(#k)" opacity=".5">' + this.rangkaian(lebar, tinggi, benih + 1) + '</g>' +
+      '<g filter="url(#l)">' + this.rangkaian(lebar, tinggi, benih) + '</g>' +
+    '</svg>';
+    return 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")';
+  },
+
   // Monogram: dua inisial mempelai di tengah karangan daun.
   monogram() {
     const c = CONFIG.couple;
@@ -171,7 +296,11 @@ const Simple = {
       { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     const sudut = this.sudutBunga();
     document.getElementById('sampul').innerHTML =
-      '<div class="sampul-isi"><div class="bingkai">' +
+      // Untaiannya dipasang di dalam kartunya, bukan di tepi layar, supaya di
+      // layar lebar tetap menggantung di pojok kartu dan bukan melayang jauh.
+      '<div class="sampul-isi">' +
+        '<span class="untaian-sampul kiri"></span><span class="untaian-sampul kanan"></span>' +
+        '<div class="bingkai">' +
         '<div class="sudut-bunga">' + sudut + sudut + sudut + sudut + '</div>' +
         this.monogram() +
         '<p class="kicker">The Wedding Of</p>' +
@@ -189,6 +318,8 @@ const Simple = {
         '<p class="sampul-catatan">Ada musik lembut di dalamnya. ' +
           'Bisa dimatikan lewat tombol &#9834; di pojok kanan bawah.</p>' +
       '</div></div>';
+    const gantung = this.rangkaianUrl(460, 340, 11);
+    document.querySelectorAll('.untaian-sampul').forEach(t => { t.style.backgroundImage = gantung; });
     document.getElementById('buka').addEventListener('click', () => this.buka());
   },
 
@@ -234,6 +365,7 @@ const Simple = {
 
     this.jalankanHitungMundur();
     this.pasangTombol();
+    this.pasangKomidi();
     this.muatUcapan();
   },
 
@@ -378,13 +510,24 @@ const Simple = {
       // Hanya foto sungguhan yang bisa diperbesar; bingkai kosong dibiarkan diam.
       const buka = g.src ? ' data-foto="' + i + '" tabindex="0" role="button" aria-label="Perbesar ' +
         U.esc(g.caption) + '"' : '';
-      return '<figure><div class="bingkai-foto' + (g.src ? '' : ' kosong') + '"' + buka + '>' + dalam + '</div>' +
+      return '<figure class="slide"><div class="bingkai-foto lengkung' + (g.src ? '' : ' kosong') + '"' +
+        buka + '>' + dalam + '</div>' +
         '<figcaption>' + U.esc(g.caption) + '</figcaption></figure>';
     }).join('');
+    const titik = CONFIG.gallery.map((g, i) =>
+      '<button class="titik" type="button" data-ke="' + i + '" aria-label="Foto ke-' + (i + 1) + '"></button>'
+    ).join('');
+    // Komidi putar memakai scroll-snap bawaan browser, bukan pustaka: geserannya
+    // jadi mulus dan ikut inersia jari tanpa satu baris pun kode gulir sendiri.
     return this.bungkus({
       pemisah: 'titik', kicker: 'Moments', judul: 'Galeri',
-      sub: 'Beberapa potongan perjalanan kami.',
-      isi: '<div class="galeri">' + item + '</div>'
+      sub: 'Geser untuk melihat potongan perjalanan kami.',
+      isi: '<div class="komidi">' +
+          '<div class="rel" id="galeri-rel">' + item + '</div>' +
+          '<button class="komidi-geser kiri" type="button" data-slide="-1" aria-label="Foto sebelumnya">&#8249;</button>' +
+          '<button class="komidi-geser kanan" type="button" data-slide="1" aria-label="Foto berikutnya">&#8250;</button>' +
+        '</div>' +
+        '<div class="titik-baris" id="galeri-titik">' + titik + '</div>'
     });
   },
 
@@ -503,25 +646,32 @@ const Simple = {
   gambarHiasan() {
     const kotak = document.getElementById('hiasan');
     if (!kotak) return;
-    kotak.innerHTML = this.sudutBunga() + this.sudutBunga() +
+    kotak.innerHTML =
+      '<span class="untaian kiri"></span><span class="untaian kanan"></span>' +
       '<span class="tepi kiri"></span><span class="tepi kanan"></span>';
-    // Sulurnya dipasang sebagai latar yang berulang ke bawah, bukan sebagai
-    // ratusan elemen, supaya halaman panjang tidak jadi berat.
-    const gambar = 'url("data:image/svg+xml,' + encodeURIComponent(this.sulur()) + '")';
-    kotak.querySelectorAll('.tepi').forEach(t => { t.style.backgroundImage = gambar; });
+    // Semua hiasan dipasang sebagai latar, bukan sebagai ribuan elemen SVG
+    // di dalam halaman — satu rangkaian saja isinya ratusan bentuk.
+    const sulur = 'url("data:image/svg+xml,' + encodeURIComponent(this.sulur()) + '")';
+    kotak.querySelectorAll('.tepi').forEach(t => { t.style.backgroundImage = sulur; });
+    const untaian = this.rangkaianUrl(420, 300, 3);
+    kotak.querySelectorAll('.untaian').forEach(t => { t.style.backgroundImage = untaian; });
   },
 
   tebarKelopak() {
     const kotak = document.getElementById('kelopak');
     if (!kotak) return;
     let html = '';
-    for (let i = 0; i < 14; i++) {
+    for (let i = 0; i < 24; i++) {
       const kiri = Math.round(U.hash(i * 7 + 1, i * 3 + 5) * 100);
-      const lama = (11 + U.hash(i, i * 2) * 12).toFixed(1);
-      const tunda = (U.hash(i * 5, i + 3) * 14).toFixed(1);
-      const goyang = (5 + U.hash(i * 3, i + 7) * 3).toFixed(1);
-      html += '<i style="left:' + kiri + '%;animation-duration:' + lama + 's,' + goyang +
-        's;animation-delay:-' + tunda + 's,-' + tunda + 's"></i>';
+      // Tiga lapis kedalaman. Yang jauh jatuh lebih lambat — itu saja sudah
+      // cukup untuk memberi kesan ruang tanpa gambar latar tambahan.
+      const lapis = i % 3 === 0 ? 'jauh' : (i % 3 === 1 ? '' : 'dekat');
+      const dasar = lapis === 'jauh' ? 19 : (lapis === 'dekat' ? 10 : 14);
+      const lama = (dasar + U.hash(i, i * 2) * 9).toFixed(1);
+      const tunda = (U.hash(i * 5, i + 3) * 22).toFixed(1);
+      const goyang = (5 + U.hash(i * 3, i + 7) * 4).toFixed(1);
+      html += '<i class="' + lapis + '" style="left:' + kiri + '%;animation-duration:' + lama + 's,' +
+        goyang + 's;animation-delay:-' + tunda + 's,-' + tunda + 's"></i>';
     }
     kotak.innerHTML = html;
   },
@@ -569,6 +719,54 @@ const Simple = {
     };
     tik();
     setInterval(tik, 1000);
+  },
+
+  /* ---------- Galeri komidi putar ---------- */
+  // Geserannya diserahkan ke scroll-snap bawaan browser; yang ditangani di
+  // sini cuma tombol panah, titik penanda, dan menjaga titiknya tetap ikut
+  // posisi gulir — termasuk waktu tamu menggeser pakai jari.
+  pasangKomidi() {
+    const rel = document.getElementById('galeri-rel');
+    const baris = document.getElementById('galeri-titik');
+    if (!rel || !baris) return;
+    const slide = () => Array.from(rel.querySelectorAll('.slide'));
+
+    const sekarang = () => {
+      const s = slide();
+      if (!s.length) return 0;
+      const tengah = rel.scrollLeft + rel.clientWidth / 2;
+      let pilih = 0, dekat = Infinity;
+      s.forEach((el, i) => {
+        const jarak = Math.abs(el.offsetLeft + el.offsetWidth / 2 - tengah);
+        if (jarak < dekat) { dekat = jarak; pilih = i; }
+      });
+      return pilih;
+    };
+
+    const tandai = () => {
+      const i = sekarang();
+      baris.querySelectorAll('.titik').forEach((t, k) => t.classList.toggle('aktif', k === i));
+      const s = slide();
+      rel.parentNode.querySelector('.komidi-geser.kiri').disabled = i <= 0;
+      rel.parentNode.querySelector('.komidi-geser.kanan').disabled = i >= s.length - 1;
+    };
+
+    this.keFoto = ke => {
+      const s = slide();
+      const i = U.clamp(ke, 0, s.length - 1);
+      rel.scrollTo({ left: s[i].offsetLeft - (rel.clientWidth - s[i].offsetWidth) / 2,
+                     behavior: 'smooth' });
+    };
+
+    // Gulirnya dipantau dengan jeda: kalau ditandai tiap piksel, titiknya
+    // berkedip-kedip waktu jari masih menggeser.
+    let jam = 0;
+    rel.addEventListener('scroll', () => {
+      clearTimeout(jam);
+      jam = setTimeout(tandai, 90);
+    }, { passive: true });
+    window.addEventListener('resize', () => { clearTimeout(jam); jam = setTimeout(tandai, 150); });
+    tandai();
   },
 
   /* ---------- Buku tamu ---------- */
@@ -681,7 +879,22 @@ const Simple = {
       if (ics) { Content.downloadIcs(ics.getAttribute('data-ics')); return; }
       const foto = e.target.closest('[data-foto]');
       if (foto) { this.bukaLampu(+foto.getAttribute('data-foto')); return; }
-      if (e.target.closest('#ucapan-lagi')) this.tambahUcapan();
+      if (e.target.closest('#ucapan-lagi')) { this.tambahUcapan(); return; }
+      const geser = e.target.closest('[data-slide]');
+      if (geser && this.keFoto) {
+        const rel = document.getElementById('galeri-rel');
+        const s = Array.from(rel.querySelectorAll('.slide'));
+        const tengah = rel.scrollLeft + rel.clientWidth / 2;
+        let kini = 0, dekat = Infinity;
+        s.forEach((el, i) => {
+          const jarak = Math.abs(el.offsetLeft + el.offsetWidth / 2 - tengah);
+          if (jarak < dekat) { dekat = jarak; kini = i; }
+        });
+        this.keFoto(kini + (+geser.getAttribute('data-slide')));
+        return;
+      }
+      const titik = e.target.closest('[data-ke]');
+      if (titik && this.keFoto) this.keFoto(+titik.getAttribute('data-ke'));
     });
 
     // Bingkai foto bukan <button>, jadi papan ketik harus dilayani sendiri.

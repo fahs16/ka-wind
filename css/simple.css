@@ -29,6 +29,8 @@ body.gate-closed img{
 }
 
 :root{
+  --pelan:cubic-bezier(.16,1,.3,1);
+  --halus:cubic-bezier(.22,.61,.36,1);
   --tinta:#39262f;
   --tinta-lembut:#6b5560;
   --kertas:#f7eee3;
@@ -76,8 +78,24 @@ body.terkunci{overflow:hidden}
    Dipakai clip, bukan hidden, supaya tidak membuat wadah gulir baru. */
 body{overflow-x:clip}
 
+/* ============ Untaian bunga gantung ============ */
+/* Rangkaian yang menjuntai dari dua sudut atas — ini yang paling menentukan
+   rasa undangannya. Dipasang sebagai latar, bukan elemen, karena satu
+   rangkaian isinya ratusan bentuk. */
+.untaian,.untaian-sampul{
+  position:absolute;top:0;pointer-events:none;
+  width:min(58vw,370px);height:min(46vw,290px);
+  background-repeat:no-repeat;background-position:top left;background-size:100% 100%;
+}
+.untaian.kiri,.untaian-sampul.kiri{left:0}
+/* Sudut kanan memakai gambar yang sama, tinggal dicerminkan. */
+.untaian.kanan,.untaian-sampul.kanan{right:0;transform:scaleX(-1)}
+.untaian-sampul{z-index:2;top:-16px;width:min(58vw,300px);height:min(50vw,250px)}
+
 /* ============ Rangkaian bunga samar di sudut layar ============ */
-#hiasan{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;opacity:.32}
+#hiasan{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+#hiasan .untaian{opacity:.5}
+#hiasan .tepi{opacity:.3}
 #hiasan .sudut{position:absolute;width:min(34vw,210px);height:auto}
 #hiasan .sudut:first-child{top:-28px;left:-34px}
 #hiasan .sudut:last-child{bottom:-28px;right:-34px;transform:rotate(180deg)}
@@ -92,20 +110,27 @@ body{overflow-x:clip}
 /* ============ Kelopak berjatuhan ============ */
 #kelopak{position:fixed;inset:0;pointer-events:none;z-index:1;overflow:hidden}
 #kelopak i{
-  position:absolute;top:-24px;display:block;
-  width:11px;height:14px;border-radius:60% 0 60% 0;
-  background:var(--mawar-muda);opacity:.55;
+  position:absolute;top:-30px;display:block;
+  width:12px;height:15px;border-radius:64% 4% 64% 4%;
+  background:linear-gradient(140deg,#f7dfe8 0,#e6b6ca 100%);opacity:.6;
   animation:turun linear infinite, oleng ease-in-out infinite alternate;
 }
-#kelopak i:nth-child(even){background:var(--emas-muda);width:9px;height:11px}
-#kelopak i:nth-child(3n){background:#dfe8d4;width:8px;height:13px;border-radius:70% 0 70% 0}
+#kelopak i:nth-child(even){background:linear-gradient(140deg,#f2e2c4 0,#e0c79a 100%);width:10px;height:12px}
+#kelopak i:nth-child(3n){
+  background:linear-gradient(140deg,#e3eedb 0,#bcd3a8 100%);
+  width:9px;height:15px;border-radius:72% 6% 72% 6%;
+}
+/* Tiga lapis kedalaman: yang "jauh" lebih kecil, kabur, dan lambat. Itu yang
+   bikin kelopaknya terasa berada di ruang, bukan menempel di kaca. */
+#kelopak i.jauh{transform-origin:center;opacity:.32;filter:blur(1.4px);scale:.62}
+#kelopak i.dekat{opacity:.72;scale:1.25}
 @keyframes turun{
-  0%{transform:translateY(-24px) rotate(0deg)}
-  100%{transform:translateY(102vh) rotate(420deg)}
+  0%{transform:translateY(-30px) rotate(0deg)}
+  100%{transform:translateY(104vh) rotate(430deg)}
 }
 /* Olengnya dipasang di margin, bukan di transform, supaya tidak menimpa
    animasi jatuhnya. */
-@keyframes oleng{0%{margin-left:-22px}100%{margin-left:22px}}
+@keyframes oleng{0%{margin-left:-30px}100%{margin-left:30px}}
 
 /* ============ Sampul: amplop tertutup ============ */
 #sampul{
@@ -113,10 +138,10 @@ body{overflow-x:clip}
   display:flex;align-items:center;justify-content:center;padding:24px 18px;
   background:
     radial-gradient(circle at 50% 28%,#fffaf2 0,#f6ece0 55%,#eadbc6 100%);
-  transition:opacity .7s ease, visibility .7s, transform .7s ease;
+  transition:opacity .9s var(--halus), visibility .9s, transform .9s var(--halus);
 }
-#sampul.pergi{opacity:0;visibility:hidden;pointer-events:none;transform:scale(1.06)}
-.sampul-isi{width:100%;max-width:520px;text-align:center}
+#sampul.pergi{opacity:0;visibility:hidden;pointer-events:none;transform:scale(1.07) translateY(-22px)}
+.sampul-isi{position:relative;width:100%;max-width:520px;text-align:center}
 
 /* bingkai berukir dua garis + sudut emas + rangkaian bunga di empat pojok */
 .bingkai{
@@ -191,8 +216,21 @@ body{overflow-x:clip}
 .bagian.kiri{text-align:left}
 
 /* Muncul pelan sambil digulir. Kelas .tampak dipasang js/simple.js. */
-.bagian{opacity:0;transform:translateY(26px);transition:opacity .8s ease, transform .8s ease}
+/* Bagian naik pelan sambil memudar masuk, dan isinya menyusul bertahap —
+   jeda kecil antar anak inilah yang bikin geraknya terasa disengaja, bukan
+   semuanya melompat berbarengan. */
+/* Jeda antar anak dijaga pendek: yang terakhir harus sudah utuh sekitar
+   sedetik setelah bagiannya masuk layar. Lebih lama dari itu, tamu yang
+   menggulir cepat keburu membaca teks yang masih separuh pudar. */
+.bagian{opacity:0;transform:translateY(30px);transition:opacity .7s var(--pelan), transform .7s var(--pelan)}
 .bagian.tampak{opacity:1;transform:none}
+.bagian>*{opacity:0;transform:translateY(14px);transition:opacity .6s var(--pelan), transform .6s var(--pelan)}
+.bagian.tampak>*{opacity:1;transform:none}
+.bagian.tampak>*:nth-child(1){transition-delay:.04s}
+.bagian.tampak>*:nth-child(2){transition-delay:.1s}
+.bagian.tampak>*:nth-child(3){transition-delay:.16s}
+.bagian.tampak>*:nth-child(4){transition-delay:.22s}
+.bagian.tampak>*:nth-child(n+5){transition-delay:.28s}
 
 /* Bagian berpita: kertasnya sedikit lebih tua, dengan garis emas tipis di
    atas dan bawah, supaya halaman panjang punya irama. */
@@ -389,9 +427,10 @@ h2::after{
   background:var(--kertas2);color:var(--tinta);
   border:1px solid var(--mawar);border-radius:2px;
   box-shadow:inset 0 0 0 3px rgba(255,255,255,.7);
-  transition:background .2s ease,color .2s ease;
+  transition:background .3s var(--halus), color .3s var(--halus),
+             transform .25s var(--halus), box-shadow .3s var(--halus);
 }
-.tombol:active{transform:translateY(2px)}
+.tombol:active{transform:translateY(2px) scale(.985)}
 .tombol.utama{background:var(--mawar);border-color:var(--mawar);color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35)}
 .tombol.utama:active{background:var(--mawar-terang)}
 .tombol.besar{min-height:62px;font-size:20px;margin-top:28px;letter-spacing:1px}
@@ -413,29 +452,62 @@ h2::after{
 .cerita h3{font-family:var(--judul);font-size:28px;margin:0 0 6px;font-weight:600}
 .cerita p{margin:0;font-size:18px;color:var(--tinta-lembut);line-height:1.6}
 
-/* ============ Galeri ============ */
-.galeri{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
-.galeri figure{margin:0}
-/* Foto pertama dibiarkan melebar — jadi titik berhenti mata. */
-.galeri figure:first-child{grid-column:1 / -1}
-.galeri figure:first-child .bingkai-foto{aspect-ratio:16/10}
+/* ============ Galeri komidi putar ============ */
+.komidi{position:relative;margin:0 -20px}
+/* Gulir mendatar dengan titik henti — geserannya ditangani browser, jadi
+   ikut inersia jari dan tetap mulus tanpa pustaka apa pun. */
+.rel{
+  display:flex;gap:14px;overflow-x:auto;overflow-y:hidden;
+  scroll-snap-type:x mandatory;scroll-behavior:smooth;
+  padding:6px 20px 4px;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch;
+}
+.rel::-webkit-scrollbar{display:none}
+.slide{
+  margin:0;flex:0 0 auto;scroll-snap-align:center;
+  width:min(74%,300px);
+}
+.komidi-geser{
+  position:absolute;top:calc(50% - 34px);z-index:3;
+  width:44px;height:44px;border-radius:50%;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;line-height:1;padding-bottom:4px;
+  background:rgba(255,250,242,.94);color:var(--mawar);
+  border:1px solid var(--mawar);box-shadow:0 4px 12px -4px rgba(57,38,47,.5);
+  transition:opacity .3s ease, transform .3s ease;
+}
+.komidi-geser.kiri{left:6px}
+.komidi-geser.kanan{right:6px}
+.komidi-geser:disabled{opacity:0;pointer-events:none}
+.komidi-geser:active{transform:scale(.92)}
+
+.titik-baris{display:flex;gap:9px;justify-content:center;margin-top:18px}
+.titik{
+  width:9px;height:9px;padding:0;border-radius:50%;cursor:pointer;
+  background:var(--emas-muda);border:1px solid var(--emas);
+  transition:transform .35s cubic-bezier(.16,1,.3,1), background .35s ease;
+}
+.titik.aktif{background:var(--mawar);border-color:var(--mawar);transform:scale(1.5)}
+
 .bingkai-foto{
-  aspect-ratio:1/1;border:1px solid var(--garis);border-radius:2px;
-  box-shadow:0 3px 0 rgba(168,130,60,.15);
+  aspect-ratio:3/4;border:1px solid var(--garis);
+  box-shadow:0 3px 0 rgba(168,130,60,.15), 0 16px 30px -22px rgba(57,38,47,.7);
   overflow:hidden;background:var(--kertas2);
   display:flex;align-items:center;justify-content:center;
 }
 .bingkai-foto[data-foto]{cursor:zoom-in}
 .bingkai-foto[data-foto]:focus-visible{outline:3px solid var(--mawar);outline-offset:2px}
-.bingkai-foto img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s ease}
-.bingkai-foto[data-foto]:hover img{transform:scale(1.06)}
+.bingkai-foto img{width:100%;height:100%;object-fit:cover;display:block;
+  transition:transform .8s var(--pelan), opacity .7s ease;animation:muncul .7s ease both}
+@keyframes muncul{from{opacity:0}to{opacity:1}}
+.bingkai-foto[data-foto]:hover img{transform:scale(1.07)}
 .bingkai-foto.kosong{
   background:repeating-linear-gradient(45deg,#efe1cc 0 10px,#fbf3e6 10px 20px);
   color:var(--tinta-lembut);font-size:16px;font-weight:700;
 }
-.galeri figcaption{
+.slide figcaption{
   font-family:var(--judul);font-style:italic;font-size:19px;color:var(--tinta-lembut);
-  margin-top:8px;line-height:1.35;
+  margin-top:10px;line-height:1.35;text-align:center;
 }
 
 /* ============ Buku tamu ============ */
@@ -486,7 +558,11 @@ h2::after{
 #lampu{
   position:fixed;inset:0;z-index:30;background:rgba(29,20,32,.97);
   display:flex;align-items:center;justify-content:center;padding:24px 16px;
+  animation:lampuMasuk .35s var(--halus) both;
 }
+#lampu figure{animation:fotoMasuk .45s var(--pelan) both}
+@keyframes lampuMasuk{from{opacity:0}to{opacity:1}}
+@keyframes fotoMasuk{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
 #lampu[hidden]{display:none}
 #lampu figure{margin:0;max-width:960px;text-align:center}
 #lampu img{max-width:100%;max-height:78vh;display:block;margin:0 auto;border:1px solid rgba(230,211,174,.45)}
@@ -494,7 +570,10 @@ h2::after{
   font-family:var(--judul);font-style:italic;font-size:21px;color:var(--emas-muda);margin-top:16px;
 }
 .lampu-tutup,.lampu-geser{
-  position:absolute;width:52px;height:52px;border-radius:50%;cursor:pointer;
+  /* z-index wajib: animasi masuk fotonya memakai transform, yang bikin
+     <figure> jadi lapisan sendiri dan — karena ditulis setelah tombol —
+     menutupi panah kiri/kanan sampai tidak bisa diklik. */
+  position:absolute;z-index:2;width:52px;height:52px;border-radius:50%;cursor:pointer;
   display:flex;align-items:center;justify-content:center;line-height:1;
   background:rgba(255,250,242,.12);color:var(--kertas2);
   border:1px solid rgba(230,211,174,.5);font-family:var(--badan);
@@ -613,7 +692,7 @@ body.dibuka #musik{display:flex}
   .baris{flex-direction:column;gap:2px;margin-bottom:16px}
   .label{flex:0 0 auto;padding-top:0}
   .lampu-geser{width:44px;height:44px;font-size:28px;margin-top:-22px}
-  #hiasan{opacity:.35}
+  #hiasan .untaian{opacity:.38}
 }
 
 /* ============ Layar lebar ============ */
@@ -621,7 +700,7 @@ body.dibuka #musik{display:flex}
   body{font-size:21px}
   .tombol-baris{flex-direction:row;flex-wrap:wrap}
   .tombol-baris .tombol{width:auto;flex:1 1 200px}
-  .galeri{grid-template-columns:repeat(3,1fr)}
+  .slide{width:min(46%,280px)}
   .bingkai{padding:56px 44px 68px}
   .sudut-bunga .sudut{width:124px;height:124px}
   .bagian.pita{margin-left:-40px;margin-right:-40px;padding-left:40px;padding-right:40px}
@@ -648,5 +727,6 @@ body.dibuka #musik{display:flex}
   *{animation:none !important;transition:none !important}
   html{scroll-behavior:auto}
   #kelopak{display:none}
-  .bagian{opacity:1;transform:none}
+  .bagian,.bagian>*{opacity:1;transform:none;transition-delay:0s}
+  .rel{scroll-behavior:auto}
 }
