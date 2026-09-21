@@ -15,7 +15,9 @@ git push origin main
 
 ---
 
-## v3.3.0 — untaian bunga, galeri komidi putar, transisi lebih halus
+## v3.3.0 — commit `2e3a8e6`
+
+Untaian bunga, galeri komidi putar, transisi lebih halus.
 
 Tidak ada langkah tambahan di server untuk versi ini — cukup tarik dan deploy.
 
