@@ -15,7 +15,9 @@ git push origin main
 
 ---
 
-## v3.4.0 — untaian sudut bawah + mahkota bunga di kepala tiap bagian
+## v3.4.0 — commit `e2f6d7e`
+
+Untaian sudut bawah + mahkota bunga di kepala tiap bagian.
 
 Tidak ada langkah tambahan di server — cukup tarik dan deploy.
 
