@@ -15,6 +15,48 @@ git push origin main
 
 ---
 
+## v3.4.0 — untaian sudut bawah + mahkota bunga di kepala tiap bagian
+
+Tidak ada langkah tambahan di server — cukup tarik dan deploy.
+
+### Untaian di sudut bawah
+
+- Rangkaian bunga sekarang juga naik dari dua sudut bawah, di sampul maupun di
+  latar halaman. Benihnya berbeda dari yang di atas: kalau gambar yang sama
+  cuma dibalik, mata langsung menangkap pengulangannya.
+- Ruang di bawah bingkai sampul dilebihkan supaya catatan musiknya duduk di
+  atas bunga, bukan tertimpa.
+
+### Mahkota bunga di kepala tiap bagian
+
+- Pemisah garis tipis antar bagian diganti mahkota bunga: kipas daun kiri-kanan,
+  tiga kuntum di pusat, dan dua untai pendek yang menjuntai — bahasa gambar yang
+  sama dengan untaian besar di sudut, cuma diperkecil.
+- Tiap bagian dapat benih sendiri, jadi rangkaiannya mirip tapi tidak persis
+  sama; halaman panjang tidak terasa mengulang gambar yang itu-itu saja.
+- Warnanya diatur lewat kelas, bukan ditulis di atribut SVG-nya, supaya bisa
+  dibalik jadi terang waktu mahkotanya berdiri di atas pita gelap.
+
+### Perbaikan
+
+- **HP dimiringkan: tombol "Buka Undangan" tidak terlihat.** Ruang yang diminta
+  untaian sudut bawah mendorong tombolnya keluar layar di layar setinggi ~390px.
+  Sekarang ada aturan khusus layar sangat pendek: untaian bawah dilepas dan
+  segalanya diringkas, karena hiasan tidak boleh menang atas tombol yang harus
+  ditekan tamu. Sudah diperiksa di enam ukuran layar — tombolnya terlihat di
+  semuanya.
+- **Kesalahan saat menggambar halaman kini tercatat.** Sebelumnya satu kesalahan
+  di tengah penggambaran ditelan diam-diam dan tamunya melihat layar "tidak
+  terdaftar" — persis sama seperti kalau kodenya memang salah, dan itu
+  menyesatkan waktu mencari penyebabnya. Halamannya tetap ditutup (lebih baik
+  begitu daripada undangan setengah jadi), tapi sekarang alasannya muncul di
+  konsol.
+- Kode mati dibuang: fungsi pemisah garis lama sudah tidak dipakai lagi.
+
+Seluruh rangkaian tes diulang dan lolos.
+
+---
+
 ## v3.3.0 — commit `2e3a8e6`
 
 Untaian bunga, galeri komidi putar, transisi lebih halus.

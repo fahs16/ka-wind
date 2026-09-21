@@ -90,11 +90,18 @@ body{overflow-x:clip}
 .untaian.kiri,.untaian-sampul.kiri{left:0}
 /* Sudut kanan memakai gambar yang sama, tinggal dicerminkan. */
 .untaian.kanan,.untaian-sampul.kanan{right:0;transform:scaleX(-1)}
+/* Sudut bawah: gambar yang sama diputar setengah lingkaran, jadi untaiannya
+   menjalar ke atas dari pojok bawah. */
+.untaian.bawah,.untaian-sampul.bawah{top:auto;bottom:0}
+.untaian.bawah.kiri,.untaian-sampul.bawah.kiri{transform:rotate(180deg) scaleX(-1)}
+.untaian.bawah.kanan,.untaian-sampul.bawah.kanan{transform:rotate(180deg)}
 .untaian-sampul{z-index:2;top:-16px;width:min(58vw,300px);height:min(50vw,250px)}
+.untaian-sampul.bawah{bottom:-12px;opacity:.8;height:min(28vw,150px)}
 
 /* ============ Rangkaian bunga samar di sudut layar ============ */
 #hiasan{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
 #hiasan .untaian{opacity:.5}
+#hiasan .untaian.bawah{opacity:.34;height:min(36vw,230px)}
 #hiasan .tepi{opacity:.3}
 #hiasan .sudut{position:absolute;width:min(34vw,210px);height:auto}
 #hiasan .sudut:first-child{top:-28px;left:-34px}
@@ -145,7 +152,7 @@ body{overflow-x:clip}
 
 /* bingkai berukir dua garis + sudut emas + rangkaian bunga di empat pojok */
 .bingkai{
-  position:relative;padding:44px 26px 56px;
+  position:relative;padding:44px 26px 104px;
   border:2px solid var(--emas);
   box-shadow:inset 0 0 0 7px var(--kertas), inset 0 0 0 8px var(--emas-muda),
              0 18px 40px -22px rgba(57,38,47,.5);
@@ -257,7 +264,6 @@ body{overflow-x:clip}
 .bagian.gelap h2::after{background:var(--emas-muda);opacity:.8}
 .bagian.gelap .tulisan-tangan{color:var(--emas-muda)}
 .bagian.gelap .sub{color:rgba(247,232,221,.82)}
-.bagian.gelap .pemisah path[fill="#a8365a"]{fill:var(--emas-muda)}
 /* Kartu di atas pita gelap dibiarkan terang — justru kontrasnya yang bikin
    kartunya terbaca seperti kartu undangan yang ditempel di atas beludru. */
 .bagian.gelap .kartu{
@@ -271,8 +277,18 @@ body{overflow-x:clip}
 .bagian.gelap .kartu .isi{color:var(--tinta)}
 .bagian.gelap .kartu .label{color:var(--emas)}
 
-/* pemisah dedaunan antar bagian */
-.pemisah{display:block;width:170px;height:24px;margin:0 auto 26px}
+/* Mahkota bunga di kepala tiap bagian. Warnanya lewat kelas, bukan atribut,
+   supaya bisa dibalik jadi terang di atas pita gelap. */
+.mahkota{display:block;width:244px;max-width:88%;height:auto;margin:0 auto 20px}
+.m-garis{fill:none;stroke:var(--emas-muda);stroke-width:1.3;stroke-linecap:round}
+.m-daun{fill:#e7eddf;stroke:#7d8f6a;stroke-width:1.1}
+.m-kelopak{fill:#eec4d4}
+.m-bunga{fill:#f3dde3;stroke:#a8365a;stroke-width:1.2}
+.m-pusar{fill:none;stroke:#a8365a;stroke-width:1.1}
+.bagian.gelap .m-garis{stroke:var(--emas-muda)}
+.bagian.gelap .m-daun{fill:#6d8a5c;stroke:#cfdcbe}
+.bagian.gelap .m-kelopak{fill:#f0cdd9}
+.bagian.gelap .m-bunga{fill:#f6dde6;stroke:#a8365a}
 
 /* Kata kecil bertulisan tangan di atas judul. */
 .tulisan-tangan{
@@ -693,6 +709,7 @@ body.dibuka #musik{display:flex}
   .label{flex:0 0 auto;padding-top:0}
   .lampu-geser{width:44px;height:44px;font-size:28px;margin-top:-22px}
   #hiasan .untaian{opacity:.38}
+  #hiasan .untaian.bawah{opacity:.26}
 }
 
 /* ============ Layar lebar ============ */
@@ -701,7 +718,7 @@ body.dibuka #musik{display:flex}
   .tombol-baris{flex-direction:row;flex-wrap:wrap}
   .tombol-baris .tombol{width:auto;flex:1 1 200px}
   .slide{width:min(46%,280px)}
-  .bingkai{padding:56px 44px 68px}
+  .bingkai{padding:44px 44px 112px}
   .sudut-bunga .sudut{width:124px;height:124px}
   .bagian.pita{margin-left:-40px;margin-right:-40px;padding-left:40px;padding-right:40px}
   .medali{width:176px;height:230px}
@@ -711,13 +728,40 @@ body.dibuka #musik{display:flex}
 /* Di HP kecil dan di HP yang dimiringkan, sampul harus tetap muat utuh —
    tombol "Buka Undangan" jangan sampai perlu dicari dengan menggulir. */
 @media (max-height:700px){
-  .bingkai{padding:24px 20px 28px}
-  .monogram{width:84px;height:84px}
-  .nama.tulis{font-size:clamp(40px,11vw,56px)}
-  .sapaan{margin-top:16px;padding-top:14px}
-  .tombol.besar{margin-top:18px;min-height:56px}
-  .sampul-catatan{margin-top:12px;font-size:15px}
-  .sudut-bunga .sudut{width:72px;height:72px}
+  .bingkai{padding:22px 20px 26px}
+  /* Untaian bawah dimatikan di layar pendek. Di HP yang dimiringkan, ruang
+     yang dia minta bikin tombol "Buka Undangan" terdorong keluar layar —
+     hiasan tidak boleh menang atas tombol yang harus ditekan tamu. */
+  .untaian-sampul.bawah{display:none}
+  .untaian-sampul{height:min(34vw,150px)}
+  .monogram{width:72px;height:72px;margin-bottom:0}
+  .kicker{margin:8px 0 2px;letter-spacing:4px}
+  .nama.tulis{font-size:clamp(34px,9vw,48px);line-height:1.1}
+  .tanggal{margin-top:10px}
+  .sapaan{margin-top:12px;padding-top:12px}
+  .sapaan b{font-size:24px}
+  .tombol.besar{margin-top:14px;min-height:52px}
+  .sampul-catatan{margin-top:10px;font-size:14px}
+  .sudut-bunga .sudut{width:64px;height:64px}
+}
+
+/* ============ Layar sangat pendek (HP dimiringkan) ============ */
+/* Di layar setinggi ~400px, sampul harus diringkas habis: yang wajib terlihat
+   tanpa menggulir cuma nama, sapaan untuk tamunya, dan tombolnya. Catatan
+   musik dilepas — tombol nada di pojok sudah punya keterangan sendiri. */
+@media (max-height:460px){
+  #sampul{padding:10px 18px}
+  .bingkai{padding:14px 18px 16px}
+  .monogram{width:56px;height:56px}
+  .kicker{margin:4px 0 0;font-size:11px}
+  .nama.tulis{font-size:clamp(28px,6vw,38px)}
+  .dan{font-size:20px}
+  .tanggal{margin-top:6px;font-size:13px;letter-spacing:2px}
+  .sapaan{margin-top:8px;padding-top:8px;font-size:15px}
+  .sapaan b{font-size:20px;margin-top:2px}
+  .tombol.besar{margin-top:10px;min-height:46px;font-size:17px}
+  .sampul-catatan{display:none}
+  .untaian-sampul{height:min(26vw,110px)}
 }
 
 /* ============ Hormati setelan hemat gerak ============ */

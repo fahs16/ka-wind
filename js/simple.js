@@ -206,32 +206,6 @@ const Simple = {
     '</svg>';
   },
 
-  // Pemisah antar bagian. Tiga corak supaya halaman panjang tidak terasa
-  // mengulang gambar yang sama terus-menerus.
-  pemisah(jenis) {
-    const garis = '<g fill="none" stroke="#c9b189" stroke-width="1.2" stroke-linecap="round">' +
-      '<path d="M6 12h46"/><path d="M118 12h46"/></g>';
-    if (jenis === 'mawar') {
-      return '<svg class="pemisah" viewBox="0 0 170 24" aria-hidden="true">' + garis +
-        '<g transform="translate(70,12) rotate(200) scale(.75)">' + this.daun + '</g>' +
-        '<g transform="translate(100,12) rotate(20) scale(.75)">' + this.daun + '</g>' +
-        this.mawar(85, 12, 1.05) +
-      '</svg>';
-    }
-    if (jenis === 'daun') {
-      return '<svg class="pemisah" viewBox="0 0 170 24" aria-hidden="true">' + garis +
-        '<g transform="translate(60,12) rotate(196) scale(.8)">' + this.daun + '</g>' +
-        '<g transform="translate(110,12) rotate(16) scale(.8)">' + this.daun + '</g>' +
-        '<path d="M85 4l4.5 8-4.5 8-4.5-8z" fill="#a8365a"/>' +
-      '</svg>';
-    }
-    return '<svg class="pemisah" viewBox="0 0 170 24" aria-hidden="true">' + garis +
-      '<path d="M85 3l5 9-5 9-5-9z" fill="none" stroke="#a8823c" stroke-width="1.2"/>' +
-      '<path d="M85 7.5l2.5 4.5-2.5 4.5-2.5-4.5z" fill="#a8365a"/>' +
-      '<circle cx="64" cy="12" r="2" fill="#e6d3ae"/><circle cx="106" cy="12" r="2" fill="#e6d3ae"/>' +
-    '</svg>';
-  },
-
   // Sulur merambat untuk tepi kiri dan kanan layar. Digambar sebagai satu
   // petak yang ujung atas dan bawahnya bertemu di titik yang sama, jadi bisa
   // diulang ke bawah tanpa kelihatan sambungannya.
@@ -267,6 +241,55 @@ const Simple = {
       '<rect x="12" y="8" width="10" height="10" rx="2"/></g></svg>';
   },
 
+  // Mahkota bunga di kepala tiap bagian — pengganti pemisah garis tipis.
+  // Tiap bagian dapat benih sendiri, jadi rangkaiannya mirip tapi tidak persis
+  // sama; halaman panjang jadi tidak terasa mengulang gambar yang itu-itu saja.
+  //
+  // Warnanya diatur lewat kelas, bukan ditulis di atributnya, supaya bisa
+  // dibalik jadi terang waktu mahkotanya berdiri di atas pita gelap.
+  mahkota(benih) {
+    const ac = (a, b) => U.hash(benih * 29 + a, benih * 13 + b);
+    const DAUN = 'M0 0C4-6 13-6 17 0 13 6 4 6 0 0Z';
+    let keluar = '<g class="m-garis"><path d="M4 34h52"/><path d="M144 34h52"/></g>';
+
+    // Kipas daun yang membuka ke kiri dan ke kanan dari pusat.
+    for (const sisi of [-1, 1]) {
+      for (let i = 0; i < 4; i++) {
+        const x = 100 + sisi * (22 + i * 17);
+        const y = 34 - Math.sin(((i + 1) / 5) * Math.PI) * (8 + ac(i, 1) * 7);
+        const putar = sisi > 0 ? (-28 + i * 12 + ac(i, 2) * 14) : (208 - i * 12 - ac(i, 2) * 14);
+        const besar = (1.4 - i * 0.16).toFixed(2);
+        keluar += '<g transform="translate(' + x.toFixed(1) + ',' + y.toFixed(1) + ') rotate(' +
+          putar.toFixed(0) + ') scale(' + besar + ')"><path class="m-daun" d="' + DAUN + '"/></g>';
+      }
+    }
+
+    // Dua untai pendek menjuntai dari pusat — bahasa gambar yang sama dengan
+    // untaian besar di sudut halaman, cuma diperkecil.
+    for (const sisi of [-1, 1]) {
+      const pangkal = 100 + sisi * 11;
+      for (let i = 0; i < 5; i++) {
+        const r = 5.9 - i * 0.85;
+        const x = pangkal + sisi * i * 2.1 + (ac(i, 3) - 0.5) * 4;
+        const y = 43 + i * 7.4;
+        keluar += '<ellipse class="m-kelopak" cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) +
+          '" rx="' + r.toFixed(1) + '" ry="' + (r * 0.85).toFixed(1) +
+          '" opacity="' + (0.9 - i * 0.12).toFixed(2) + '"/>';
+      }
+    }
+
+    // Tiga kuntum di pusat, besar di tengah.
+    const kuntum = (x, y, besar) =>
+      '<g transform="translate(' + x + ',' + y + ') scale(' + besar + ')">' +
+        '<circle class="m-bunga" r="7"/>' +
+        '<path class="m-pusar" d="M-3.6 1.4a3.9 3.9 0 1 1 4.6 3.5"/>' +
+        '<path class="m-pusar" d="M-1.5-2.2a2 2 0 1 1 2.6 1.8"/>' +
+      '</g>';
+    keluar += kuntum(86, 33, 0.92) + kuntum(114, 34, 0.88) + kuntum(100, 27, 1.35);
+
+    return '<svg class="mahkota" viewBox="0 0 200 86" aria-hidden="true">' + keluar + '</svg>';
+  },
+
   // Lambang kecil di kepala kartu acara: kubah untuk akad, cincin untuk
   // resepsi. Dipilih dari nama acaranya sendiri supaya tidak perlu setelan
   // tambahan di config.js.
@@ -300,6 +323,7 @@ const Simple = {
       // layar lebar tetap menggantung di pojok kartu dan bukan melayang jauh.
       '<div class="sampul-isi">' +
         '<span class="untaian-sampul kiri"></span><span class="untaian-sampul kanan"></span>' +
+        '<span class="untaian-sampul bawah kiri"></span><span class="untaian-sampul bawah kanan"></span>' +
         '<div class="bingkai">' +
         '<div class="sudut-bunga">' + sudut + sudut + sudut + sudut + '</div>' +
         this.monogram() +
@@ -319,7 +343,10 @@ const Simple = {
           'Bisa dimatikan lewat tombol &#9834; di pojok kanan bawah.</p>' +
       '</div></div>';
     const gantung = this.rangkaianUrl(460, 340, 11);
-    document.querySelectorAll('.untaian-sampul').forEach(t => { t.style.backgroundImage = gantung; });
+    const naik = this.rangkaianUrl(460, 300, 31);
+    document.querySelectorAll('.untaian-sampul').forEach(t => {
+      t.style.backgroundImage = t.classList.contains('bawah') ? naik : gantung;
+    });
     document.getElementById('buka').addEventListener('click', () => this.buka());
   },
 
@@ -369,10 +396,13 @@ const Simple = {
     this.muatUcapan();
   },
 
+  nomorBagian: 0,
+
   // Kerangka satu bagian, supaya jarak dan susunan judulnya seragam.
   bungkus(o) {
+    this.nomorBagian++;
     return '<section class="bagian' + (o.kelas ? ' ' + o.kelas : '') + '">' +
-      (o.pemisah === false ? '' : this.pemisah(o.pemisah)) +
+      (o.mahkota === false ? '' : this.mahkota(this.nomorBagian)) +
       (o.kicker ? '<p class="tulisan-tangan">' + U.esc(o.kicker) + '</p>' : '') +
       (o.judul ? '<h2>' + U.esc(o.judul) + '</h2>' : '') +
       (o.sub ? '<p class="sub">' + U.esc(o.sub) + '</p>' : '') +
@@ -414,7 +444,7 @@ const Simple = {
     const s = CONFIG.salam || {};
     if (!s.pembuka && !s.niat) return '';
     return this.bungkus({
-      kelas: 'pita', pemisah: 'daun',
+      kelas: 'pita',
       isi: (s.pembuka ? '<p class="salam">' + U.esc(s.pembuka) + '</p>' : '') +
            (s.niat ? '<p class="niat">' + U.esc(s.niat) + '</p>' : '')
     });
@@ -440,7 +470,7 @@ const Simple = {
       '</div>';
     };
     return this.bungkus({
-      kelas: 'mempelai-bagian', pemisah: 'mawar',
+      kelas: 'mempelai-bagian',
       kicker: 'Bismillah', judul: 'Mempelai',
       sub: 'Dengan memohon rahmat dan ridho Allah, kami bermaksud menyelenggarakan pernikahan:',
       isi: satu(c.groom) + '<div class="amper-garis"><span>&amp;</span></div>' + satu(c.bride)
@@ -451,7 +481,7 @@ const Simple = {
     const q = CONFIG.quote;
     if (!q || !q.text) return '';
     return this.bungkus({
-      kelas: 'pita', pemisah: 'titik',
+      kelas: 'pita',
       isi: '<blockquote class="kutipan">' +
         '<span class="petik" aria-hidden="true">&ldquo;</span>' +
         U.esc(q.text) +
@@ -481,7 +511,7 @@ const Simple = {
         '" target="_blank" rel="noopener">Tonton dari Rumah</a></div></div>'
       : '';
     return this.bungkus({
-      kelas: 'gelap', pemisah: 'daun', kicker: 'Save the Date', judul: 'Rangkaian Acara',
+      kelas: 'gelap', kicker: 'Save the Date', judul: 'Rangkaian Acara',
       sub: s.penutup || '', isi: kartu + live
     });
   },
@@ -493,7 +523,7 @@ const Simple = {
       '<h3>' + U.esc(s.title) + '</h3>' +
       '<p>' + U.esc(s.text) + '</p></li>').join('');
     return this.bungkus({
-      kelas: 'pita', pemisah: 'mawar',
+      kelas: 'pita',
       kicker: 'Our Story', judul: 'Cerita Kami',
       sub: 'Sedikit tentang bagaimana kami sampai di titik ini.',
       isi: '<ul class="cerita">' + item + '</ul>'
@@ -520,7 +550,7 @@ const Simple = {
     // Komidi putar memakai scroll-snap bawaan browser, bukan pustaka: geserannya
     // jadi mulus dan ikut inersia jari tanpa satu baris pun kode gulir sendiri.
     return this.bungkus({
-      pemisah: 'titik', kicker: 'Moments', judul: 'Galeri',
+      kicker: 'Moments', judul: 'Galeri',
       sub: 'Geser untuk melihat potongan perjalanan kami.',
       isi: '<div class="komidi">' +
           '<div class="rel" id="galeri-rel">' + item + '</div>' +
@@ -540,7 +570,7 @@ const Simple = {
       (simpan && +simpan.jumlah === i + 1 ? ' selected' : '') + '>' + (i + 1) + ' orang</option>').join('');
     const pilih = v => (simpan && simpan.hadir === v ? ' selected' : '');
     return this.bungkus({
-      kelas: 'pita', pemisah: 'mawar',
+      kelas: 'pita',
       kicker: 'RSVP', judul: 'Konfirmasi Kehadiran',
       sub: 'Mohon diisi supaya kami bisa menyiapkan kursi dan konsumsi yang pas.' +
         (CONFIG.rsvp.deadline ? ' Ditunggu sebelum ' + CONFIG.rsvp.deadline + '.' : ''),
@@ -573,7 +603,7 @@ const Simple = {
   ucapan() {
     if (!Ucapan.aktif()) return '';
     return this.bungkus({
-      pemisah: 'titik', kicker: 'Wishes', judul: 'Ucapan & Doa',
+      kicker: 'Wishes', judul: 'Ucapan & Doa',
       sub: 'Doa yang dikirim tamu-tamu lain untuk kami.',
       isi:
         '<div class="hitungan" id="ucapan-hitung">' +
@@ -608,7 +638,7 @@ const Simple = {
         U.esc(g.address) + '">Salin Alamat</button></div></div>'
       : '';
     return this.bungkus({
-      pemisah: 'daun', kicker: 'Wedding Gift', judul: 'Tanda Kasih',
+      kicker: 'Wedding Gift', judul: 'Tanda Kasih',
       sub: 'Kehadiran Anda sudah lebih dari cukup. ' +
         'Tapi kalau ingin mengirim tanda kasih, ini pintunya.',
       isi: bank + alamat
@@ -618,7 +648,7 @@ const Simple = {
   penutup() {
     const c = CONFIG.couple;
     const s = CONFIG.salam || {};
-    return '<section class="bagian penutup">' + this.pemisah('mawar') +
+    return '<section class="bagian penutup">' + this.mahkota(99) +
       '<p class="kicker">Sampai jumpa di hari bahagia</p>' +
       this.monogram() +
       '<p class="nama tulis">' + U.esc(c.groom.nick) + ' &amp; ' + U.esc(c.bride.nick) + '</p>' +
@@ -648,13 +678,19 @@ const Simple = {
     if (!kotak) return;
     kotak.innerHTML =
       '<span class="untaian kiri"></span><span class="untaian kanan"></span>' +
+      '<span class="untaian bawah kiri"></span><span class="untaian bawah kanan"></span>' +
       '<span class="tepi kiri"></span><span class="tepi kanan"></span>';
     // Semua hiasan dipasang sebagai latar, bukan sebagai ribuan elemen SVG
     // di dalam halaman — satu rangkaian saja isinya ratusan bentuk.
     const sulur = 'url("data:image/svg+xml,' + encodeURIComponent(this.sulur()) + '")';
     kotak.querySelectorAll('.tepi').forEach(t => { t.style.backgroundImage = sulur; });
-    const untaian = this.rangkaianUrl(420, 300, 3);
-    kotak.querySelectorAll('.untaian').forEach(t => { t.style.backgroundImage = untaian; });
+    // Sudut bawah memakai benih berbeda supaya tidak kelihatan sebagai gambar
+    // yang sama dibalik — pandangan mata langsung menangkap pengulangan persis.
+    const atas = this.rangkaianUrl(420, 300, 3);
+    const bawah = this.rangkaianUrl(420, 260, 23);
+    kotak.querySelectorAll('.untaian').forEach(t => {
+      t.style.backgroundImage = t.classList.contains('bawah') ? bawah : atas;
+    });
   },
 
   tebarKelopak() {
@@ -978,5 +1014,12 @@ window.addEventListener('DOMContentLoaded', () => {
       // tampil — hanya isinya yang seadanya.
       return Isi.muat().then(() => Simple.mulai());
     })
-    .catch(() => Access.tutup());
+    .catch(e => {
+      // Halaman tetap ditutup — lebih baik tamu melihat layar tertutup
+      // daripada undangan setengah jadi. Tapi kesalahannya dicatat: tanpa ini,
+      // satu kesalahan saat menggambar terlihat persis sama seperti "kodenya
+      // tidak terdaftar", dan itu menyesatkan waktu mencari penyebabnya.
+      console.error('Undangan gagal digambar:', e);
+      Access.tutup();
+    });
 });
