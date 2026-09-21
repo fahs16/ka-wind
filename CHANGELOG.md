@@ -15,6 +15,65 @@ git push origin main
 
 ---
 
+## v3.3.0 — untaian bunga, galeri komidi putar, transisi lebih halus
+
+Tidak ada langkah tambahan di server untuk versi ini — cukup tarik dan deploy.
+
+### Untaian bunga gantung
+
+Ini jawaban untuk "nuansa pernikahannya masih belum dapet". Sebelumnya
+ornamennya cuma garis tipis; sekarang ada rangkaian bunga yang menjuntai dari
+dua sudut atas, seperti wisteria.
+
+- Digambar prosedural lewat SVG, bukan foto: tidak ada berkas gambar yang perlu
+  diunduh, ukurannya bebas diperbesar tanpa pecah, dan warnanya tetap satu
+  keluarga dengan sisa halaman.
+- Untaiannya meruncing ke arah tengah — paling panjang menggantung di pojok,
+  makin pendek menjauh darinya — supaya monogram dan nama tidak tertutup.
+- Dipasang sebagai latar lewat CSS, bukan sebagai ratusan elemen di dalam
+  halaman: satu rangkaian isinya lebih dari 250 bentuk.
+- Ada di sampul (menempel di pojok kartunya, bukan di tepi layar, jadi di layar
+  lebar tetap menggantung di kartunya) dan di latar halaman.
+
+### Galeri komidi putar
+
+- Galeri berubah dari petak jadi komidi putar yang bisa digeser, dengan bingkai
+  lengkung, tombol panah, dan titik penanda.
+- Geserannya memakai `scroll-snap` bawaan browser, bukan pustaka — jadi ikut
+  inersia jari di HP dan tetap mulus tanpa satu baris pun kode gulir sendiri.
+- Titik penandanya ikut posisi gulir, termasuk waktu digeser pakai jari.
+- Panah otomatis padam di foto pertama dan terakhir.
+- Klik fotonya tetap memperbesar seperti sebelumnya.
+
+### Gerak yang lebih halus
+
+- Satu lengkung percepatan dipakai seragam di seluruh halaman.
+- Bagian tidak lagi muncul sekaligus: isinya menyusul bertahap dengan jeda
+  kecil antar baris. Jedanya sengaja dijaga pendek — yang terakhir sudah utuh
+  sekitar sedetik setelah bagiannya masuk layar, supaya tamu yang menggulir
+  cepat tidak membaca teks yang masih separuh pudar.
+- Sampul keluar sambil melayang naik sedikit, bukan cuma memudar.
+- Foto galeri memudar masuk begitu selesai dimuat.
+- Foto yang diperbesar masuk sambil membesar pelan.
+
+### Kelopak jatuh
+
+- Dari 14 jadi 24 helai, dalam tiga lapis kedalaman: yang jauh lebih kecil,
+  kabur, dan jatuh lebih lambat. Itu yang bikin kelopaknya terasa berada di
+  ruang, bukan menempel di kaca.
+- Bentuk dan warnanya bertingkat, bukan satu warna rata.
+
+### Perbaikan
+
+- Tombol panah di foto yang diperbesar sempat tidak bisa diklik: animasi masuk
+  fotonya memakai `transform`, yang membuat `<figure>` jadi lapisan sendiri dan
+  menutupi panahnya. Sekarang panahnya dipaku di lapisan atas.
+
+Seluruh rangkaian tes diulang dan lolos, ditambah rangkaian baru untuk komidi
+putar (16 pemeriksaan).
+
+---
+
 ## v3.2.0 — commit `bf217cf`
 
 Buku tamu + elemen dari undangan pembanding.
